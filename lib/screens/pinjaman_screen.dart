@@ -1,17 +1,54 @@
 import 'package:flutter/material.dart';
+import '../widgets/transaction_widgets.dart';
 
 const Color _primaryGreen = Color(0xFF627931);
 const Color _scaffoldBg = Color(0xFFEDEFE2);
 const Color _appBarBg = Color(0xFFF8FFE8);
 
-class PinjamanScreen extends StatelessWidget {
+class PinjamanScreen extends StatefulWidget {
   const PinjamanScreen({super.key});
+
+  @override
+  State<PinjamanScreen> createState() => _PinjamanScreenState();
+}
+
+class _PinjamanScreenState extends State<PinjamanScreen> {
+  int _selectedTab = 0; // 0 = Pinjam Uang, 1 = Kasih Pinjam
+  int _selectedSource = 0; // 0 = Cash, 1 = Digital
+  int? _selectedAccount;
+  String _selectedDate = '';
+  bool _simpanKeDaftar = false;
+
+  Future<void> _selectDate(BuildContext context) async {
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: DateTime.now(),
+      firstDate: DateTime.now(),
+      lastDate: DateTime(2030),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: const ColorScheme.light(
+              primary: _primaryGreen, 
+              onPrimary: Colors.white, 
+              onSurface: _primaryGreen, 
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+    if (picked != null) {
+      setState(() {
+        _selectedDate = "${picked.day}/${picked.month}/${picked.year}";
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: _scaffoldBg,
-      //header
       appBar: PreferredSize(
         preferredSize: const Size.fromHeight(80),
         child: Container(
@@ -35,7 +72,6 @@ class PinjamanScreen extends StatelessWidget {
                     ),
                   ),
                 ),
-                // Judul Halaman
                 const Center(
                   child: Text(
                     'Pinjaman',
@@ -52,8 +88,6 @@ class PinjamanScreen extends StatelessWidget {
           ),
         ),
       ),
-
-      //body
       body: Stack(
         fit: StackFit.expand,
         children: [
@@ -64,18 +98,194 @@ class PinjamanScreen extends StatelessWidget {
               child: Image.asset(
                 'assets/images/bg_curve.png',
                 fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) =>
+                    const SizedBox.shrink(),
               ),
             ),
           ),
 
-          //isi konten halaman
           SafeArea(
             child: SingleChildScrollView(
               padding: const EdgeInsets.all(24.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  // konten halaman disini
+                  // Custom Tab Toggle (Pinjam Uang vs Kasih Pinjam)
+                  Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFD4DFBA), // Warna hijau pucat/abu
+                      borderRadius: BorderRadius.circular(30),
+                    ),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: GestureDetector(
+                            onTap: () => setState(() => _selectedTab = 0),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                              decoration: BoxDecoration(
+                                color: _selectedTab == 0
+                                    ? _appBarBg
+                                    : Colors.transparent,
+                                borderRadius: BorderRadius.circular(26),
+                                border: _selectedTab == 0
+                                    ? Border.all(
+                                        color: _primaryGreen, width: 2)
+                                    : null,
+                              ),
+                              child: Center(
+                                child: Text(
+                                  'Pinjam Uang',
+                                  style: TextStyle(
+                                    color: _primaryGreen,
+                                    fontWeight: _selectedTab == 0
+                                        ? FontWeight.w800
+                                        : FontWeight.w600,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                        Expanded(
+                          child: GestureDetector(
+                            onTap: () => setState(() => _selectedTab = 1),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                              decoration: BoxDecoration(
+                                color: _selectedTab == 1
+                                    ? _appBarBg
+                                    : Colors.transparent,
+                                borderRadius: BorderRadius.circular(26),
+                                border: _selectedTab == 1
+                                    ? Border.all(
+                                        color: _primaryGreen, width: 2)
+                                    : null,
+                              ),
+                              child: Center(
+                                child: Text(
+                                  'Kasih Pinjam',
+                                  style: TextStyle(
+                                    color: _primaryGreen,
+                                    fontWeight: _selectedTab == 1
+                                        ? FontWeight.w800
+                                        : FontWeight.w600,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  
+                  Text(
+                    _selectedTab == 0 
+                      ? 'Lagi pinjam uang teman? Sini kami bantu catat, biar kamu nggak lupa balikin!'
+                      : 'Pinjamkan uang ke teman? Kami akan ingatkan saat batas waktunya tiba',
+                    style: const TextStyle(
+                      color: _primaryGreen,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  SourceToggle(
+                    label: 'Sumber Uang',
+                    option1: 'Cash',
+                    icon1: Icons.money,
+                    option2: 'Digital',
+                    icon2: Icons.phone_android,
+                    selectedIndex: _selectedSource,
+                    onSelect: (index) {
+                      setState(() {
+                        _selectedSource = index;
+                        if (index == 0) _selectedAccount = null;
+                      });
+                    },
+                  ),
+                  
+                  AnimatedSize(
+                    duration: const Duration(milliseconds: 300),
+                    curve: Curves.easeInOut,
+                    child: _selectedSource == 1
+                        ? AccountSelectionList(
+                            selectedIndex: _selectedAccount,
+                            onSelect: (index) {
+                              setState(() {
+                                _selectedAccount = index;
+                              });
+                            },
+                          )
+                        : const SizedBox.shrink(),
+                  ),
+
+                  const CustomTextField(
+                    label: 'Jumlah Uang',
+                    hint: 'Rp 0',
+                    keyboardType: TextInputType.number,
+                  ),
+                  const CustomTextField(
+                    label: 'Kategori',
+                    hint: 'e.g. Elektronik',
+                  ),
+                  const CustomTextField(
+                    label: 'Catatan',
+                    hint: 'Tambah catatan (opsional)',
+                  ),
+
+                  CustomTextField(
+                    label: 'Batas Waktu',
+                    hint: _selectedDate.isEmpty ? 'Pilih tanggal' : _selectedDate,
+                    readOnly: true,
+                    onTap: () => _selectDate(context),
+                  ),
+
+                  CustomTextField(
+                    label: _selectedTab == 0 ? 'Dari' : 'Untuk',
+                    hint: 'Nama teman',
+                  ),
+
+                  GestureDetector(
+                    onTap: () {
+                      setState(() {
+                        _simpanKeDaftar = !_simpanKeDaftar;
+                      });
+                    },
+                    child: Padding(
+                      padding: const EdgeInsets.only(bottom: 24.0),
+                      child: Row(
+                        children: [
+                          Icon(
+                            _simpanKeDaftar
+                                ? Icons.check_box
+                                : Icons.check_box_outline_blank,
+                            color: _primaryGreen,
+                            size: 24,
+                          ),
+                          const SizedBox(width: 8),
+                          const Text(
+                            'Simpan ke daftar',
+                            style: TextStyle(
+                              color: _primaryGreen,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+
+                  PrimaryButton(
+                    label: 'Simpan',
+                    onPressed: () {
+                      Navigator.pop(context);
+                    },
+                  ),
                 ],
               ),
             ),
