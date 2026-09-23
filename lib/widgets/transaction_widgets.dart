@@ -47,7 +47,7 @@ class CustomTextField extends StatelessWidget {
             decoration: InputDecoration(
               hintText: hint,
               hintStyle: TextStyle(
-                color: primaryGreen.withOpacity(0.5),
+                color: primaryGreen.withValues(alpha: 0.5),
                 fontWeight: FontWeight.w600,
               ),
               filled: true,
@@ -143,7 +143,7 @@ class SourceToggle extends StatelessWidget {
           boxShadow: isSelected
               ? [
                   BoxShadow(
-                    color: primaryGreen.withOpacity(0.2),
+                    color: primaryGreen.withValues(alpha: 0.2),
                     blurRadius: 8,
                     offset: const Offset(0, 4),
                   )
@@ -203,7 +203,7 @@ class AccountSelectionList extends StatelessWidget {
                 boxShadow: isSelected
                     ? [
                         BoxShadow(
-                          color: primaryGreen.withOpacity(0.2),
+                          color: primaryGreen.withValues(alpha: 0.2),
                           blurRadius: 8,
                           offset: const Offset(0, 4),
                         )
