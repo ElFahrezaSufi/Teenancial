@@ -1,4 +1,6 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'buat_target_screen.dart';
 
 const Color _primaryGreen = Color(0xFF627931);
 const Color _scaffoldBg = Color(0xFFEDEFE2);
@@ -33,6 +35,28 @@ class TargetMenabungScreen extends StatefulWidget {
 
 class _TargetMenabungScreenState extends State<TargetMenabungScreen> {
   List<TargetItem> daftarTarget = [];
+  Future<void> _navigasiDanTambahData(BuildContext context) async {
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const BuatTargetScreen(),
+      ),
+    );
+
+    if (result != null) {
+      setState(() {
+        daftarTarget.add(
+          TargetItem(
+            nama: result['nama'],
+            nominalTerkumpul: 'Rp 0',
+            nominalTarget: 'Rp ${result['harga']},00',
+            imageUrl: result['imagePath'],
+            progress: 0.0,
+          ),
+        );
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -111,9 +135,7 @@ class _TargetMenabungScreenState extends State<TargetMenabungScreen> {
       ),
       floatingActionButton: daftarTarget.isNotEmpty
           ? FloatingActionButton(
-              onPressed: () {
-                // TODO: Navigasi ke BuatTargetScreen
-              },
+              onPressed: () => _navigasiDanTambahData(context),
               backgroundColor: _primaryGreen,
               child: const Icon(Icons.add, color: Colors.white, size: 30),
             )
@@ -160,9 +182,7 @@ class _TargetMenabungScreenState extends State<TargetMenabungScreen> {
           ),
           const SizedBox(height: 24),
           ElevatedButton.icon(
-            onPressed: () {
-              // TODO: Arahkan ke screen buat_target_screen.dart di sini
-            },
+            onPressed: () => _navigasiDanTambahData(context),
             icon: const Icon(Icons.add, size: 18, color: Colors.white),
             label: const Text(
               'Buat Target Baru',
@@ -204,7 +224,9 @@ class _TargetMenabungScreenState extends State<TargetMenabungScreen> {
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(color: _primaryGreen, width: 2),
                 image: DecorationImage(
-                  image: NetworkImage(item.imageUrl),
+                  image: item.imageUrl.startsWith('http')
+                      ? NetworkImage(item.imageUrl) as ImageProvider
+                      : FileImage(File(item.imageUrl)),
                   fit: BoxFit.cover,
                 ),
               ),
