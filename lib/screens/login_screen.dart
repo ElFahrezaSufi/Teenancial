@@ -318,20 +318,9 @@ class _LoginScreenState extends State<LoginScreen> {
                                       fontWeight: FontWeight.w600),
                                 ),
                                 const SizedBox(height: 16),
-                                Row(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    _SocialButton(
-                                        icon: Icons.g_mobiledata, onTap: () {}),
-                                    const SizedBox(width: 12),
-                                    _SocialButton(
-                                        icon: Icons.apple, onTap: () {}),
-                                    const SizedBox(width: 12),
-                                    _SocialButton(
-                                        icon: Icons.facebook, onTap: () {}),
-                                  ],
-                                ),
+                                _GoogleLoginButton(onTap: () {
+                                  // TODO: Tambahkan fungsi login google di sini
+                                }),
                                 const SizedBox(height: 32),
                                 Center(
                                   child: GestureDetector(
@@ -487,29 +476,43 @@ class _RoundedTextField extends StatelessWidget {
   }
 }
 
-class _SocialButton extends StatelessWidget {
-  const _SocialButton({required this.icon, required this.onTap});
-
-  final IconData icon;
+class _GoogleLoginButton extends StatelessWidget {
+  const _GoogleLoginButton({required this.onTap});
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    return Expanded(
-      child: GestureDetector(
-        onTap: onTap,
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        height: 54,
+        decoration: BoxDecoration(
+            color: _primaryGreen, borderRadius: BorderRadius.circular(12)),
+        padding: const EdgeInsets.only(bottom: 2),
         child: Container(
-          height: 54,
           decoration: BoxDecoration(
-              color: _primaryGreen, borderRadius: BorderRadius.circular(12)),
-          padding: const EdgeInsets.only(bottom: 2),
-          child: Container(
-            decoration: BoxDecoration(
-                color: const Color(0xFFF8FFE8),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: _primaryGreen, width: 2)),
-            alignment: Alignment.center,
-            child: Icon(icon, color: _primaryGreen, size: 28),
+              color: const Color(0xFFF8FFE8),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: _primaryGreen, width: 2)),
+          alignment: Alignment.center,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              SvgPicture.asset(
+                'assets/images/google_icon.svg',
+                height: 24,
+                width: 24,
+              ),
+              const SizedBox(width: 12),
+              const Text(
+                'Google',
+                style: TextStyle(
+                    color: _primaryGreen,
+                    fontSize: 16,
+                    fontFamily: 'Inter',
+                    fontWeight: FontWeight.w700),
+              ),
+            ],
           ),
         ),
       ),
