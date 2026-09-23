@@ -7,6 +7,7 @@ import 'pengeluaran_screen.dart';
 import 'pinjaman_screen.dart';
 import 'transfer_screen.dart';
 import 'target_menabung_screen.dart';
+import 'buat_target_screen.dart'; // Import layar buat target
 import 'ruang_belajar_screen.dart';
 import 'tanya_feen_screen.dart';
 
@@ -390,10 +391,11 @@ class _HomeScreenState extends State<HomeScreen> {
                                 ),
                                 child: Column(
                                   children: [
-                                    const Icon(
-                                        Icons.account_balance_wallet_outlined,
-                                        size: 48,
-                                        color: _lightGreen),
+                                    Icon(
+                                      Icons.receipt_long_outlined,
+                                      size: 60,
+                                      color: _primaryGreen.withOpacity(0.5),
+                                    ),
                                     const SizedBox(height: 12),
                                     const Text('Belum ada target impian nih!',
                                         style: TextStyle(
@@ -409,26 +411,36 @@ class _HomeScreenState extends State<HomeScreen> {
                                             fontSize: 12,
                                             fontFamily: 'Inter')),
                                     const SizedBox(height: 16),
-                                    ElevatedButton(
+                                    // Tombol disamakan dengan TargetMenabungScreen
+                                    ElevatedButton.icon(
                                       onPressed: () {
                                         Navigator.push(
                                           context,
                                           MaterialPageRoute(
                                               builder: (_) =>
-                                                  const TargetMenabungScreen()),
+                                                  const BuatTargetScreen()),
                                         );
                                       },
-                                      style: ElevatedButton.styleFrom(
-                                        backgroundColor:
-                                            const Color(0xFFD9B62C),
-                                        shape: RoundedRectangleBorder(
-                                            borderRadius:
-                                                BorderRadius.circular(12)),
+                                      icon: const Icon(Icons.add,
+                                          size: 18, color: Colors.white),
+                                      label: const Text(
+                                        'Buat Target Baru',
+                                        style: TextStyle(
+                                          color: Colors.white,
+                                          fontWeight: FontWeight.w600,
+                                          fontFamily: 'Inter',
+                                        ),
                                       ),
-                                      child: const Text('+ Buat Target Baru',
-                                          style: TextStyle(
-                                              color: Colors.white,
-                                              fontWeight: FontWeight.w700)),
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: _primaryGreen,
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius:
+                                              BorderRadius.circular(20),
+                                        ),
+                                        padding: const EdgeInsets.symmetric(
+                                            horizontal: 24, vertical: 12),
+                                        elevation: 0,
+                                      ),
                                     )
                                   ],
                                 ),
