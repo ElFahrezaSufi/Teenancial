@@ -7,7 +7,7 @@ import 'pengeluaran_screen.dart';
 import 'pinjaman_screen.dart';
 import 'transfer_screen.dart';
 import 'target_menabung_screen.dart';
-import 'buat_target_screen.dart'; // Import layar buat target
+import 'buat_target_screen.dart';
 import 'ruang_belajar_screen.dart';
 import 'tanya_feen_screen.dart';
 
@@ -411,7 +411,6 @@ class _HomeScreenState extends State<HomeScreen> {
                                             fontSize: 12,
                                             fontFamily: 'Inter')),
                                     const SizedBox(height: 16),
-                                    // Tombol disamakan dengan TargetMenabungScreen
                                     ElevatedButton.icon(
                                       onPressed: () {
                                         Navigator.push(
