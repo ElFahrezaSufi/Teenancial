@@ -101,10 +101,10 @@ class _BuatTargetScreenState extends State<BuatTargetScreen> {
                 ),
                 const Center(
                   child: Text(
-                    'Buat Target Baru',
+                    'Target Menabung',
                     style: TextStyle(
                       color: _primaryGreen,
-                      fontSize: 22,
+                      fontSize: 25,
                       fontFamily: 'Inter',
                       fontWeight: FontWeight.w700,
                     ),
