@@ -1,5 +1,12 @@
 import 'package:flutter/material.dart';
-import '../widgets/transaction_widgets.dart';
+import '../theme/app_colors.dart';
+import '../utils/currency_formatter.dart';
+import '../widgets/common/custom_text_field.dart';
+import '../widgets/common/custom_dropdown_field.dart';
+import '../widgets/common/primary_button.dart';
+import '../widgets/transaction/source_toggle.dart';
+import '../widgets/transaction/account_selection_list.dart';
+import '../widgets/transaction/transaction_scaffold.dart';
 
 class TransferScreen extends StatefulWidget {
   const TransferScreen({super.key});
