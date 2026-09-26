@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import '../widgets/transaction_widgets.dart';
 
-const Color _primaryGreen = Color(0xFF627931);
-const Color _scaffoldBg = Color(0xFFEDEFE2);
-const Color _appBarBg = Color(0xFFF8FFE8);
+
+
+
 
 class PengeluaranScreen extends StatefulWidget {
   const PengeluaranScreen({super.key});
@@ -19,15 +19,15 @@ class _PengeluaranScreenState extends State<PengeluaranScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: _scaffoldBg,
+      backgroundColor: scaffoldBg,
       //header
       appBar: PreferredSize(
         preferredSize: const Size.fromHeight(80),
         child: Container(
           decoration: const BoxDecoration(
-            color: _appBarBg,
+            color: appBarBg,
             border: Border(
-              bottom: BorderSide(color: _primaryGreen, width: 1.5),
+              bottom: BorderSide(color: primaryGreen, width: 1.5),
             ),
           ),
           child: SafeArea(
@@ -39,7 +39,7 @@ class _PengeluaranScreenState extends State<PengeluaranScreen> {
                     padding: const EdgeInsets.only(left: 8.0),
                     child: IconButton(
                       icon: const Icon(Icons.arrow_back_ios,
-                          color: _primaryGreen, size: 20),
+                          color: primaryGreen, size: 20),
                       onPressed: () => Navigator.pop(context),
                     ),
                   ),
@@ -48,7 +48,7 @@ class _PengeluaranScreenState extends State<PengeluaranScreen> {
                   child: Text(
                     'Pengeluaran',
                     style: TextStyle(
-                      color: _primaryGreen,
+                      color: primaryGreen,
                       fontSize: 25,
                       fontFamily: 'Inter',
                       fontWeight: FontWeight.w700,
@@ -66,7 +66,7 @@ class _PengeluaranScreenState extends State<PengeluaranScreen> {
         fit: StackFit.expand,
         children: [
           Container(
-            color: _scaffoldBg,
+            color: scaffoldBg,
             child: Opacity(
               opacity: 0.4,
               child: Image.asset(

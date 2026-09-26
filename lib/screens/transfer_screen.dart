@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import '../widgets/transaction_widgets.dart';
 
-const Color _primaryGreen = Color(0xFF627931);
-const Color _scaffoldBg = Color(0xFFEDEFE2);
-const Color _appBarBg = Color(0xFFF8FFE8);
+
+
+
 
 class TransferScreen extends StatefulWidget {
   const TransferScreen({super.key});
@@ -29,14 +29,14 @@ class _TransferScreenState extends State<TransferScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: _scaffoldBg,
+      backgroundColor: scaffoldBg,
       appBar: PreferredSize(
         preferredSize: const Size.fromHeight(80),
         child: Container(
           decoration: const BoxDecoration(
-            color: _appBarBg,
+            color: appBarBg,
             border: Border(
-              bottom: BorderSide(color: _primaryGreen, width: 1.5),
+              bottom: BorderSide(color: primaryGreen, width: 1.5),
             ),
           ),
           child: SafeArea(
@@ -48,7 +48,7 @@ class _TransferScreenState extends State<TransferScreen> {
                     padding: const EdgeInsets.only(left: 8.0),
                     child: IconButton(
                       icon: const Icon(Icons.arrow_back_ios,
-                          color: _primaryGreen, size: 20),
+                          color: primaryGreen, size: 20),
                       onPressed: () => Navigator.pop(context),
                     ),
                   ),
@@ -57,7 +57,7 @@ class _TransferScreenState extends State<TransferScreen> {
                   child: Text(
                     'Transfer',
                     style: TextStyle(
-                      color: _primaryGreen,
+                      color: primaryGreen,
                       fontSize: 25,
                       fontFamily: 'Inter',
                       fontWeight: FontWeight.w700,
@@ -73,7 +73,7 @@ class _TransferScreenState extends State<TransferScreen> {
         fit: StackFit.expand,
         children: [
           Container(
-            color: _scaffoldBg,
+            color: scaffoldBg,
             child: Opacity(
               opacity: 0.4,
               child: Image.asset(
@@ -114,14 +114,14 @@ class _TransferScreenState extends State<TransferScreen> {
                             _isSelfTransfer
                                 ? Icons.check_box
                                 : Icons.check_box_outline_blank,
-                            color: _primaryGreen,
+                            color: primaryGreen,
                             size: 24,
                           ),
                           const SizedBox(width: 8),
                           const Text(
                             'Transfer ke diri sendiri',
                             style: TextStyle(
-                              color: _primaryGreen,
+                              color: primaryGreen,
                               fontWeight: FontWeight.w700,
                             ),
                           ),
@@ -170,14 +170,14 @@ class _TransferScreenState extends State<TransferScreen> {
                                         _simpanKeDaftar
                                             ? Icons.check_box
                                             : Icons.check_box_outline_blank,
-                                        color: _primaryGreen,
+                                        color: primaryGreen,
                                         size: 24,
                                       ),
                                       const SizedBox(width: 8),
                                       const Text(
                                         'Simpan ke daftar',
                                         style: TextStyle(
-                                          color: _primaryGreen,
+                                          color: primaryGreen,
                                           fontWeight: FontWeight.w700,
                                         ),
                                       ),

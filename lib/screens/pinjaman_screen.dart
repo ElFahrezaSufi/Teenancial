@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import '../widgets/transaction_widgets.dart';
 
-const Color _primaryGreen = Color(0xFF627931);
-const Color _scaffoldBg = Color(0xFFEDEFE2);
-const Color _appBarBg = Color(0xFFF8FFE8);
+
+
+
 
 class PinjamanScreen extends StatefulWidget {
   const PinjamanScreen({super.key});
@@ -29,9 +29,9 @@ class _PinjamanScreenState extends State<PinjamanScreen> {
         return Theme(
           data: Theme.of(context).copyWith(
             colorScheme: const ColorScheme.light(
-              primary: _primaryGreen, 
+              primary: primaryGreen, 
               onPrimary: Colors.white, 
-              onSurface: _primaryGreen, 
+              onSurface: primaryGreen, 
             ),
           ),
           child: child!,
@@ -48,14 +48,14 @@ class _PinjamanScreenState extends State<PinjamanScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: _scaffoldBg,
+      backgroundColor: scaffoldBg,
       appBar: PreferredSize(
         preferredSize: const Size.fromHeight(80),
         child: Container(
           decoration: const BoxDecoration(
-            color: _appBarBg,
+            color: appBarBg,
             border: Border(
-              bottom: BorderSide(color: _primaryGreen, width: 1.5),
+              bottom: BorderSide(color: primaryGreen, width: 1.5),
             ),
           ),
           child: SafeArea(
@@ -67,7 +67,7 @@ class _PinjamanScreenState extends State<PinjamanScreen> {
                     padding: const EdgeInsets.only(left: 8.0),
                     child: IconButton(
                       icon: const Icon(Icons.arrow_back_ios,
-                          color: _primaryGreen, size: 20),
+                          color: primaryGreen, size: 20),
                       onPressed: () => Navigator.pop(context),
                     ),
                   ),
@@ -76,7 +76,7 @@ class _PinjamanScreenState extends State<PinjamanScreen> {
                   child: Text(
                     'Pinjaman',
                     style: TextStyle(
-                      color: _primaryGreen,
+                      color: primaryGreen,
                       fontSize: 25,
                       fontFamily: 'Inter',
                       fontWeight: FontWeight.w700,
@@ -92,7 +92,7 @@ class _PinjamanScreenState extends State<PinjamanScreen> {
         fit: StackFit.expand,
         children: [
           Container(
-            color: _scaffoldBg,
+            color: scaffoldBg,
             child: Opacity(
               opacity: 0.4,
               child: Image.asset(
@@ -126,19 +126,19 @@ class _PinjamanScreenState extends State<PinjamanScreen> {
                               padding: const EdgeInsets.symmetric(vertical: 12),
                               decoration: BoxDecoration(
                                 color: _selectedTab == 0
-                                    ? _appBarBg
+                                    ? appBarBg
                                     : Colors.transparent,
                                 borderRadius: BorderRadius.circular(26),
                                 border: _selectedTab == 0
                                     ? Border.all(
-                                        color: _primaryGreen, width: 2)
+                                        color: primaryGreen, width: 2)
                                     : null,
                               ),
                               child: Center(
                                 child: Text(
                                   'Pinjam Uang',
                                   style: TextStyle(
-                                    color: _primaryGreen,
+                                    color: primaryGreen,
                                     fontWeight: _selectedTab == 0
                                         ? FontWeight.w800
                                         : FontWeight.w600,
@@ -155,19 +155,19 @@ class _PinjamanScreenState extends State<PinjamanScreen> {
                               padding: const EdgeInsets.symmetric(vertical: 12),
                               decoration: BoxDecoration(
                                 color: _selectedTab == 1
-                                    ? _appBarBg
+                                    ? appBarBg
                                     : Colors.transparent,
                                 borderRadius: BorderRadius.circular(26),
                                 border: _selectedTab == 1
                                     ? Border.all(
-                                        color: _primaryGreen, width: 2)
+                                        color: primaryGreen, width: 2)
                                     : null,
                               ),
                               child: Center(
                                 child: Text(
                                   'Kasih Pinjam',
                                   style: TextStyle(
-                                    color: _primaryGreen,
+                                    color: primaryGreen,
                                     fontWeight: _selectedTab == 1
                                         ? FontWeight.w800
                                         : FontWeight.w600,
@@ -187,7 +187,7 @@ class _PinjamanScreenState extends State<PinjamanScreen> {
                       ? 'Lagi pinjam uang teman? Sini kami bantu catat, biar kamu nggak lupa balikin!'
                       : 'Pinjamkan uang ke teman? Kami akan ingatkan saat batas waktunya tiba',
                     style: const TextStyle(
-                      color: _primaryGreen,
+                      color: primaryGreen,
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
                     ),
@@ -264,14 +264,14 @@ class _PinjamanScreenState extends State<PinjamanScreen> {
                             _simpanKeDaftar
                                 ? Icons.check_box
                                 : Icons.check_box_outline_blank,
-                            color: _primaryGreen,
+                            color: primaryGreen,
                             size: 24,
                           ),
                           const SizedBox(width: 8),
                           const Text(
                             'Simpan ke daftar',
                             style: TextStyle(
-                              color: _primaryGreen,
+                              color: primaryGreen,
                               fontWeight: FontWeight.w700,
                             ),
                           ),
