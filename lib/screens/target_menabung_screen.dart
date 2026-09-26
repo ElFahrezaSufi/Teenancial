@@ -149,7 +149,7 @@ class _TargetMenabungScreenState extends State<TargetMenabungScreen> {
       decoration: BoxDecoration(
         color: _appBarBg,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: _primaryGreen.withOpacity(0.3)),
+        border: Border.all(color: _primaryGreen.withValues(alpha: 0.3)),
       ),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -157,7 +157,7 @@ class _TargetMenabungScreenState extends State<TargetMenabungScreen> {
           Icon(
             Icons.receipt_long_outlined,
             size: 60,
-            color: _primaryGreen.withOpacity(0.5),
+            color: _primaryGreen.withValues(alpha: 0.5),
           ),
           const SizedBox(height: 16),
           const Text(
@@ -175,7 +175,7 @@ class _TargetMenabungScreenState extends State<TargetMenabungScreen> {
             'Yuk mulai tabung uangmu untuk beli barang impianmu.',
             textAlign: TextAlign.center,
             style: TextStyle(
-              color: _primaryGreen.withOpacity(0.7),
+              color: _primaryGreen.withValues(alpha: 0.7),
               fontSize: 12,
               fontFamily: 'Inter',
             ),
