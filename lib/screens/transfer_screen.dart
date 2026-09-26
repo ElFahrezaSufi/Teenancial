@@ -103,8 +103,9 @@ class _TransferScreenState extends State<TransferScreen> {
                   controller: _jumlahController,
                   inputFormatters: [CurrencyInputFormatter()],
                   validator: (value) {
-                    if (value == null || value.isEmpty)
+                    if (value == null || value.isEmpty) {
                       return 'Jumlah uang tidak boleh kosong';
+                    }
                     return null;
                   },
                 ),
@@ -124,8 +125,9 @@ class _TransferScreenState extends State<TransferScreen> {
                     });
                   },
                   validator: (value) {
-                    if (value == null || value.isEmpty)
+                    if (value == null || value.isEmpty) {
                       return 'Kategori tidak boleh kosong';
+                    }
                     return null;
                   },
                 ),

@@ -37,7 +37,7 @@ class CustomDropdownField extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           DropdownButtonFormField<String>(
-            value: value,
+            initialValue: value,
             onChanged: onChanged,
             validator: validator,
             icon: const Icon(Icons.keyboard_arrow_down, color: primaryGreen),

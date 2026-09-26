@@ -199,8 +199,9 @@ class _PinjamanScreenState extends State<PinjamanScreen> {
                   controller: _jumlahController,
                   inputFormatters: [CurrencyInputFormatter()],
                   validator: (value) {
-                    if (value == null || value.isEmpty)
+                    if (value == null || value.isEmpty) {
                       return 'Jumlah uang tidak boleh kosong';
+                    }
                     return null;
                   },
                 ),
@@ -220,8 +221,9 @@ class _PinjamanScreenState extends State<PinjamanScreen> {
                     });
                   },
                   validator: (value) {
-                    if (value == null || value.isEmpty)
+                    if (value == null || value.isEmpty) {
                       return 'Kategori tidak boleh kosong';
+                    }
                     return null;
                   },
                 ),
@@ -239,8 +241,9 @@ class _PinjamanScreenState extends State<PinjamanScreen> {
                   suffixIcon:
                       const Icon(Icons.calendar_today, color: primaryGreen),
                   validator: (value) {
-                    if (_selectedDate.isEmpty)
+                    if (_selectedDate.isEmpty) {
                       return 'Batas waktu harus dipilih';
+                    }
                     return null;
                   },
                 ),
@@ -250,8 +253,9 @@ class _PinjamanScreenState extends State<PinjamanScreen> {
                   hint: 'Nama teman',
                   controller: _temanController,
                   validator: (value) {
-                    if (value == null || value.isEmpty)
+                    if (value == null || value.isEmpty) {
                       return 'Nama teman tidak boleh kosong';
+                    }
                     return null;
                   },
                 ),
