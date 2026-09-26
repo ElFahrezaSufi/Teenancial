@@ -13,9 +13,11 @@ class TransactionScaffold extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: scaffoldBg,
-      appBar: PreferredSize(
+    return GestureDetector(
+      onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
+      child: Scaffold(
+        backgroundColor: scaffoldBg,
+        appBar: PreferredSize(
         preferredSize: const Size.fromHeight(80),
         child: Container(
           decoration: const BoxDecoration(
@@ -70,6 +72,7 @@ class TransactionScaffold extends StatelessWidget {
           child,
         ],
       ),
+    ),
     );
   }
 }
