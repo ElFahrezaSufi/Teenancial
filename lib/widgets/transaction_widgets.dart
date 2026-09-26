@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:intl/intl.dart';
 
 const Color primaryGreen = Color(0xFF627931);
 const Color scaffoldBg = Color(0xFFEDEFE2);
@@ -11,6 +13,9 @@ class CustomTextField extends StatelessWidget {
   final TextInputType? keyboardType;
   final bool readOnly;
   final VoidCallback? onTap;
+  final TextEditingController? controller;
+  final String? Function(String?)? validator;
+  final List<TextInputFormatter>? inputFormatters;
 
   const CustomTextField({
     super.key,
@@ -19,6 +24,9 @@ class CustomTextField extends StatelessWidget {
     this.keyboardType,
     this.readOnly = false,
     this.onTap,
+    this.controller,
+    this.validator,
+    this.inputFormatters,
   });
 
   @override
@@ -39,9 +47,12 @@ class CustomTextField extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           TextFormField(
+            controller: controller,
             readOnly: readOnly,
             onTap: onTap,
             keyboardType: keyboardType,
+            validator: validator,
+            inputFormatters: inputFormatters,
             style: const TextStyle(
               color: primaryGreen,
               fontWeight: FontWeight.w600,
@@ -49,7 +60,7 @@ class CustomTextField extends StatelessWidget {
             decoration: InputDecoration(
               hintText: hint,
               hintStyle: TextStyle(
-                color: primaryGreen.withValues(alpha: 0.5),
+                color: primaryGreen.withOpacity(0.5),
                 fontWeight: FontWeight.w600,
               ),
               filled: true,
@@ -66,11 +77,129 @@ class CustomTextField extends StatelessWidget {
                 borderRadius: BorderRadius.circular(12),
                 borderSide: const BorderSide(color: primaryGreen, width: 2.5),
               ),
+              errorBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(color: Colors.red, width: 2),
+              ),
+              focusedErrorBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(color: Colors.red, width: 2.5),
+              ),
             ),
           ),
         ],
       ),
     );
+  }
+}
+
+class CustomDropdownField extends StatelessWidget {
+  final String label;
+  final String hint;
+  final String? value;
+  final List<String> items;
+  final void Function(String?)? onChanged;
+  final String? Function(String?)? validator;
+
+  const CustomDropdownField({
+    super.key,
+    required this.label,
+    required this.hint,
+    required this.items,
+    this.value,
+    this.onChanged,
+    this.validator,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: const TextStyle(
+              color: primaryGreen,
+              fontSize: 14,
+              fontFamily: 'Inter',
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 8),
+          DropdownButtonFormField<String>(
+            value: value,
+            onChanged: onChanged,
+            validator: validator,
+            icon: const Icon(Icons.keyboard_arrow_down, color: primaryGreen),
+            style: const TextStyle(
+              color: primaryGreen,
+              fontWeight: FontWeight.w600,
+            ),
+            decoration: InputDecoration(
+              hintText: hint,
+              hintStyle: TextStyle(
+                color: primaryGreen.withOpacity(0.5),
+                fontWeight: FontWeight.w600,
+              ),
+              filled: true,
+              fillColor: inputBg,
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 16,
+                vertical: 16,
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(color: primaryGreen, width: 2),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(color: primaryGreen, width: 2.5),
+              ),
+              errorBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(color: Colors.red, width: 2),
+              ),
+              focusedErrorBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(color: Colors.red, width: 2.5),
+              ),
+            ),
+            items: items.map((String item) {
+              return DropdownMenuItem<String>(
+                value: item,
+                child: Text(item),
+              );
+            }).toList(),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class CurrencyInputFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+      TextEditingValue oldValue, TextEditingValue newValue) {
+    if (newValue.text.isEmpty) {
+      return newValue.copyWith(text: '');
+    } else if (newValue.text.compareTo(oldValue.text) != 0) {
+      final int selectionIndexFromTheRight =
+          newValue.text.length - newValue.selection.end;
+      final f = NumberFormat.currency(
+          locale: "id_ID", symbol: "Rp ", decimalDigits: 0);
+      int num = int.parse(newValue.text.replaceAll(RegExp(r'[^0-9]'), ''));
+      final newString = f.format(num);
+      return TextEditingValue(
+        text: newString,
+        selection: TextSelection.collapsed(
+            offset: newString.length - selectionIndexFromTheRight),
+      );
+    } else {
+      return newValue;
+    }
   }
 }
 
@@ -145,7 +274,7 @@ class SourceToggle extends StatelessWidget {
           boxShadow: isSelected
               ? [
                   BoxShadow(
-                    color: primaryGreen.withValues(alpha: 0.2),
+                    color: primaryGreen.withOpacity(0.2),
                     blurRadius: 8,
                     offset: const Offset(0, 4),
                   )
@@ -205,7 +334,7 @@ class AccountSelectionList extends StatelessWidget {
                 boxShadow: isSelected
                     ? [
                         BoxShadow(
-                          color: primaryGreen.withValues(alpha: 0.2),
+                          color: primaryGreen.withOpacity(0.2),
                           blurRadius: 8,
                           offset: const Offset(0, 4),
                         )

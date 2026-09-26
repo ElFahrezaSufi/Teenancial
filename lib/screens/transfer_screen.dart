@@ -13,6 +13,12 @@ class TransferScreen extends StatefulWidget {
 }
 
 class _TransferScreenState extends State<TransferScreen> {
+  final _formKey = GlobalKey<FormState>();
+  final _jumlahController = TextEditingController();
+  final _kategoriController = TextEditingController();
+  final _catatanController = TextEditingController();
+  final _untukController = TextEditingController();
+
   bool _isSelfTransfer = false;
   
   // State untuk mode Normal (Ke Orang Lain)
@@ -25,6 +31,16 @@ class _TransferScreenState extends State<TransferScreen> {
   int? _selectedAccountDari;
   int _selectedSourceKe = 1;
   int? _selectedAccountKe;
+  String? _selectedKategori;
+
+  @override
+  void dispose() {
+    _jumlahController.dispose();
+    _kategoriController.dispose();
+    _catatanController.dispose();
+    _untukController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -88,9 +104,11 @@ class _TransferScreenState extends State<TransferScreen> {
           SafeArea(
             child: SingleChildScrollView(
               padding: const EdgeInsets.all(24.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
                   // Animasi pergantian antara Transfer Normal vs Diri Sendiri
                   AnimatedSwitcher(
                     duration: const Duration(milliseconds: 400),
@@ -130,18 +148,36 @@ class _TransferScreenState extends State<TransferScreen> {
                     ),
                   ),
 
-                  const CustomTextField(
+                  CustomTextField(
                     label: 'Jumlah Uang',
                     hint: 'Rp 0',
                     keyboardType: TextInputType.number,
+                    controller: _jumlahController,
+                    inputFormatters: [CurrencyInputFormatter()],
+                    validator: (value) {
+                      if (value == null || value.isEmpty) return 'Jumlah uang tidak boleh kosong';
+                      return null;
+                    },
                   ),
-                  const CustomTextField(
+                  CustomDropdownField(
                     label: 'Kategori',
-                    hint: 'e.g. Elektronik',
+                    hint: 'Pilih Kategori',
+                    value: _selectedKategori,
+                    items: const ['Transfer Teman', 'Bayar Hutang', 'Donasi', 'Lainnya'],
+                    onChanged: (value) {
+                      setState(() {
+                        _selectedKategori = value;
+                      });
+                    },
+                    validator: (value) {
+                      if (value == null || value.isEmpty) return 'Kategori tidak boleh kosong';
+                      return null;
+                    },
                   ),
-                  const CustomTextField(
+                  CustomTextField(
                     label: 'Catatan',
                     hint: 'Tambah catatan (opsional)',
+                    controller: _catatanController,
                   ),
 
                   // Animasi memunculkan/menghilangkan field "Untuk" & "Simpan ke daftar"
@@ -152,9 +188,16 @@ class _TransferScreenState extends State<TransferScreen> {
                         ? Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const CustomTextField(
+                              CustomTextField(
                                 label: 'Untuk',
                                 hint: 'Nama teman',
+                                controller: _untukController,
+                                validator: (value) {
+                                  if (!_isSelfTransfer && (value == null || value.isEmpty)) {
+                                    return 'Nama tujuan tidak boleh kosong';
+                                  }
+                                  return null;
+                                },
                               ),
                               GestureDetector(
                                 onTap: () {
@@ -193,15 +236,24 @@ class _TransferScreenState extends State<TransferScreen> {
                   PrimaryButton(
                     label: 'Simpan',
                     onPressed: () {
-                      Navigator.pop(context);
+                      if (_formKey.currentState!.validate()) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('✅ Data berhasil disimpan!'),
+                            backgroundColor: primaryGreen,
+                          ),
+                        );
+                        Navigator.pop(context);
+                      }
                     },
                   ),
                 ],
               ),
             ),
           ),
-        ],
-      ),
+        ),
+      ],
+    ),
     );
   }
 

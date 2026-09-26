@@ -13,11 +13,27 @@ class PinjamanScreen extends StatefulWidget {
 }
 
 class _PinjamanScreenState extends State<PinjamanScreen> {
+  final _formKey = GlobalKey<FormState>();
+  final _jumlahController = TextEditingController();
+  final _kategoriController = TextEditingController();
+  final _catatanController = TextEditingController();
+  final _temanController = TextEditingController();
+
   int _selectedTab = 0; // 0 = Pinjam Uang, 1 = Kasih Pinjam
   int _selectedSource = 0; // 0 = Cash, 1 = Digital
   int? _selectedAccount;
+  String? _selectedKategori;
   String _selectedDate = '';
   bool _simpanKeDaftar = false;
+
+  @override
+  void dispose() {
+    _jumlahController.dispose();
+    _kategoriController.dispose();
+    _catatanController.dispose();
+    _temanController.dispose();
+    super.dispose();
+  }
 
   Future<void> _selectDate(BuildContext context) async {
     final DateTime? picked = await showDatePicker(
@@ -107,9 +123,11 @@ class _PinjamanScreenState extends State<PinjamanScreen> {
           SafeArea(
             child: SingleChildScrollView(
               padding: const EdgeInsets.all(24.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
                   // Custom Tab Toggle (Pinjam Uang vs Kasih Pinjam)
                   Container(
                     padding: const EdgeInsets.all(4),
@@ -224,18 +242,36 @@ class _PinjamanScreenState extends State<PinjamanScreen> {
                         : const SizedBox.shrink(),
                   ),
 
-                  const CustomTextField(
+                  CustomTextField(
                     label: 'Jumlah Uang',
                     hint: 'Rp 0',
                     keyboardType: TextInputType.number,
+                    controller: _jumlahController,
+                    inputFormatters: [CurrencyInputFormatter()],
+                    validator: (value) {
+                      if (value == null || value.isEmpty) return 'Jumlah uang tidak boleh kosong';
+                      return null;
+                    },
                   ),
-                  const CustomTextField(
+                  CustomDropdownField(
                     label: 'Kategori',
-                    hint: 'e.g. Elektronik',
+                    hint: 'Pilih Kategori',
+                    value: _selectedKategori,
+                    items: const ['Teman Sekolah', 'Keluarga', 'Mendesak', 'Lainnya'],
+                    onChanged: (value) {
+                      setState(() {
+                        _selectedKategori = value;
+                      });
+                    },
+                    validator: (value) {
+                      if (value == null || value.isEmpty) return 'Kategori tidak boleh kosong';
+                      return null;
+                    },
                   ),
-                  const CustomTextField(
+                  CustomTextField(
                     label: 'Catatan',
                     hint: 'Tambah catatan (opsional)',
+                    controller: _catatanController,
                   ),
 
                   CustomTextField(
@@ -243,11 +279,20 @@ class _PinjamanScreenState extends State<PinjamanScreen> {
                     hint: _selectedDate.isEmpty ? 'Pilih tanggal' : _selectedDate,
                     readOnly: true,
                     onTap: () => _selectDate(context),
+                    validator: (value) {
+                      if (_selectedDate.isEmpty) return 'Batas waktu harus dipilih';
+                      return null;
+                    },
                   ),
 
                   CustomTextField(
                     label: _selectedTab == 0 ? 'Dari' : 'Untuk',
                     hint: 'Nama teman',
+                    controller: _temanController,
+                    validator: (value) {
+                      if (value == null || value.isEmpty) return 'Nama teman tidak boleh kosong';
+                      return null;
+                    },
                   ),
 
                   GestureDetector(
@@ -283,15 +328,24 @@ class _PinjamanScreenState extends State<PinjamanScreen> {
                   PrimaryButton(
                     label: 'Simpan',
                     onPressed: () {
-                      Navigator.pop(context);
+                      if (_formKey.currentState!.validate()) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(_selectedTab == 0 ? '✅ Data Pinjaman Tersimpan!' : '✅ Data Piutang Tersimpan!'),
+                            backgroundColor: primaryGreen,
+                          ),
+                        );
+                        Navigator.pop(context);
+                      }
                     },
                   ),
                 ],
               ),
             ),
           ),
-        ],
-      ),
+          ),
+      ],
+    )
     );
   }
 }
