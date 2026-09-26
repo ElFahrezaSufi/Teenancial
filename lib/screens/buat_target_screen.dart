@@ -168,7 +168,8 @@ class _BuatTargetScreenState extends State<BuatTargetScreen> {
                               children: [
                                 Icon(Icons.add_a_photo_outlined,
                                     size: 40,
-                                    color: _primaryGreen.withValues(alpha: 0.7)),
+                                    color:
+                                        _primaryGreen.withValues(alpha: 0.7)),
                                 const SizedBox(height: 8),
                                 Text(
                                   'Ketuk untuk unggah foto',

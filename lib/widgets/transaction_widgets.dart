@@ -7,6 +7,84 @@ const Color scaffoldBg = Color(0xFFEDEFE2);
 const Color appBarBg = Color(0xFFF8FFE8);
 const Color inputBg = Color(0xFFF8FFE8);
 
+// ==========================================
+// WIDGET SCAFFOLD KUSTOM UTAMA
+// ==========================================
+class TransactionScaffold extends StatelessWidget {
+  final String title;
+  final Widget child;
+
+  const TransactionScaffold({
+    super.key,
+    required this.title,
+    required this.child,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: scaffoldBg,
+      appBar: PreferredSize(
+        preferredSize: const Size.fromHeight(80),
+        child: Container(
+          decoration: const BoxDecoration(
+            color: appBarBg,
+            border: Border(
+              bottom: BorderSide(color: primaryGreen, width: 1.5),
+            ),
+          ),
+          child: SafeArea(
+            child: Stack(
+              children: [
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: Padding(
+                    padding: const EdgeInsets.only(left: 8.0),
+                    child: IconButton(
+                      icon: const Icon(Icons.arrow_back_ios,
+                          color: primaryGreen, size: 20),
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                  ),
+                ),
+                Center(
+                  child: Text(
+                    title,
+                    style: const TextStyle(
+                      color: primaryGreen,
+                      fontSize: 25,
+                      fontFamily: 'Inter',
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+      body: Stack(
+        fit: StackFit.expand,
+        children: [
+          Container(
+            color: scaffoldBg,
+            child: Opacity(
+              opacity: 0.4,
+              child: Image.asset(
+                'assets/images/bg_curve.png',
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) =>
+                    const SizedBox.shrink(),
+              ),
+            ),
+          ),
+          child,
+        ],
+      ),
+    );
+  }
+}
+
 class CustomTextField extends StatelessWidget {
   final String label;
   final String hint;
@@ -194,7 +272,8 @@ class CurrencyInputFormatter extends TextInputFormatter {
           newValue.text.length - newValue.selection.end;
       final f = NumberFormat.currency(
           locale: "id_ID", symbol: "Rp ", decimalDigits: 0);
-      int num = int.parse(newValue.text.replaceAll(RegExp(r'[^0-9]'), ''));
+      int num =
+          int.tryParse(newValue.text.replaceAll(RegExp(r'[^0-9]'), '')) ?? 0;
       final newString = f.format(num);
       return TextEditingValue(
         text: newString,
@@ -314,6 +393,8 @@ class AccountSelectionList extends StatelessWidget {
     required this.onSelect,
   });
 
+  // PERBAIKAN: Sebaiknya ini menerima data dinamis (List<Map>) dari luar,
+  // tapi untuk sekarang kita biarkan hardcoded sebagai UI Statis sesuai requirement.
   final List<String> accounts = const ['SeaBank', 'Go-Pay', 'Dana', 'Ovo'];
 
   @override
@@ -353,7 +434,8 @@ class AccountSelectionList extends StatelessWidget {
                     style: TextStyle(
                       color: primaryGreen,
                       fontSize: 14,
-                      fontWeight: isSelected ? FontWeight.w800 : FontWeight.w700,
+                      fontWeight:
+                          isSelected ? FontWeight.w800 : FontWeight.w700,
                     ),
                   ),
                   Text(
@@ -361,7 +443,8 @@ class AccountSelectionList extends StatelessWidget {
                     style: TextStyle(
                       color: primaryGreen,
                       fontSize: 12,
-                      fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600,
+                      fontWeight:
+                          isSelected ? FontWeight.w700 : FontWeight.w600,
                     ),
                   ),
                 ],

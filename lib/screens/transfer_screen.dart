@@ -1,10 +1,6 @@
 import 'package:flutter/material.dart';
 import '../widgets/transaction_widgets.dart';
 
-
-
-
-
 class TransferScreen extends StatefulWidget {
   const TransferScreen({super.key});
 
@@ -20,7 +16,7 @@ class _TransferScreenState extends State<TransferScreen> {
   final _untukController = TextEditingController();
 
   bool _isSelfTransfer = false;
-  
+
   // State untuk mode Normal (Ke Orang Lain)
   int _selectedSourceNormal = 0;
   int? _selectedAccountNormal;
@@ -44,216 +40,167 @@ class _TransferScreenState extends State<TransferScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: scaffoldBg,
-      appBar: PreferredSize(
-        preferredSize: const Size.fromHeight(80),
-        child: Container(
-          decoration: const BoxDecoration(
-            color: appBarBg,
-            border: Border(
-              bottom: BorderSide(color: primaryGreen, width: 1.5),
-            ),
-          ),
-          child: SafeArea(
-            child: Stack(
+    return TransactionScaffold(
+      title: 'Transfer',
+      child: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(24.0),
+          child: Form(
+            key: _formKey,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Align(
-                  alignment: Alignment.centerLeft,
+                // Animasi pergantian antara Transfer Normal vs Diri Sendiri
+                AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 400),
+                  child: _isSelfTransfer
+                      ? _buildSelfTransferUI()
+                      : _buildNormalTransferUI(),
+                ),
+
+                // Checkbox "Transfer ke diri sendiri"
+                GestureDetector(
+                  onTap: () {
+                    setState(() {
+                      _isSelfTransfer = !_isSelfTransfer;
+                    });
+                  },
                   child: Padding(
-                    padding: const EdgeInsets.only(left: 8.0),
-                    child: IconButton(
-                      icon: const Icon(Icons.arrow_back_ios,
-                          color: primaryGreen, size: 20),
-                      onPressed: () => Navigator.pop(context),
+                    padding: const EdgeInsets.only(bottom: 16.0),
+                    child: Row(
+                      children: [
+                        Icon(
+                          _isSelfTransfer
+                              ? Icons.check_box
+                              : Icons.check_box_outline_blank,
+                          color: primaryGreen,
+                          size: 24,
+                        ),
+                        const SizedBox(width: 8),
+                        const Text(
+                          'Transfer ke diri sendiri',
+                          style: TextStyle(
+                            color: primaryGreen,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ),
-                const Center(
-                  child: Text(
-                    'Transfer',
-                    style: TextStyle(
-                      color: primaryGreen,
-                      fontSize: 25,
-                      fontFamily: 'Inter',
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
+
+                CustomTextField(
+                  label: 'Jumlah Uang',
+                  hint: 'Rp 0',
+                  keyboardType: TextInputType.number,
+                  controller: _jumlahController,
+                  inputFormatters: [CurrencyInputFormatter()],
+                  validator: (value) {
+                    if (value == null || value.isEmpty)
+                      return 'Jumlah uang tidak boleh kosong';
+                    return null;
+                  },
+                ),
+                CustomDropdownField(
+                  label: 'Kategori',
+                  hint: 'Pilih Kategori',
+                  value: _selectedKategori,
+                  items: const [
+                    'Transfer Teman',
+                    'Bayar Hutang',
+                    'Donasi',
+                    'Lainnya'
+                  ],
+                  onChanged: (value) {
+                    setState(() {
+                      _selectedKategori = value;
+                    });
+                  },
+                  validator: (value) {
+                    if (value == null || value.isEmpty)
+                      return 'Kategori tidak boleh kosong';
+                    return null;
+                  },
+                ),
+                CustomTextField(
+                  label: 'Catatan',
+                  hint: 'Tambah catatan (opsional)',
+                  controller: _catatanController,
+                ),
+
+                // Animasi memunculkan/menghilangkan field "Untuk" & "Simpan ke daftar"
+                AnimatedSize(
+                  duration: const Duration(milliseconds: 300),
+                  curve: Curves.easeInOut,
+                  child: !_isSelfTransfer
+                      ? Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            CustomTextField(
+                              label: 'Untuk',
+                              hint: 'Nama teman',
+                              controller: _untukController,
+                              validator: (value) {
+                                if (!_isSelfTransfer &&
+                                    (value == null || value.isEmpty)) {
+                                  return 'Nama tujuan tidak boleh kosong';
+                                }
+                                return null;
+                              },
+                            ),
+                            GestureDetector(
+                              onTap: () {
+                                setState(() {
+                                  _simpanKeDaftar = !_simpanKeDaftar;
+                                });
+                              },
+                              child: Padding(
+                                padding: const EdgeInsets.only(bottom: 24.0),
+                                child: Row(
+                                  children: [
+                                    Icon(
+                                      _simpanKeDaftar
+                                          ? Icons.check_box
+                                          : Icons.check_box_outline_blank,
+                                      color: primaryGreen,
+                                      size: 24,
+                                    ),
+                                    const SizedBox(width: 8),
+                                    const Text(
+                                      'Simpan ke daftar',
+                                      style: TextStyle(
+                                        color: primaryGreen,
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ],
+                        )
+                      : const SizedBox(height: 24),
+                ),
+
+                PrimaryButton(
+                  label: 'Simpan',
+                  onPressed: () {
+                    if (_formKey.currentState!.validate()) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('✅ Data berhasil disimpan!'),
+                          backgroundColor: primaryGreen,
+                        ),
+                      );
+                      Navigator.pop(context);
+                    }
+                  },
                 ),
               ],
             ),
           ),
         ),
       ),
-      body: Stack(
-        fit: StackFit.expand,
-        children: [
-          Container(
-            color: scaffoldBg,
-            child: Opacity(
-              opacity: 0.4,
-              child: Image.asset(
-                'assets/images/bg_curve.png',
-                fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) =>
-                    const SizedBox.shrink(),
-              ),
-            ),
-          ),
-
-          SafeArea(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(24.0),
-              child: Form(
-                key: _formKey,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                  // Animasi pergantian antara Transfer Normal vs Diri Sendiri
-                  AnimatedSwitcher(
-                    duration: const Duration(milliseconds: 400),
-                    child: _isSelfTransfer
-                        ? _buildSelfTransferUI()
-                        : _buildNormalTransferUI(),
-                  ),
-
-                  // Checkbox "Transfer ke diri sendiri"
-                  GestureDetector(
-                    onTap: () {
-                      setState(() {
-                        _isSelfTransfer = !_isSelfTransfer;
-                      });
-                    },
-                    child: Padding(
-                      padding: const EdgeInsets.only(bottom: 16.0),
-                      child: Row(
-                        children: [
-                          Icon(
-                            _isSelfTransfer
-                                ? Icons.check_box
-                                : Icons.check_box_outline_blank,
-                            color: primaryGreen,
-                            size: 24,
-                          ),
-                          const SizedBox(width: 8),
-                          const Text(
-                            'Transfer ke diri sendiri',
-                            style: TextStyle(
-                              color: primaryGreen,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-
-                  CustomTextField(
-                    label: 'Jumlah Uang',
-                    hint: 'Rp 0',
-                    keyboardType: TextInputType.number,
-                    controller: _jumlahController,
-                    inputFormatters: [CurrencyInputFormatter()],
-                    validator: (value) {
-                      if (value == null || value.isEmpty) return 'Jumlah uang tidak boleh kosong';
-                      return null;
-                    },
-                  ),
-                  CustomDropdownField(
-                    label: 'Kategori',
-                    hint: 'Pilih Kategori',
-                    value: _selectedKategori,
-                    items: const ['Transfer Teman', 'Bayar Hutang', 'Donasi', 'Lainnya'],
-                    onChanged: (value) {
-                      setState(() {
-                        _selectedKategori = value;
-                      });
-                    },
-                    validator: (value) {
-                      if (value == null || value.isEmpty) return 'Kategori tidak boleh kosong';
-                      return null;
-                    },
-                  ),
-                  CustomTextField(
-                    label: 'Catatan',
-                    hint: 'Tambah catatan (opsional)',
-                    controller: _catatanController,
-                  ),
-
-                  // Animasi memunculkan/menghilangkan field "Untuk" & "Simpan ke daftar"
-                  AnimatedSize(
-                    duration: const Duration(milliseconds: 300),
-                    curve: Curves.easeInOut,
-                    child: !_isSelfTransfer
-                        ? Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              CustomTextField(
-                                label: 'Untuk',
-                                hint: 'Nama teman',
-                                controller: _untukController,
-                                validator: (value) {
-                                  if (!_isSelfTransfer && (value == null || value.isEmpty)) {
-                                    return 'Nama tujuan tidak boleh kosong';
-                                  }
-                                  return null;
-                                },
-                              ),
-                              GestureDetector(
-                                onTap: () {
-                                  setState(() {
-                                    _simpanKeDaftar = !_simpanKeDaftar;
-                                  });
-                                },
-                                child: Padding(
-                                  padding: const EdgeInsets.only(bottom: 24.0),
-                                  child: Row(
-                                    children: [
-                                      Icon(
-                                        _simpanKeDaftar
-                                            ? Icons.check_box
-                                            : Icons.check_box_outline_blank,
-                                        color: primaryGreen,
-                                        size: 24,
-                                      ),
-                                      const SizedBox(width: 8),
-                                      const Text(
-                                        'Simpan ke daftar',
-                                        style: TextStyle(
-                                          color: primaryGreen,
-                                          fontWeight: FontWeight.w700,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            ],
-                          )
-                        : const SizedBox(height: 24),
-                  ),
-
-                  PrimaryButton(
-                    label: 'Simpan',
-                    onPressed: () {
-                      if (_formKey.currentState!.validate()) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('✅ Data berhasil disimpan!'),
-                            backgroundColor: primaryGreen,
-                          ),
-                        );
-                        Navigator.pop(context);
-                      }
-                    },
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ],
-    ),
     );
   }
 
@@ -319,7 +266,6 @@ class _TransferScreenState extends State<TransferScreen> {
               });
             },
           ),
-          
         SourceToggle(
           label: 'Ke',
           option1: 'Cash',

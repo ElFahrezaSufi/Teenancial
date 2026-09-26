@@ -394,7 +394,8 @@ class _HomeScreenState extends State<HomeScreen> {
                                     Icon(
                                       Icons.receipt_long_outlined,
                                       size: 60,
-                                      color: _primaryGreen.withValues(alpha: 0.5),
+                                      color:
+                                          _primaryGreen.withValues(alpha: 0.5),
                                     ),
                                     const SizedBox(height: 12),
                                     const Text('Belum ada target impian nih!',
