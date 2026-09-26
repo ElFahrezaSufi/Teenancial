@@ -17,6 +17,8 @@ class CustomTextField extends StatelessWidget {
   final String? Function(String?)? validator;
   final List<TextInputFormatter>? inputFormatters;
 
+  final Widget? suffixIcon;
+
   const CustomTextField({
     super.key,
     required this.label,
@@ -27,6 +29,7 @@ class CustomTextField extends StatelessWidget {
     this.controller,
     this.validator,
     this.inputFormatters,
+    this.suffixIcon,
   });
 
   @override
@@ -59,8 +62,9 @@ class CustomTextField extends StatelessWidget {
             ),
             decoration: InputDecoration(
               hintText: hint,
+              suffixIcon: suffixIcon,
               hintStyle: TextStyle(
-                color: primaryGreen.withOpacity(0.5),
+                color: primaryGreen.withValues(alpha: 0.5),
                 fontWeight: FontWeight.w600,
               ),
               filled: true,
@@ -129,7 +133,7 @@ class CustomDropdownField extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           DropdownButtonFormField<String>(
-            value: value,
+            initialValue: value,
             onChanged: onChanged,
             validator: validator,
             icon: const Icon(Icons.keyboard_arrow_down, color: primaryGreen),
@@ -140,7 +144,7 @@ class CustomDropdownField extends StatelessWidget {
             decoration: InputDecoration(
               hintText: hint,
               hintStyle: TextStyle(
-                color: primaryGreen.withOpacity(0.5),
+                color: primaryGreen.withValues(alpha: 0.5),
                 fontWeight: FontWeight.w600,
               ),
               filled: true,
@@ -274,7 +278,7 @@ class SourceToggle extends StatelessWidget {
           boxShadow: isSelected
               ? [
                   BoxShadow(
-                    color: primaryGreen.withOpacity(0.2),
+                    color: primaryGreen.withValues(alpha: 0.2),
                     blurRadius: 8,
                     offset: const Offset(0, 4),
                   )
@@ -334,7 +338,7 @@ class AccountSelectionList extends StatelessWidget {
                 boxShadow: isSelected
                     ? [
                         BoxShadow(
-                          color: primaryGreen.withOpacity(0.2),
+                          color: primaryGreen.withValues(alpha: 0.2),
                           blurRadius: 8,
                           offset: const Offset(0, 4),
                         )

@@ -279,6 +279,7 @@ class _PinjamanScreenState extends State<PinjamanScreen> {
                     hint: _selectedDate.isEmpty ? 'Pilih tanggal' : _selectedDate,
                     readOnly: true,
                     onTap: () => _selectDate(context),
+                    suffixIcon: const Icon(Icons.calendar_today, color: primaryGreen),
                     validator: (value) {
                       if (_selectedDate.isEmpty) return 'Batas waktu harus dipilih';
                       return null;
