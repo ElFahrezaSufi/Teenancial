@@ -9,6 +9,7 @@ import 'transfer_screen.dart';
 import 'target_menabung_screen.dart';
 import 'buat_target_screen.dart';
 import 'ruang_belajar_screen.dart';
+import '../data/belajar_data.dart';
 import 'tanya_feen_screen.dart';
 
 const Color _primaryGreen = Color(0xFF627931);
@@ -457,62 +458,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                   builder: (_) => const RuangBelajarScreen())),
                         ),
                         const SizedBox(height: 12),
-                        Container(
-                          padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                              color: _cardBg,
-                              borderRadius: BorderRadius.circular(20),
-                              border:
-                                  Border.all(color: _primaryGreen, width: 4)),
-                          child: Row(
-                            children: [
-                              Container(
-                                width: 50,
-                                height: 50,
-                                decoration: BoxDecoration(
-                                    color: _lightGreen,
-                                    borderRadius: BorderRadius.circular(12)),
-                                child: const Icon(Icons.menu_book,
-                                    color: _primaryGreen),
-                              ),
-                              const SizedBox(width: 16),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    const Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.spaceBetween,
-                                      children: [
-                                        Text('Judul modul',
-                                            style: TextStyle(
-                                                color: _primaryGreen,
-                                                fontSize: 16,
-                                                fontFamily: 'Inter',
-                                                fontWeight: FontWeight.w800)),
-                                        Text('tingkat : dasar',
-                                            style: TextStyle(
-                                                color: _primaryGreen,
-                                                fontSize: 12,
-                                                fontFamily: 'Inter',
-                                                fontWeight: FontWeight.w600)),
-                                      ],
-                                    ),
-                                    const SizedBox(height: 12),
-                                    ClipRRect(
-                                      borderRadius: BorderRadius.circular(10),
-                                      child: const LinearProgressIndicator(
-                                          value: 0.0,
-                                          backgroundColor: _lightGreen,
-                                          color: _primaryGreen,
-                                          minHeight: 6),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
+                       _BelajarCard(),
                         const SizedBox(height: 120),
                       ],
                     ),
@@ -668,6 +614,86 @@ class _ActionMenu extends StatelessWidget {
                 fontSize: 12,
                 fontFamily: 'Inter',
                 fontWeight: FontWeight.w700),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _BelajarCard extends StatelessWidget {
+  _BelajarCard();
+
+  final _data = BelajarData.instance;
+
+  @override
+  Widget build(BuildContext context) {
+    final current = _data.currentModule;
+
+    final String judulModul = current?.module.title ?? 'Semua modul selesai!';
+    final String labelTingkat =
+        current != null ? 'Tingkat: ${current.level.tingkat}' : '';
+    final double progress = current?.levelProgress ?? 1.0;
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+          color: _cardBg,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: _primaryGreen, width: 4)),
+      child: Row(
+        children: [
+          Container(
+            width: 50,
+            height: 50,
+            decoration: BoxDecoration(
+                color: _lightGreen, borderRadius: BorderRadius.circular(12)),
+            child: const Icon(Icons.menu_book, color: _primaryGreen),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(
+                      child: Text(
+                        judulModul,
+                        style: const TextStyle(
+                            color: _primaryGreen,
+                            fontSize: 14,
+                            fontFamily: 'Inter',
+                            fontWeight: FontWeight.w800),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    if (labelTingkat.isNotEmpty) ...[
+                      const SizedBox(width: 8),
+                      Text(
+                        labelTingkat,
+                        style: const TextStyle(
+                            color: _primaryGreen,
+                            fontSize: 11,
+                            fontFamily: 'Inter',
+                            fontWeight: FontWeight.w600),
+                      ),
+                    ],
+                  ],
+                ),
+                const SizedBox(height: 12),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(10),
+                  child: LinearProgressIndicator(
+                      value: progress,
+                      backgroundColor: _lightGreen,
+                      color: _primaryGreen,
+                      minHeight: 6),
+                ),
+              ],
+            ),
           ),
         ],
       ),
