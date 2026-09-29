@@ -114,6 +114,10 @@ class _TrendChartPainter extends CustomPainter {
 
 // ─── Screen ──────────────────────────────────────────────────────────────────
 
+// ─── Loading state ─────────────────────────────────────────────────────────
+
+enum _LoadState { loading, success }
+
 class RiwayatScreen extends StatefulWidget {
   const RiwayatScreen({super.key});
 
@@ -232,21 +236,64 @@ class _RiwayatScreenState extends State<RiwayatScreen> {
               bottom: BorderSide(color: _primaryGreen, width: 1.5),
             ),
           ),
-          child: const SafeArea(
-            child: Center(
-              child: Text(
-                'Riwayat',
-                style: TextStyle(
-                  color: _primaryGreen,
-                  fontSize: 25,
-                  fontFamily: 'Inter',
-                  fontWeight: FontWeight.w700,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBackground() {
+    return Opacity(
+      opacity: 0.4,
+      child: Image.asset(
+        'assets/images/bg_curve.png',
+        fit: BoxFit.cover,
+      ),
+    );
+  }
+
+  Widget _buildLoading() {
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Filter chip skeleton
+            Row(
+              children: List.generate(
+                3,
+                (i) => Padding(
+                  padding: const EdgeInsets.only(right: 8),
+                  child: _Skeleton(width: 80, height: 34, radius: 20),
                 ),
               ),
             ),
-          ),
+            const SizedBox(height: 20),
+            _Skeleton(width: 100, height: 16),
+            const SizedBox(height: 10),
+            _Skeleton(width: double.infinity, height: 180),
+            const SizedBox(height: 24),
+            _Skeleton(width: 130, height: 16),
+            const SizedBox(height: 12),
+            _Skeleton(width: double.infinity, height: 72),
+            const SizedBox(height: 10),
+            _Skeleton(width: double.infinity, height: 72),
+            const SizedBox(height: 10),
+            _Skeleton(width: double.infinity, height: 72),
+          ],
         ),
       ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    // Default: show only the first 2 groups; "Lihat semua" opens a new page
+    final visibleGroups = _allGroups.take(2).toList();
+
+    return Scaffold(
+      backgroundColor: _scaffoldBg,
+      appBar: _buildAppBar(),
       body: Stack(
         fit: StackFit.expand,
         children: [
@@ -270,17 +317,37 @@ class _RiwayatScreenState extends State<RiwayatScreen> {
                         selected: _selectedFilter == 0,
                         onTap: () => setState(() => _selectedFilter = 0),
                       ),
-                      const SizedBox(width: 8),
-                      _FilterChip(
-                        label: 'Bulanan',
-                        selected: _selectedFilter == 1,
-                        onTap: () => setState(() => _selectedFilter = 1),
+                    ),
+                    const SizedBox(height: 10),
+                    Container(
+                      decoration: BoxDecoration(
+                        color: _cardBg,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: _primaryGreen, width: 2),
                       ),
-                      const SizedBox(width: 8),
-                      _FilterChip(
-                        label: 'Tahunan',
-                        selected: _selectedFilter == 2,
-                        onTap: () => setState(() => _selectedFilter = 2),
+                      padding: const EdgeInsets.all(12),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          Text(
+                            _maxLabels[_selectedFilter]!,
+                            style: const TextStyle(
+                              color: _primaryGreen,
+                              fontSize: 12,
+                              fontFamily: 'Inter',
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          SizedBox(
+                            height: 150,
+                            child: CustomPaint(
+                              painter: _TrendChartPainter(
+                                  _trendData[_selectedFilter]!),
+                              child: const SizedBox.expand(),
+                            ),
+                          ),
+                        ],
                       ),
                     ],
                   ),
@@ -301,13 +368,13 @@ class _RiwayatScreenState extends State<RiwayatScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
-                        Text(
-                          _maxLabels[_selectedFilter]!,
-                          style: const TextStyle(
+                        const Text(
+                          'Aktivitas Terbaru',
+                          style: TextStyle(
                             color: _primaryGreen,
-                            fontSize: 12,
+                            fontSize: 14,
                             fontFamily: 'Inter',
-                            fontWeight: FontWeight.w500,
+                            fontWeight: FontWeight.w700,
                           ),
                         ),
                         const SizedBox(height: 6),
@@ -345,18 +412,26 @@ class _RiwayatScreenState extends State<RiwayatScreen> {
                                 formatCurrency: _formatCurrency,
                                 iconForType: _iconForType,
                               ),
+                            );
+                          },
+                          child: const Text(
+                            'Lihat semua',
+                            style: TextStyle(
+                              color: _orangeText,
+                              fontSize: 13,
+                              fontFamily: 'Inter',
+                              fontWeight: FontWeight.w600,
                             ),
-                          );
-                        },
-                        child: const Text(
-                          'Lihat semua',
-                          style: TextStyle(
-                            color: _orangeText,
-                            fontSize: 13,
-                            fontFamily: 'Inter',
-                            fontWeight: FontWeight.w600,
                           ),
                         ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    ...visibleGroups.map(
+                      (group) => _TransactionGroup(
+                        group: group,
+                        formatCurrency: _formatCurrency,
+                        iconForType: _iconForType,
                       ),
                     ],
                   ),
@@ -372,7 +447,6 @@ class _RiwayatScreenState extends State<RiwayatScreen> {
                 ],
               ),
             ),
-          ),
         ],
       ),
     );
@@ -611,6 +685,62 @@ class _TransactionCard extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+// ─── Skeleton widget ─────────────────────────────────────────────────────────
+
+class _Skeleton extends StatefulWidget {
+  final double width;
+  final double height;
+  final double radius;
+
+  const _Skeleton({
+    required this.width,
+    required this.height,
+    this.radius = 12,
+  });
+
+  @override
+  State<_Skeleton> createState() => _SkeletonState();
+}
+
+class _SkeletonState extends State<_Skeleton>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _ctrl;
+  late Animation<double> _anim;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1000),
+    )..repeat(reverse: true);
+    _anim = Tween<double>(begin: 0.3, end: 0.7).animate(
+      CurvedAnimation(parent: _ctrl, curve: Curves.easeInOut),
+    );
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _anim,
+      builder: (_, __) => Container(
+        width: widget.width,
+        height: widget.height,
+        decoration: BoxDecoration(
+          color: _lightGreen.withValues(alpha: _anim.value),
+          borderRadius: BorderRadius.circular(widget.radius),
+        ),
       ),
     );
   }
