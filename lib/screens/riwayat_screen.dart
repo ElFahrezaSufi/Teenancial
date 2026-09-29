@@ -1,6 +1,5 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
-import '../widgets/common/custom_card.dart';
 
 const Color _primaryGreen = Color(0xFF627931);
 const Color _scaffoldBg = Color(0xFFEDEFE2);
@@ -112,11 +111,11 @@ class _TrendChartPainter extends CustomPainter {
   bool shouldRepaint(_TrendChartPainter oldDelegate) => true;
 }
 
-// ─── Screen ──────────────────────────────────────────────────────────────────
-
-// ─── Loading state ─────────────────────────────────────────────────────────
+// ─── Loading state ───────────────────────────────────────────────────────────
 
 enum _LoadState { loading, success }
+
+// ─── Screen ──────────────────────────────────────────────────────────────────
 
 class RiwayatScreen extends StatefulWidget {
   const RiwayatScreen({super.key});
@@ -127,6 +126,19 @@ class RiwayatScreen extends StatefulWidget {
 
 class _RiwayatScreenState extends State<RiwayatScreen> {
   int _selectedFilter = 0;
+  _LoadState _loadState = _LoadState.loading;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadData();
+  }
+
+  Future<void> _loadData() async {
+    setState(() => _loadState = _LoadState.loading);
+    await Future.delayed(const Duration(milliseconds: 800));
+    if (mounted) setState(() => _loadState = _LoadState.success);
+  }
 
   final Map<int, List<double>> _trendData = {
     0: [120, 95, 140, 80, 110, 75, 160, 130, 90, 170, 145, 185],
@@ -221,32 +233,29 @@ class _RiwayatScreenState extends State<RiwayatScreen> {
     }
   }
 
-  @override
-  Widget build(BuildContext context) {
-    final visibleGroups = _allGroups.take(2).toList();
-
-    return Scaffold(
-      backgroundColor: _scaffoldBg,
-      appBar: PreferredSize(
-        preferredSize: const Size.fromHeight(80),
-        child: Container(
-          decoration: const BoxDecoration(
-            color: _appBarBg,
-            border: Border(
-              bottom: BorderSide(color: _primaryGreen, width: 1.5),
+  PreferredSizeWidget _buildAppBar() {
+    return PreferredSize(
+      preferredSize: const Size.fromHeight(80),
+      child: Container(
+        decoration: const BoxDecoration(
+          color: _appBarBg,
+          border: Border(
+            bottom: BorderSide(color: _primaryGreen, width: 1.5),
+          ),
+        ),
+        child: const SafeArea(
+          child: Center(
+            child: Text(
+              'Riwayat',
+              style: TextStyle(
+                color: _primaryGreen,
+                fontSize: 25,
+                fontFamily: 'Inter',
+                fontWeight: FontWeight.w700,
+              ),
             ),
           ),
         ),
-      ),
-    );
-  }
-
-  Widget _buildBackground() {
-    return Opacity(
-      opacity: 0.4,
-      child: Image.asset(
-        'assets/images/bg_curve.png',
-        fit: BoxFit.cover,
       ),
     );
   }
@@ -258,7 +267,6 @@ class _RiwayatScreenState extends State<RiwayatScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Filter chip skeleton
             Row(
               children: List.generate(
                 3,
@@ -288,7 +296,6 @@ class _RiwayatScreenState extends State<RiwayatScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Default: show only the first 2 groups; "Lihat semua" opens a new page
     final visibleGroups = _allGroups.take(2).toList();
 
     return Scaffold(
@@ -304,18 +311,43 @@ class _RiwayatScreenState extends State<RiwayatScreen> {
               fit: BoxFit.cover,
             ),
           ),
-          SafeArea(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(24.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      _FilterChip(
-                        label: 'Mingguan',
-                        selected: _selectedFilter == 0,
-                        onTap: () => setState(() => _selectedFilter = 0),
+          if (_loadState == _LoadState.loading) _buildLoading(),
+          if (_loadState == _LoadState.success)
+            SafeArea(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(24.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        _FilterChip(
+                          label: 'Mingguan',
+                          selected: _selectedFilter == 0,
+                          onTap: () => setState(() => _selectedFilter = 0),
+                        ),
+                        const SizedBox(width: 8),
+                        _FilterChip(
+                          label: 'Bulanan',
+                          selected: _selectedFilter == 1,
+                          onTap: () => setState(() => _selectedFilter = 1),
+                        ),
+                        const SizedBox(width: 8),
+                        _FilterChip(
+                          label: 'Tahunan',
+                          selected: _selectedFilter == 2,
+                          onTap: () => setState(() => _selectedFilter = 2),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 20),
+                    const Text(
+                      'Tren Saldo',
+                      style: TextStyle(
+                        color: _primaryGreen,
+                        fontSize: 14,
+                        fontFamily: 'Inter',
+                        fontWeight: FontWeight.w700,
                       ),
                     ),
                     const SizedBox(height: 10),
@@ -349,24 +381,10 @@ class _RiwayatScreenState extends State<RiwayatScreen> {
                           ),
                         ],
                       ),
-                    ],
-                  ),
-                  const SizedBox(height: 20),
-                  const Text(
-                    'Tren Saldo',
-                    style: TextStyle(
-                      color: _primaryGreen,
-                      fontSize: 14,
-                      fontFamily: 'Inter',
-                      fontWeight: FontWeight.w700,
                     ),
-                  ),
-                  const SizedBox(height: 10),
-                  CustomCard(
-                    backgroundColor: _cardBg,
-                    padding: const EdgeInsets.all(12),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.end,
+                    const SizedBox(height: 24),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         const Text(
                           'Aktivitas Terbaru',
@@ -377,40 +395,16 @@ class _RiwayatScreenState extends State<RiwayatScreen> {
                             fontWeight: FontWeight.w700,
                           ),
                         ),
-                        const SizedBox(height: 6),
-                        SizedBox(
-                          height: 150,
-                          child: CustomPaint(
-                            painter: _TrendChartPainter(
-                                _trendData[_selectedFilter]!),
-                            child: const SizedBox.expand(),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text(
-                        'Aktivitas Terbaru',
-                        style: TextStyle(
-                          color: _primaryGreen,
-                          fontSize: 14,
-                          fontFamily: 'Inter',
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                      GestureDetector(
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => _SemuaAktivitasScreen(
-                                groups: _allGroups,
-                                formatCurrency: _formatCurrency,
-                                iconForType: _iconForType,
+                        GestureDetector(
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => _SemuaAktivitasScreen(
+                                  groups: _allGroups,
+                                  formatCurrency: _formatCurrency,
+                                  iconForType: _iconForType,
+                                ),
                               ),
                             );
                           },
@@ -433,18 +427,10 @@ class _RiwayatScreenState extends State<RiwayatScreen> {
                         formatCurrency: _formatCurrency,
                         iconForType: _iconForType,
                       ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  ...visibleGroups.map(
-                    (group) => _TransactionGroup(
-                      group: group,
-                      formatCurrency: _formatCurrency,
-                      iconForType: _iconForType,
                     ),
-                  ),
-                  const SizedBox(height: 80),
-                ],
+                    const SizedBox(height: 80),
+                  ],
+                ),
               ),
             ),
         ],
@@ -452,6 +438,8 @@ class _RiwayatScreenState extends State<RiwayatScreen> {
     );
   }
 }
+
+// ─── Semua Aktivitas screen ───────────────────────────────────────────────────
 
 class _SemuaAktivitasScreen extends StatelessWidget {
   final List<TransactionGroup> groups;
@@ -539,6 +527,8 @@ class _SemuaAktivitasScreen extends StatelessWidget {
   }
 }
 
+// ─── Filter chip ─────────────────────────────────────────────────────────────
+
 class _FilterChip extends StatelessWidget {
   final String label;
   final bool selected;
@@ -560,10 +550,7 @@ class _FilterChip extends StatelessWidget {
         decoration: BoxDecoration(
           color: selected ? _primaryGreen : Colors.transparent,
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: _primaryGreen,
-            width: 1.5,
-          ),
+          border: Border.all(color: _primaryGreen, width: 1.5),
         ),
         child: Text(
           label,
@@ -578,6 +565,8 @@ class _FilterChip extends StatelessWidget {
     );
   }
 }
+
+// ─── Transaction group ────────────────────────────────────────────────────────
 
 class _TransactionGroup extends StatelessWidget {
   final TransactionGroup group;
@@ -621,6 +610,8 @@ class _TransactionGroup extends StatelessWidget {
   }
 }
 
+// ─── Transaction card ─────────────────────────────────────────────────────────
+
 class _TransactionCard extends StatelessWidget {
   final TransactionItem item;
   final String Function(double) formatCurrency;
@@ -634,9 +625,13 @@ class _TransactionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return CustomCard(
-      backgroundColor: _cardBg,
+    return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: _cardBg,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: _primaryGreen, width: 2),
+      ),
       child: Row(
         children: [
           Container(
@@ -690,7 +685,7 @@ class _TransactionCard extends StatelessWidget {
   }
 }
 
-// ─── Skeleton widget ─────────────────────────────────────────────────────────
+// ─── Skeleton widget ──────────────────────────────────────────────────────────
 
 class _Skeleton extends StatefulWidget {
   final double width;
