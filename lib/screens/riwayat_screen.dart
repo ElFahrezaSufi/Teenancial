@@ -118,6 +118,10 @@ class _TrendChartPainter extends CustomPainter {
 
 // ─── Screen ──────────────────────────────────────────────────────────────────
 
+// ─── Loading state ─────────────────────────────────────────────────────────
+
+enum _LoadState { loading, success }
+
 class RiwayatScreen extends StatefulWidget {
   const RiwayatScreen({super.key});
 
@@ -126,7 +130,24 @@ class RiwayatScreen extends StatefulWidget {
 }
 
 class _RiwayatScreenState extends State<RiwayatScreen> {
+<<<<<<< Updated upstream
   int _selectedFilter = 0; // 0=Mingguan, 1=Bulanan, 2=Tahunan
+=======
+  int _selectedFilter = 0;
+  _LoadState _loadState = _LoadState.loading;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadData();
+  }
+
+  Future<void> _loadData() async {
+    setState(() => _loadState = _LoadState.loading);
+    await Future.delayed(const Duration(milliseconds: 800));
+    if (mounted) setState(() => _loadState = _LoadState.success);
+  }
+>>>>>>> Stashed changes
 
   // Mock balance trend data for each filter period
   final Map<int, List<double>> _trendData = {
@@ -224,6 +245,78 @@ class _RiwayatScreenState extends State<RiwayatScreen> {
     }
   }
 
+  PreferredSizeWidget _buildAppBar() {
+    return PreferredSize(
+      preferredSize: const Size.fromHeight(80),
+      child: Container(
+        decoration: const BoxDecoration(
+          color: _appBarBg,
+          border: Border(
+            bottom: BorderSide(color: _primaryGreen, width: 1.5),
+          ),
+        ),
+        child: const SafeArea(
+          child: Center(
+            child: Text(
+              'Riwayat',
+              style: TextStyle(
+                color: _primaryGreen,
+                fontSize: 25,
+                fontFamily: 'Inter',
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBackground() {
+    return Opacity(
+      opacity: 0.4,
+      child: Image.asset(
+        'assets/images/bg_curve.png',
+        fit: BoxFit.cover,
+      ),
+    );
+  }
+
+  Widget _buildLoading() {
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Filter chip skeleton
+            Row(
+              children: List.generate(
+                3,
+                (i) => Padding(
+                  padding: const EdgeInsets.only(right: 8),
+                  child: _Skeleton(width: 80, height: 34, radius: 20),
+                ),
+              ),
+            ),
+            const SizedBox(height: 20),
+            _Skeleton(width: 100, height: 16),
+            const SizedBox(height: 10),
+            _Skeleton(width: double.infinity, height: 180),
+            const SizedBox(height: 24),
+            _Skeleton(width: 130, height: 16),
+            const SizedBox(height: 12),
+            _Skeleton(width: double.infinity, height: 72),
+            const SizedBox(height: 10),
+            _Skeleton(width: double.infinity, height: 72),
+            const SizedBox(height: 10),
+            _Skeleton(width: double.infinity, height: 72),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     // Default: show only the first 2 groups; "Lihat semua" opens a new page
@@ -231,33 +324,11 @@ class _RiwayatScreenState extends State<RiwayatScreen> {
 
     return Scaffold(
       backgroundColor: _scaffoldBg,
-      appBar: PreferredSize(
-        preferredSize: const Size.fromHeight(80),
-        child: Container(
-          decoration: const BoxDecoration(
-            color: _appBarBg,
-            border: Border(
-              bottom: BorderSide(color: _primaryGreen, width: 1.5),
-            ),
-          ),
-          child: const SafeArea(
-            child: Center(
-              child: Text(
-                'Riwayat',
-                style: TextStyle(
-                  color: _primaryGreen,
-                  fontSize: 25,
-                  fontFamily: 'Inter',
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ),
-          ),
-        ),
-      ),
+      appBar: _buildAppBar(),
       body: Stack(
         fit: StackFit.expand,
         children: [
+<<<<<<< Updated upstream
           // Background
           Opacity(
             opacity: 0.4,
@@ -321,27 +392,115 @@ class _RiwayatScreenState extends State<RiwayatScreen> {
                     padding: const EdgeInsets.all(12),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.end,
+=======
+          _buildBackground(),
+          if (_loadState == _LoadState.loading) _buildLoading(),
+          if (_loadState == _LoadState.success)
+            SafeArea(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(24.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+>>>>>>> Stashed changes
                       children: [
-                        Text(
-                          _maxLabels[_selectedFilter]!,
-                          style: const TextStyle(
+                        _FilterChip(
+                          label: 'Mingguan',
+                          selected: _selectedFilter == 0,
+                          onTap: () => setState(() => _selectedFilter = 0),
+                        ),
+                        const SizedBox(width: 8),
+                        _FilterChip(
+                          label: 'Bulanan',
+                          selected: _selectedFilter == 1,
+                          onTap: () => setState(() => _selectedFilter = 1),
+                        ),
+                        const SizedBox(width: 8),
+                        _FilterChip(
+                          label: 'Tahunan',
+                          selected: _selectedFilter == 2,
+                          onTap: () => setState(() => _selectedFilter = 2),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 20),
+                    const Text(
+                      'Tren Saldo',
+                      style: TextStyle(
+                        color: _primaryGreen,
+                        fontSize: 14,
+                        fontFamily: 'Inter',
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    CustomCard(
+                      backgroundColor: _cardBg,
+                      padding: const EdgeInsets.all(12),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          Text(
+                            _maxLabels[_selectedFilter]!,
+                            style: const TextStyle(
+                              color: _primaryGreen,
+                              fontSize: 12,
+                              fontFamily: 'Inter',
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          SizedBox(
+                            height: 150,
+                            child: CustomPaint(
+                              painter: _TrendChartPainter(
+                                  _trendData[_selectedFilter]!),
+                              child: const SizedBox.expand(),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text(
+                          'Aktivitas Terbaru',
+                          style: TextStyle(
                             color: _primaryGreen,
-                            fontSize: 12,
+                            fontSize: 14,
                             fontFamily: 'Inter',
-                            fontWeight: FontWeight.w500,
+                            fontWeight: FontWeight.w700,
                           ),
                         ),
-                        const SizedBox(height: 6),
-                        SizedBox(
-                          height: 150,
-                          child: CustomPaint(
-                            painter: _TrendChartPainter(
-                                _trendData[_selectedFilter]!),
-                            child: const SizedBox.expand(),
+                        GestureDetector(
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => _SemuaAktivitasScreen(
+                                  groups: _allGroups,
+                                  formatCurrency: _formatCurrency,
+                                  iconForType: _iconForType,
+                                ),
+                              ),
+                            );
+                          },
+                          child: const Text(
+                            'Lihat semua',
+                            style: TextStyle(
+                              color: _orangeText,
+                              fontSize: 13,
+                              fontFamily: 'Inter',
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
                         ),
                       ],
                     ),
+<<<<<<< Updated upstream
                   ),
 
                   const SizedBox(height: 24),
@@ -399,9 +558,21 @@ class _RiwayatScreenState extends State<RiwayatScreen> {
                   // Bottom padding for nav bar
                   const SizedBox(height: 80),
                 ],
+=======
+                    const SizedBox(height: 12),
+                    ...visibleGroups.map(
+                      (group) => _TransactionGroup(
+                        group: group,
+                        formatCurrency: _formatCurrency,
+                        iconForType: _iconForType,
+                      ),
+                    ),
+                    const SizedBox(height: 80),
+                  ],
+                ),
+>>>>>>> Stashed changes
               ),
             ),
-          ),
         ],
       ),
     );
@@ -658,6 +829,62 @@ class _TransactionCard extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+// ─── Skeleton widget ─────────────────────────────────────────────────────────
+
+class _Skeleton extends StatefulWidget {
+  final double width;
+  final double height;
+  final double radius;
+
+  const _Skeleton({
+    required this.width,
+    required this.height,
+    this.radius = 12,
+  });
+
+  @override
+  State<_Skeleton> createState() => _SkeletonState();
+}
+
+class _SkeletonState extends State<_Skeleton>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _ctrl;
+  late Animation<double> _anim;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1000),
+    )..repeat(reverse: true);
+    _anim = Tween<double>(begin: 0.3, end: 0.7).animate(
+      CurvedAnimation(parent: _ctrl, curve: Curves.easeInOut),
+    );
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _anim,
+      builder: (_, __) => Container(
+        width: widget.width,
+        height: widget.height,
+        decoration: BoxDecoration(
+          color: _lightGreen.withValues(alpha: _anim.value),
+          borderRadius: BorderRadius.circular(widget.radius),
+        ),
       ),
     );
   }
