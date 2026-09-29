@@ -116,11 +116,11 @@ class _TrendChartPainter extends CustomPainter {
   bool shouldRepaint(_TrendChartPainter oldDelegate) => true;
 }
 
-// ─── Screen ──────────────────────────────────────────────────────────────────
-
-// ─── Loading state ─────────────────────────────────────────────────────────
+// ─── Loading state ───────────────────────────────────────────────────────────
 
 enum _LoadState { loading, success }
+
+// ─── Screen ──────────────────────────────────────────────────────────────────
 
 class RiwayatScreen extends StatefulWidget {
   const RiwayatScreen({super.key});
@@ -132,6 +132,21 @@ class RiwayatScreen extends StatefulWidget {
 class _RiwayatScreenState extends State<RiwayatScreen> {
   int _selectedFilter = 0;
   _LoadState _loadState = _LoadState.loading;
+<<<<<<< Updated upstream
+=======
+
+  @override
+  void initState() {
+    super.initState();
+    _loadData();
+  }
+
+  Future<void> _loadData() async {
+    setState(() => _loadState = _LoadState.loading);
+    await Future.delayed(const Duration(milliseconds: 800));
+    if (mounted) setState(() => _loadState = _LoadState.success);
+  }
+>>>>>>> Stashed changes
 
   @override
   void initState() {
@@ -241,6 +256,11 @@ class _RiwayatScreenState extends State<RiwayatScreen> {
     }
   }
 
+<<<<<<< Updated upstream
+=======
+  // ── AppBar ──────────────────────────────────────────────────────────────────
+
+>>>>>>> Stashed changes
   PreferredSizeWidget _buildAppBar() {
     return PreferredSize(
       preferredSize: const Size.fromHeight(80),
@@ -268,15 +288,7 @@ class _RiwayatScreenState extends State<RiwayatScreen> {
     );
   }
 
-  Widget _buildBackground() {
-    return Opacity(
-      opacity: 0.4,
-      child: Image.asset(
-        'assets/images/bg_curve.png',
-        fit: BoxFit.cover,
-      ),
-    );
-  }
+  // ── Loading skeleton ────────────────────────────────────────────────────────
 
   Widget _buildLoading() {
     return SafeArea(
@@ -285,7 +297,6 @@ class _RiwayatScreenState extends State<RiwayatScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Filter chip skeleton
             Row(
               children: List.generate(
                 3,
@@ -313,9 +324,10 @@ class _RiwayatScreenState extends State<RiwayatScreen> {
     );
   }
 
+  // ── Build ───────────────────────────────────────────────────────────────────
+
   @override
   Widget build(BuildContext context) {
-    // Default: show only the first 2 groups; "Lihat semua" opens a new page
     final visibleGroups = _allGroups.take(2).toList();
 
     return Scaffold(
@@ -324,8 +336,24 @@ class _RiwayatScreenState extends State<RiwayatScreen> {
       body: Stack(
         fit: StackFit.expand,
         children: [
+<<<<<<< Updated upstream
           _buildBackground(),
           if (_loadState == _LoadState.loading) _buildLoading(),
+=======
+          // Background
+          Opacity(
+            opacity: 0.4,
+            child: Image.asset(
+              'assets/images/bg_curve.png',
+              fit: BoxFit.cover,
+            ),
+          ),
+
+          // Loading skeleton
+          if (_loadState == _LoadState.loading) _buildLoading(),
+
+          // Konten
+>>>>>>> Stashed changes
           if (_loadState == _LoadState.success)
             SafeArea(
               child: SingleChildScrollView(
@@ -333,6 +361,10 @@ class _RiwayatScreenState extends State<RiwayatScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+<<<<<<< Updated upstream
+=======
+                    // Filter chips
+>>>>>>> Stashed changes
                     Row(
                       children: [
                         _FilterChip(
@@ -355,6 +387,11 @@ class _RiwayatScreenState extends State<RiwayatScreen> {
                       ],
                     ),
                     const SizedBox(height: 20),
+<<<<<<< Updated upstream
+=======
+
+                    // Tren Saldo
+>>>>>>> Stashed changes
                     const Text(
                       'Tren Saldo',
                       style: TextStyle(
@@ -397,6 +434,11 @@ class _RiwayatScreenState extends State<RiwayatScreen> {
                       ),
                     ),
                     const SizedBox(height: 24),
+<<<<<<< Updated upstream
+=======
+
+                    // Aktivitas Terbaru header
+>>>>>>> Stashed changes
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
@@ -435,6 +477,8 @@ class _RiwayatScreenState extends State<RiwayatScreen> {
                       ],
                     ),
                     const SizedBox(height: 12),
+
+                    // Transaction list
                     ...visibleGroups.map(
                       (group) => _TransactionGroup(
                         group: group,
@@ -453,7 +497,11 @@ class _RiwayatScreenState extends State<RiwayatScreen> {
   }
 }
 
+<<<<<<< Updated upstream
 // ─── Semua Aktivitas screen ─────────────────────────────────────────────────
+=======
+// ─── Semua Aktivitas screen ───────────────────────────────────────────────────
+>>>>>>> Stashed changes
 
 class _SemuaAktivitasScreen extends StatelessWidget {
   final List<TransactionGroup> groups;
@@ -541,7 +589,11 @@ class _SemuaAktivitasScreen extends StatelessWidget {
   }
 }
 
+<<<<<<< Updated upstream
 // ─── Filter chip widget ───────────────────────────────────────────────────────
+=======
+// ─── Filter chip ─────────────────────────────────────────────────────────────
+>>>>>>> Stashed changes
 
 class _FilterChip extends StatelessWidget {
   final String label;
@@ -564,10 +616,7 @@ class _FilterChip extends StatelessWidget {
         decoration: BoxDecoration(
           color: selected ? _primaryGreen : Colors.transparent,
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: _primaryGreen,
-            width: 1.5,
-          ),
+          border: Border.all(color: _primaryGreen, width: 1.5),
         ),
         child: Text(
           label,
@@ -583,7 +632,11 @@ class _FilterChip extends StatelessWidget {
   }
 }
 
+<<<<<<< Updated upstream
 // ─── Transaction group widget ─────────────────────────────────────────────────
+=======
+// ─── Transaction group ────────────────────────────────────────────────────────
+>>>>>>> Stashed changes
 
 class _TransactionGroup extends StatelessWidget {
   final TransactionGroup group;
@@ -627,7 +680,11 @@ class _TransactionGroup extends StatelessWidget {
   }
 }
 
+<<<<<<< Updated upstream
 // ─── Transaction card widget ──────────────────────────────────────────────────
+=======
+// ─── Transaction card ─────────────────────────────────────────────────────────
+>>>>>>> Stashed changes
 
 class _TransactionCard extends StatelessWidget {
   final TransactionItem item;
@@ -646,8 +703,13 @@ class _TransactionCard extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
         color: _cardBg,
+<<<<<<< Updated upstream
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: _primaryGreen, width: 1.5),
+=======
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: _primaryGreen, width: 2),
+>>>>>>> Stashed changes
       ),
       child: Row(
         children: [
@@ -708,7 +770,7 @@ class _TransactionCard extends StatelessWidget {
   }
 }
 
-// ─── Skeleton widget ─────────────────────────────────────────────────────────
+// ─── Skeleton widget ──────────────────────────────────────────────────────────
 
 class _Skeleton extends StatefulWidget {
   final double width;
