@@ -451,14 +451,15 @@ class _HomeScreenState extends State<HomeScreen> {
                         //ruang belajar
                         _SectionHeader(
                           title: 'Ruang Belajar',
-                          actionText: 'Lihat Semua',
-                          onActionTap: () => Navigator.push(
+                        ),
+                        const SizedBox(height: 12),
+                        GestureDetector(
+                          onTap: () => Navigator.push(
                               context,
                               MaterialPageRoute(
                                   builder: (_) => const RuangBelajarScreen())),
+                          child: _BelajarCard(),
                         ),
-                        const SizedBox(height: 12),
-                       _BelajarCard(),
                         const SizedBox(height: 120),
                       ],
                     ),
@@ -703,13 +704,11 @@ class _BelajarCard extends StatelessWidget {
 
 class _SectionHeader extends StatelessWidget {
   final String title;
-  final String actionText;
-  final VoidCallback onActionTap;
+  final String? actionText;
+  final VoidCallback? onActionTap;
 
   const _SectionHeader(
-      {required this.title,
-      required this.actionText,
-      required this.onActionTap});
+      {required this.title, this.actionText, this.onActionTap});
 
   @override
   Widget build(BuildContext context) {
@@ -722,15 +721,16 @@ class _SectionHeader extends StatelessWidget {
                 fontSize: 18,
                 fontFamily: 'Inter',
                 fontWeight: FontWeight.w800)),
-        GestureDetector(
-          onTap: onActionTap,
-          child: Text(actionText,
-              style: const TextStyle(
-                  color: _orangeText,
-                  fontSize: 14,
-                  fontFamily: 'Inter',
-                  fontWeight: FontWeight.w700)),
-        ),
+        if (actionText != null)
+          GestureDetector(
+            onTap: onActionTap,
+            child: Text(actionText!,
+                style: const TextStyle(
+                    color: _orangeText,
+                    fontSize: 14,
+                    fontFamily: 'Inter',
+                    fontWeight: FontWeight.w700)),
+          ),
       ],
     );
   }
