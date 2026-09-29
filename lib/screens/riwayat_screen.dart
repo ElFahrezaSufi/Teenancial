@@ -130,9 +130,6 @@ class RiwayatScreen extends StatefulWidget {
 }
 
 class _RiwayatScreenState extends State<RiwayatScreen> {
-<<<<<<< Updated upstream
-  int _selectedFilter = 0; // 0=Mingguan, 1=Bulanan, 2=Tahunan
-=======
   int _selectedFilter = 0;
   _LoadState _loadState = _LoadState.loading;
 
@@ -147,7 +144,6 @@ class _RiwayatScreenState extends State<RiwayatScreen> {
     await Future.delayed(const Duration(milliseconds: 800));
     if (mounted) setState(() => _loadState = _LoadState.success);
   }
->>>>>>> Stashed changes
 
   // Mock balance trend data for each filter period
   final Map<int, List<double>> _trendData = {
