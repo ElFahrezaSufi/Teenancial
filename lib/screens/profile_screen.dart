@@ -1,10 +1,14 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:image_picker/image_picker.dart';
 import '../data/mock_auth.dart';
 import '../theme/app_colors.dart';
 import '../widgets/common/custom_card.dart';
 
 class ProfileScreen extends StatefulWidget {
+  static File? profileImage;
+
   const ProfileScreen({super.key});
 
   @override
@@ -64,13 +68,27 @@ class _ProfileScreenState extends State<ProfileScreen> {
     });
   }
 
-  void _changeProfilePicture() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Fitur Buka Kamera / Galeri akan segera ditambahkan!'),
-        backgroundColor: Color(0xFFD9B62C),
-      ),
-    );
+  Future<void> _changeProfilePicture() async {
+    final ImagePicker picker = ImagePicker();
+    try {
+      final XFile? image = await picker.pickImage(source: ImageSource.gallery);
+      if (!mounted) return;
+      if (image != null) {
+        setState(() {
+          ProfileScreen.profileImage = File(image.path);
+        });
+      }
+    } catch (e) {
+      debugPrint("Gagal mengambil gambar: $e");
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Terjadi kesalahan saat membuka galeri.'),
+            backgroundColor: Colors.redAccent,
+          ),
+        );
+      }
+    }
   }
 
   Future<void> _handleLogout() async {
@@ -78,8 +96,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     await MockAuth.logout();
 
     if (!mounted) return;
-
-    // Perbaikan Bug Navbar: Menggunakan go_router untuk melompat ke rute utama
     context.go('/get_started');
   }
 
@@ -87,7 +103,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if (context.canPop()) {
       context.pop();
     } else {
-      context.go('/home'); // Atau ke mana pun default back-nya
+      context.go('/home');
     }
   }
 
@@ -98,9 +114,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
       appBar: PreferredSize(
         preferredSize: const Size.fromHeight(80),
         child: Container(
-          decoration: BoxDecoration(
+          decoration: const BoxDecoration(
             color: appBarBg,
-            border: const Border(
+            border: Border(
               bottom: BorderSide(color: primaryGreen, width: 1.5),
             ),
           ),
@@ -184,26 +200,44 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             color: inputBg,
                             shape: BoxShape.circle,
                             border: Border.all(color: primaryGreen, width: 2),
+                            image: ProfileScreen.profileImage != null
+                                ? DecorationImage(
+                                    image:
+                                        FileImage(ProfileScreen.profileImage!),
+                                    fit: BoxFit.cover,
+                                  )
+                                : null,
                           ),
-                          child: const Icon(Icons.person,
-                              color: primaryGreen, size: 60),
+                          child: ProfileScreen.profileImage == null
+                              ? const Icon(Icons.person,
+                                  color: primaryGreen, size: 60)
+                              : null,
                         ),
                         GestureDetector(
                           onTap: _isEditing
-                              ? _changeProfilePicture
+                              ? (ProfileScreen.profileImage != null
+                                  ? () => setState(
+                                      () => ProfileScreen.profileImage = null)
+                                  : _changeProfilePicture)
                               : _startEditing,
                           child: Container(
                             width: 32,
                             height: 32,
                             decoration: BoxDecoration(
                               color: _isEditing
-                                  ? const Color(0xFFD9B62C)
+                                  ? (ProfileScreen.profileImage != null
+                                      ? Colors.redAccent
+                                      : const Color(0xFFDAB62C))
                                   : primaryGreen,
                               shape: BoxShape.circle,
                               border: Border.all(color: scaffoldBg, width: 3),
                             ),
                             child: Icon(
-                              _isEditing ? Icons.camera_alt : Icons.edit,
+                              _isEditing
+                                  ? (ProfileScreen.profileImage != null
+                                      ? Icons.delete_outline
+                                      : Icons.camera_alt)
+                                  : Icons.edit,
                               color: Colors.white,
                               size: 16,
                             ),
