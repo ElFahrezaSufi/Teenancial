@@ -324,71 +324,6 @@ class _RiwayatScreenState extends State<RiwayatScreen> {
       body: Stack(
         fit: StackFit.expand,
         children: [
-<<<<<<< Updated upstream
-          // Background
-          Opacity(
-            opacity: 0.4,
-            child: Image.asset(
-              'assets/images/bg_curve.png',
-              fit: BoxFit.cover,
-            ),
-          ),
-
-          // Content
-          SafeArea(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(24.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // ── Filter chips ───────────────────────────────────────
-                  Row(
-                    children: [
-                      _FilterChip(
-                        label: 'Mingguan',
-                        selected: _selectedFilter == 0,
-                        onTap: () => setState(() => _selectedFilter = 0),
-                      ),
-                      const SizedBox(width: 8),
-                      _FilterChip(
-                        label: 'Bulanan',
-                        selected: _selectedFilter == 1,
-                        onTap: () => setState(() => _selectedFilter = 1),
-                      ),
-                      const SizedBox(width: 8),
-                      _FilterChip(
-                        label: 'Tahunan',
-                        selected: _selectedFilter == 2,
-                        onTap: () => setState(() => _selectedFilter = 2),
-                      ),
-                    ],
-                  ),
-
-                  const SizedBox(height: 20),
-
-                  // ── Tren Saldo ─────────────────────────────────────────
-                  Text(
-                    'Tren Saldo',
-                    style: const TextStyle(
-                      color: _primaryGreen,
-                      fontSize: 14,
-                      fontFamily: 'Inter',
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-
-                  const SizedBox(height: 10),
-
-                  Container(
-                    decoration: BoxDecoration(
-                      color: _cardBg,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: _primaryGreen, width: 1.5),
-                    ),
-                    padding: const EdgeInsets.all(12),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.end,
-=======
           _buildBackground(),
           if (_loadState == _LoadState.loading) _buildLoading(),
           if (_loadState == _LoadState.success)
@@ -399,7 +334,6 @@ class _RiwayatScreenState extends State<RiwayatScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Row(
->>>>>>> Stashed changes
                       children: [
                         _FilterChip(
                           label: 'Mingguan',
@@ -431,8 +365,12 @@ class _RiwayatScreenState extends State<RiwayatScreen> {
                       ),
                     ),
                     const SizedBox(height: 10),
-                    CustomCard(
-                      backgroundColor: _cardBg,
+                    Container(
+                      decoration: BoxDecoration(
+                        color: _cardBg,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: _primaryGreen, width: 2),
+                      ),
                       padding: const EdgeInsets.all(12),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.end,
@@ -496,65 +434,6 @@ class _RiwayatScreenState extends State<RiwayatScreen> {
                         ),
                       ],
                     ),
-<<<<<<< Updated upstream
-                  ),
-
-                  const SizedBox(height: 24),
-
-                  // ── Aktivitas Terbaru header ───────────────────────────
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text(
-                        'Aktivitas Terbaru',
-                        style: TextStyle(
-                          color: _primaryGreen,
-                          fontSize: 14,
-                          fontFamily: 'Inter',
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                      GestureDetector(
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => _SemuaAktivitasScreen(
-                                groups: _allGroups,
-                                formatCurrency: _formatCurrency,
-                                iconForType: _iconForType,
-                              ),
-                            ),
-                          );
-                        },
-                        child: const Text(
-                          'Lihat semua',
-                          style: TextStyle(
-                            color: _orangeText,
-                            fontSize: 13,
-                            fontFamily: 'Inter',
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-
-                  const SizedBox(height: 12),
-
-                  // ── Transaction groups ─────────────────────────────────
-                  ...visibleGroups.map(
-                    (group) => _TransactionGroup(
-                      group: group,
-                      formatCurrency: _formatCurrency,
-                      iconForType: _iconForType,
-                    ),
-                  ),
-
-                  // Bottom padding for nav bar
-                  const SizedBox(height: 80),
-                ],
-=======
                     const SizedBox(height: 12),
                     ...visibleGroups.map(
                       (group) => _TransactionGroup(
@@ -566,7 +445,6 @@ class _RiwayatScreenState extends State<RiwayatScreen> {
                     const SizedBox(height: 80),
                   ],
                 ),
->>>>>>> Stashed changes
               ),
             ),
         ],
