@@ -8,6 +8,8 @@ import 'screens/home_screen.dart';
 import 'screens/dompet_screen.dart';
 import 'screens/riwayat_screen.dart';
 import 'screens/profile_screen.dart';
+import 'screens/get_started.dart';
+import 'screens/login_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -25,6 +27,14 @@ final GoRouter _router = GoRouter(
     GoRoute(
       path: '/splash',
       builder: (context, state) => const SplashScreen(),
+    ),
+    GoRoute(
+      path: '/get_started',
+      builder: (context, state) => const GetStarted(),
+    ),
+    GoRoute(
+      path: '/login',
+      builder: (context, state) => const LoginScreen(),
     ),
     StatefulShellRoute.indexedStack(
       builder: (context, state, navigationShell) {
