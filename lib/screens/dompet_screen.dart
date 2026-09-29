@@ -158,21 +158,16 @@ class _DompetScreenState extends State<DompetScreen> {
                         color: _primaryGreen,
                         borderRadius: BorderRadius.circular(16),
                       ),
-                      child: const Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(Icons.add, color: Colors.white, size: 20),
-                          SizedBox(width: 8),
-                          Text(
-                            '+ Tambah dompet digital',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 15,
-                              fontFamily: 'Inter',
-                              fontWeight: FontWeight.w700,
-                            ),
+                      child: const Center(
+                        child: Text(
+                          '+ Tambah dompet digital',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 15,
+                            fontFamily: 'Inter',
+                            fontWeight: FontWeight.w700,
                           ),
-                        ],
+                        ),
                       ),
                     ),
                   ),
