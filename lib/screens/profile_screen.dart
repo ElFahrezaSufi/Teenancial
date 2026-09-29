@@ -1,13 +1,8 @@
 import 'package:flutter/material.dart';
-import '../data/mock_auth.dart';
-import 'get_started.dart';
 import 'package:go_router/go_router.dart';
+import '../data/mock_auth.dart';
+import '../theme/app_colors.dart';
 import '../widgets/common/custom_card.dart';
-
-const Color _primaryGreen = Color(0xFF627931);
-const Color _scaffoldBg = Color(0xFFEDEFE2);
-const Color _fieldBg = Color(0xFFF8FFE8);
-const Color _appBarBg = Color(0xFFF8FFE8);
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -60,7 +55,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         content: Text('Profil berhasil diperbarui!'),
-        backgroundColor: _primaryGreen,
+        backgroundColor: primaryGreen,
       ),
     );
 
@@ -83,32 +78,30 @@ class _ProfileScreenState extends State<ProfileScreen> {
     await MockAuth.logout();
 
     if (!mounted) return;
-    Navigator.pushAndRemoveUntil(
-      context,
-      MaterialPageRoute(builder: (context) => const GetStarted()),
-      (Route<dynamic> route) => false,
-    );
+
+    // Perbaikan Bug Navbar: Menggunakan go_router untuk melompat ke rute utama
+    context.go('/get_started');
   }
 
   void _handleBackButton() {
-    if (Navigator.canPop(context)) {
-      Navigator.pop(context);
+    if (context.canPop()) {
+      context.pop();
     } else {
-      context.go('/profile');
+      context.go('/home'); // Atau ke mana pun default back-nya
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: _scaffoldBg,
+      backgroundColor: scaffoldBg,
       appBar: PreferredSize(
         preferredSize: const Size.fromHeight(80),
         child: Container(
-          decoration: const BoxDecoration(
-            color: _appBarBg,
-            border: Border(
-              bottom: BorderSide(color: _primaryGreen, width: 1.5),
+          decoration: BoxDecoration(
+            color: appBarBg,
+            border: const Border(
+              bottom: BorderSide(color: primaryGreen, width: 1.5),
             ),
           ),
           child: SafeArea(
@@ -120,7 +113,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     padding: const EdgeInsets.only(left: 8.0),
                     child: IconButton(
                       icon: const Icon(Icons.arrow_back_ios,
-                          color: _primaryGreen, size: 20),
+                          color: primaryGreen, size: 20),
                       onPressed: _handleBackButton,
                     ),
                   ),
@@ -129,7 +122,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   child: Text(
                     'Profil',
                     style: TextStyle(
-                      color: _primaryGreen,
+                      color: primaryGreen,
                       fontSize: 25,
                       fontFamily: 'Inter',
                       fontWeight: FontWeight.w700,
@@ -146,7 +139,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         child: const Text(
                           'Simpan',
                           style: TextStyle(
-                            color: _primaryGreen,
+                            color: primaryGreen,
                             fontSize: 15,
                             fontFamily: 'Inter',
                             fontWeight: FontWeight.w800,
@@ -164,7 +157,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         fit: StackFit.expand,
         children: [
           Container(
-            color: _scaffoldBg,
+            color: scaffoldBg,
             child: Opacity(
               opacity: 0.4,
               child: Image.asset(
@@ -188,12 +181,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           width: 100,
                           height: 100,
                           decoration: BoxDecoration(
-                            color: _fieldBg,
+                            color: inputBg,
                             shape: BoxShape.circle,
-                            border: Border.all(color: _primaryGreen, width: 2),
+                            border: Border.all(color: primaryGreen, width: 2),
                           ),
                           child: const Icon(Icons.person,
-                              color: _primaryGreen, size: 60),
+                              color: primaryGreen, size: 60),
                         ),
                         GestureDetector(
                           onTap: _isEditing
@@ -205,9 +198,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             decoration: BoxDecoration(
                               color: _isEditing
                                   ? const Color(0xFFD9B62C)
-                                  : _primaryGreen,
+                                  : primaryGreen,
                               shape: BoxShape.circle,
-                              border: Border.all(color: _scaffoldBg, width: 3),
+                              border: Border.all(color: scaffoldBg, width: 3),
                             ),
                             child: Icon(
                               _isEditing ? Icons.camera_alt : Icons.edit,
@@ -247,7 +240,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     onTap: _isLoading ? null : _handleLogout,
                     child: CustomCard(
                       borderRadius: 100,
-                      backgroundColor: _primaryGreen,
+                      backgroundColor: primaryGreen,
                       padding: const EdgeInsets.symmetric(vertical: 16),
                       child: Center(
                         child: _isLoading
@@ -255,7 +248,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 width: 24,
                                 height: 24,
                                 child: CircularProgressIndicator(
-                                    color: _fieldBg, strokeWidth: 2.5),
+                                    color: inputBg, strokeWidth: 2.5),
                               )
                             : const Text(
                                 'Keluar',
@@ -303,7 +296,7 @@ class _EditableProfileField extends StatelessWidget {
           Text(
             label,
             style: const TextStyle(
-              color: _primaryGreen,
+              color: primaryGreen,
               fontSize: 14,
               fontFamily: 'Inter',
               fontWeight: FontWeight.w700,
@@ -312,15 +305,15 @@ class _EditableProfileField extends StatelessWidget {
           const SizedBox(height: 8),
           CustomCard(
             padding: EdgeInsets.zero,
-            backgroundColor: isEditing ? Colors.white : _fieldBg,
+            backgroundColor: isEditing ? Colors.white : inputBg,
             child: TextFormField(
               controller: controller,
               enabled: isEditing,
               keyboardType: keyboardType,
               style: TextStyle(
                 color: isEditing
-                    ? _primaryGreen
-                    : _primaryGreen.withValues(alpha: 0.7),
+                    ? primaryGreen
+                    : primaryGreen.withValues(alpha: 0.7),
                 fontSize: 14,
                 fontFamily: 'Inter',
                 fontWeight: FontWeight.w600,
