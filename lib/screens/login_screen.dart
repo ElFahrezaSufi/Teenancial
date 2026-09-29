@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'get_started.dart';
 import 'signup_screen.dart';
-import 'main_screen.dart';
 import '../data/mock_auth.dart';
 import '../widgets/common/custom_text_field.dart';
 import '../widgets/common/custom_card.dart';
+import 'package:go_router/go_router.dart';
 
 const Color _primaryGreen = Color(0xFF637932);
 const Color _darkGreen = Color(0xFF415020);
@@ -80,11 +80,7 @@ class _LoginScreenState extends State<LoginScreen> {
             backgroundColor: _primaryGreen,
           ),
         );
-
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => const MainScreen()),
-        );
+        context.go('/home');
       } else if (status == 'email_not_found') {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(

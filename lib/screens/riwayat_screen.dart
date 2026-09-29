@@ -1,5 +1,6 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
+import '../widgets/common/custom_card.dart';
 
 const Color _primaryGreen = Color(0xFF627931);
 const Color _scaffoldBg = Color(0xFFEDEFE2);
@@ -50,7 +51,6 @@ class _TrendChartPainter extends CustomPainter {
     final double maxVal = values.reduce(max);
     final double range = (maxVal - minVal) == 0 ? 1 : maxVal - minVal;
 
-    // Horizontal grid lines
     final gridPaint = Paint()
       ..color = _lightGreen.withValues(alpha: 0.5)
       ..strokeWidth = 1;
@@ -61,7 +61,6 @@ class _TrendChartPainter extends CustomPainter {
       canvas.drawLine(Offset(0, y), Offset(size.width, y), gridPaint);
     }
 
-    // Build points
     final List<Offset> points = [];
     for (int i = 0; i < values.length; i++) {
       final double x = size.width * i / (values.length - 1);
@@ -70,7 +69,6 @@ class _TrendChartPainter extends CustomPainter {
       points.add(Offset(x, y));
     }
 
-    // Fill area
     final fillPath = Path()..moveTo(points.first.dx, size.height);
     for (final pt in points) {
       fillPath.lineTo(pt.dx, pt.dy);
@@ -90,7 +88,6 @@ class _TrendChartPainter extends CustomPainter {
       ..style = PaintingStyle.fill;
     canvas.drawPath(fillPath, fillPaint);
 
-    // Line
     final linePaint = Paint()
       ..color = const Color(0xFFE53935)
       ..strokeWidth = 2
@@ -103,7 +100,6 @@ class _TrendChartPainter extends CustomPainter {
     }
     canvas.drawPath(linePath, linePaint);
 
-    // Dots at each point
     final dotPaint = Paint()
       ..color = const Color(0xFFE53935)
       ..style = PaintingStyle.fill;
@@ -126,23 +122,20 @@ class RiwayatScreen extends StatefulWidget {
 }
 
 class _RiwayatScreenState extends State<RiwayatScreen> {
-  int _selectedFilter = 0; // 0=Mingguan, 1=Bulanan, 2=Tahunan
+  int _selectedFilter = 0;
 
-  // Mock balance trend data for each filter period
   final Map<int, List<double>> _trendData = {
     0: [120, 95, 140, 80, 110, 75, 160, 130, 90, 170, 145, 185],
     1: [200, 180, 220, 160, 240, 210, 195, 230],
     2: [500, 480, 520, 560, 510, 590, 570, 610, 580, 640, 620, 680],
   };
 
-  // Mock max saldo label per filter
   final Map<int, String> _maxLabels = {
     0: '+ Rp 185.000,00',
     1: '+ Rp 240.000,00',
     2: '+ Rp 680.000,00',
   };
 
-  // Mock transaction groups
   final List<TransactionGroup> _allGroups = const [
     TransactionGroup(
       dateLabel: 'Rabu, 08 Juli 2026',
@@ -226,7 +219,6 @@ class _RiwayatScreenState extends State<RiwayatScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Default: show only the first 2 groups; "Lihat semua" opens a new page
     final visibleGroups = _allGroups.take(2).toList();
 
     return Scaffold(
@@ -258,7 +250,6 @@ class _RiwayatScreenState extends State<RiwayatScreen> {
       body: Stack(
         fit: StackFit.expand,
         children: [
-          // Background
           Opacity(
             opacity: 0.4,
             child: Image.asset(
@@ -266,15 +257,12 @@ class _RiwayatScreenState extends State<RiwayatScreen> {
               fit: BoxFit.cover,
             ),
           ),
-
-          // Content
           SafeArea(
             child: SingleChildScrollView(
               padding: const EdgeInsets.all(24.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // ── Filter chips ───────────────────────────────────────
                   Row(
                     children: [
                       _FilterChip(
@@ -296,28 +284,19 @@ class _RiwayatScreenState extends State<RiwayatScreen> {
                       ),
                     ],
                   ),
-
                   const SizedBox(height: 20),
-
-                  // ── Tren Saldo ─────────────────────────────────────────
-                  Text(
+                  const Text(
                     'Tren Saldo',
-                    style: const TextStyle(
+                    style: TextStyle(
                       color: _primaryGreen,
                       fontSize: 14,
                       fontFamily: 'Inter',
                       fontWeight: FontWeight.w700,
                     ),
                   ),
-
                   const SizedBox(height: 10),
-
-                  Container(
-                    decoration: BoxDecoration(
-                      color: _cardBg,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: _primaryGreen, width: 1.5),
-                    ),
+                  CustomCard(
+                    backgroundColor: _cardBg,
                     padding: const EdgeInsets.all(12),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.end,
@@ -343,10 +322,7 @@ class _RiwayatScreenState extends State<RiwayatScreen> {
                       ],
                     ),
                   ),
-
                   const SizedBox(height: 24),
-
-                  // ── Aktivitas Terbaru header ───────────────────────────
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -384,10 +360,7 @@ class _RiwayatScreenState extends State<RiwayatScreen> {
                       ),
                     ],
                   ),
-
                   const SizedBox(height: 12),
-
-                  // ── Transaction groups ─────────────────────────────────
                   ...visibleGroups.map(
                     (group) => _TransactionGroup(
                       group: group,
@@ -395,8 +368,6 @@ class _RiwayatScreenState extends State<RiwayatScreen> {
                       iconForType: _iconForType,
                     ),
                   ),
-
-                  // Bottom padding for nav bar
                   const SizedBox(height: 80),
                 ],
               ),
@@ -407,8 +378,6 @@ class _RiwayatScreenState extends State<RiwayatScreen> {
     );
   }
 }
-
-// ─── Semua Aktivitas screen ─────────────────────────────────────────────────
 
 class _SemuaAktivitasScreen extends StatelessWidget {
   final List<TransactionGroup> groups;
@@ -496,8 +465,6 @@ class _SemuaAktivitasScreen extends StatelessWidget {
   }
 }
 
-// ─── Filter chip widget ───────────────────────────────────────────────────────
-
 class _FilterChip extends StatelessWidget {
   final String label;
   final bool selected;
@@ -537,8 +504,6 @@ class _FilterChip extends StatelessWidget {
     );
   }
 }
-
-// ─── Transaction group widget ─────────────────────────────────────────────────
 
 class _TransactionGroup extends StatelessWidget {
   final TransactionGroup group;
@@ -582,8 +547,6 @@ class _TransactionGroup extends StatelessWidget {
   }
 }
 
-// ─── Transaction card widget ──────────────────────────────────────────────────
-
 class _TransactionCard extends StatelessWidget {
   final TransactionItem item;
   final String Function(double) formatCurrency;
@@ -597,16 +560,11 @@ class _TransactionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return CustomCard(
+      backgroundColor: _cardBg,
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-      decoration: BoxDecoration(
-        color: _cardBg,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: _primaryGreen, width: 1.5),
-      ),
       child: Row(
         children: [
-          // Icon
           Container(
             width: 40,
             height: 40,
@@ -616,10 +574,7 @@ class _TransactionCard extends StatelessWidget {
             ),
             child: Icon(icon, color: _primaryGreen, size: 22),
           ),
-
           const SizedBox(width: 12),
-
-          // Title & description
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -646,8 +601,6 @@ class _TransactionCard extends StatelessWidget {
               ],
             ),
           ),
-
-          // Amount
           Text(
             formatCurrency(item.amount),
             style: const TextStyle(

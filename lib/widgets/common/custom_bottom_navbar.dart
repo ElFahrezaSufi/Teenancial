@@ -14,13 +14,23 @@ class CustomBottomNavBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(left: 24, right: 24, bottom: 24),
+      padding: EdgeInsets.only(
+          left: 24,
+          right: 24,
+          bottom: MediaQuery.paddingOf(context).bottom + 24),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
         decoration: BoxDecoration(
-          color: const Color(0xFFF8FFE8),
+          color: appBarBg,
           borderRadius: BorderRadius.circular(100),
           border: Border.all(color: primaryGreen, width: 1.5),
+          boxShadow: const [
+            BoxShadow(
+              color: primaryGreen,
+              offset: Offset(0, 4),
+              blurRadius: 0,
+            ),
+          ],
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceAround,
@@ -41,10 +51,11 @@ class CustomBottomNavBar extends StatelessWidget {
     return GestureDetector(
       onTap: () => onItemTapped(index),
       behavior: HitTestBehavior.opaque,
-      child: Container(
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         decoration: BoxDecoration(
-          color: isSelected ? const Color(0xFFE7F8C1) : Colors.transparent,
+          color: isSelected ? iconLightGreen : Colors.transparent,
           borderRadius: BorderRadius.circular(100),
         ),
         child: Column(

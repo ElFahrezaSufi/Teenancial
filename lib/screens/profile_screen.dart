@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import '../data/mock_auth.dart';
 import 'get_started.dart';
-import 'main_screen.dart';
+import 'package:go_router/go_router.dart';
+import '../widgets/common/custom_card.dart';
 
 const Color _primaryGreen = Color(0xFF627931);
 const Color _scaffoldBg = Color(0xFFEDEFE2);
@@ -93,10 +94,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if (Navigator.canPop(context)) {
       Navigator.pop(context);
     } else {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => const MainScreen()),
-      );
+      context.go('/profile');
     }
   }
 
@@ -104,8 +102,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: _scaffoldBg,
-
-      // HEADER
       appBar: PreferredSize(
         preferredSize: const Size.fromHeight(80),
         child: Container(
@@ -164,8 +160,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
         ),
       ),
-
-      //body
       body: Stack(
         fit: StackFit.expand,
         children: [
@@ -181,13 +175,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
           SafeArea(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.all(24.0),
+              padding: const EdgeInsets.all(16.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   const SizedBox(height: 16),
-
-                  //pp dan smacamnya
                   Center(
                     child: Stack(
                       alignment: Alignment.bottomRight,
@@ -228,8 +220,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ),
                   ),
                   const SizedBox(height: 32),
-
-                  // Form Fields
                   _EditableProfileField(
                     label: 'Nama Lengkap',
                     controller: _fullNameController,
@@ -252,34 +242,32 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     isEditing: false,
                     keyboardType: TextInputType.emailAddress,
                   ),
-
                   const SizedBox(height: 24),
-
-                  ElevatedButton(
-                    onPressed: _isLoading ? null : _handleLogout,
-                    style: ElevatedButton.styleFrom(
+                  GestureDetector(
+                    onTap: _isLoading ? null : _handleLogout,
+                    child: CustomCard(
+                      borderRadius: 100,
                       backgroundColor: _primaryGreen,
                       padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(20),
+                      child: Center(
+                        child: _isLoading
+                            ? const SizedBox(
+                                width: 24,
+                                height: 24,
+                                child: CircularProgressIndicator(
+                                    color: _fieldBg, strokeWidth: 2.5),
+                              )
+                            : const Text(
+                                'Keluar',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 16,
+                                  fontFamily: 'Inter',
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
                       ),
                     ),
-                    child: _isLoading
-                        ? const SizedBox(
-                            width: 24,
-                            height: 24,
-                            child: CircularProgressIndicator(
-                                color: _fieldBg, strokeWidth: 2.5),
-                          )
-                        : const Text(
-                            'Keluar',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 16,
-                              fontFamily: 'Inter',
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
                   ),
                   const SizedBox(height: 32),
                 ],
@@ -322,36 +310,25 @@ class _EditableProfileField extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 8),
-          TextFormField(
-            controller: controller,
-            enabled: isEditing,
-            keyboardType: keyboardType,
-            style: TextStyle(
-              color: isEditing
-                  ? _primaryGreen
-                  : _primaryGreen.withValues(alpha: 0.7),
-              fontSize: 14,
-              fontFamily: 'Inter',
-              fontWeight: FontWeight.w600,
-            ),
-            decoration: InputDecoration(
-              filled: true,
-              fillColor: isEditing ? Colors.white : _fieldBg,
-              contentPadding:
-                  const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              disabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(16),
-                borderSide: const BorderSide(color: _primaryGreen, width: 1.5),
+          CustomCard(
+            padding: EdgeInsets.zero,
+            backgroundColor: isEditing ? Colors.white : _fieldBg,
+            child: TextFormField(
+              controller: controller,
+              enabled: isEditing,
+              keyboardType: keyboardType,
+              style: TextStyle(
+                color: isEditing
+                    ? _primaryGreen
+                    : _primaryGreen.withValues(alpha: 0.7),
+                fontSize: 14,
+                fontFamily: 'Inter',
+                fontWeight: FontWeight.w600,
               ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(16),
-                borderSide: BorderSide(
-                    color: _primaryGreen.withValues(alpha: 0.5), width: 1.5),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(16),
-                borderSide:
-                    const BorderSide(color: Color(0xFFD9B62C), width: 2),
+              decoration: const InputDecoration(
+                border: InputBorder.none,
+                contentPadding:
+                    EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               ),
             ),
           ),

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'get_started.dart';
-import 'main_screen.dart';
+import 'package:go_router/go_router.dart';
 import '../data/mock_auth.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -29,27 +28,11 @@ class _SplashScreenState extends State<SplashScreen> {
 
     Future.delayed(const Duration(seconds: 4), () {
       if (!mounted) return;
-      final Widget nextScreen =
-          MockAuth.isLoggedIn ? const MainScreen() : const GetStarted();
-
-      Navigator.pushReplacement(
-        context,
-        PageRouteBuilder(
-          pageBuilder: (context, animation, secondaryAnimation) => nextScreen,
-          transitionsBuilder: (context, animation, secondaryAnimation, child) {
-            return FadeTransition(
-              opacity: CurvedAnimation(
-                parent: animation,
-                curve: Curves.easeInOut,
-              ),
-              child: child,
-            );
-          },
-          transitionDuration: const Duration(
-            milliseconds: 400,
-          ),
-        ),
-      );
+      if (MockAuth.isLoggedIn) {
+        context.go('/home');
+      } else {
+        context.go('/get_started');
+      }
     });
   }
 
