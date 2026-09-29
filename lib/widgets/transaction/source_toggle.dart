@@ -58,40 +58,55 @@ class SourceToggle extends StatelessWidget {
 
   Widget _buildOption(int index, String text, IconData icon) {
     final isSelected = selectedIndex == index;
+    const double borderRadius = 12.0;
+    IconData displayIcon = icon;
+    if (text == 'Cash' && icon == Icons.money) {
+      displayIcon = Icons.payments_outlined;
+    } else if (text == 'Digital' && icon == Icons.phone_android) {
+      displayIcon = Icons.smartphone_outlined;
+    }
+
+    final Color activeStroke =
+        isSelected ? primaryGreen : primaryGreen.withValues(alpha: 0.3);
+    final Color contentColor =
+        isSelected ? primaryGreen : primaryGreen.withValues(alpha: 0.5);
+
     return GestureDetector(
       onTap: () => onSelect(index),
       child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 16),
         decoration: BoxDecoration(
-          color: inputBg,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: primaryGreen,
-            width: isSelected ? 3.0 : 1.5,
-          ),
-          boxShadow: isSelected
-              ? [
-                  BoxShadow(
-                    color: primaryGreen.withValues(alpha: 0.2),
-                    blurRadius: 8,
-                    offset: const Offset(0, 4),
-                  )
-                ]
-              : null,
+          color: activeStroke,
+          borderRadius: BorderRadius.circular(borderRadius),
         ),
-        child: Column(
-          children: [
-            Icon(icon, color: primaryGreen, size: 28),
-            const SizedBox(height: 4),
-            Text(
-              text,
-              style: TextStyle(
-                color: primaryGreen,
-                fontSize: 14,
-                fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
+        padding: const EdgeInsets.only(bottom: 4),
+        child: Container(
+          decoration: BoxDecoration(
+            color: inputBg,
+            borderRadius: BorderRadius.circular(borderRadius),
+            border: Border.all(color: activeStroke, width: 2),
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(borderRadius - 2),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 16),
+              child: Column(
+                children: [
+                  Icon(displayIcon, color: contentColor, size: 28),
+                  const SizedBox(height: 4),
+                  Text(
+                    text,
+                    style: TextStyle(
+                      color: contentColor,
+                      fontSize: 14,
+                      fontFamily: 'Inter',
+                      fontWeight:
+                          isSelected ? FontWeight.w800 : FontWeight.w600,
+                    ),
+                  ),
+                ],
               ),
             ),
-          ],
+          ),
         ),
       ),
     );

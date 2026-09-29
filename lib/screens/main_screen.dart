@@ -1,43 +1,26 @@
 import 'package:flutter/material.dart';
-import 'home_screen.dart';
-import 'profile_screen.dart';
-import 'dompet_screen.dart';
-import 'riwayat_screen.dart';
+import 'package:go_router/go_router.dart';
+import '../theme/app_colors.dart';
 
-const Color _primaryGreen = Color(0xFF627931);
-const Color _scaffoldBg = Color(0xFFEDEFE2);
+class MainScreen extends StatelessWidget {
+  final StatefulNavigationShell navigationShell;
 
-class MainScreen extends StatefulWidget {
-  const MainScreen({super.key});
-
-  @override
-  State<MainScreen> createState() => _MainScreenState();
-}
-
-class _MainScreenState extends State<MainScreen> {
-  int _selectedIndex = 0;
-
-  final List<Widget> _screens = [
-    const HomeScreen(),
-    const DompetScreen(),
-    const RiwayatScreen(),
-    const ProfileScreen(),
-  ];
+  const MainScreen({super.key, required this.navigationShell});
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: _scaffoldBg,
+      backgroundColor: scaffoldBg,
       extendBody: true,
-      body: _screens[_selectedIndex],
+      body: navigationShell,
       bottomNavigationBar: SafeArea(
         child: Container(
           margin: const EdgeInsets.only(left: 24, right: 24, bottom: 16),
           padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
           decoration: BoxDecoration(
-            color: const Color(0xFFF8FFE8),
+            color: appBarBg,
             borderRadius: BorderRadius.circular(40),
-            border: Border.all(color: _primaryGreen, width: 2),
+            border: Border.all(color: primaryGreen, width: 2),
           ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
@@ -59,33 +42,33 @@ class _MainScreenState extends State<MainScreen> {
 
   Widget _buildNavItem(
       {required IconData icon, required String label, required int index}) {
-    final bool isActive = _selectedIndex == index;
+    final bool isActive = navigationShell.currentIndex == index;
 
     return GestureDetector(
       onTap: () {
-        setState(() {
-          _selectedIndex = index;
-        });
+        navigationShell.goBranch(
+          index,
+          initialLocation: index == navigationShell.currentIndex,
+        );
       },
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         decoration: BoxDecoration(
           color: isActive
-              ? _primaryGreen.withValues(alpha: 0.15)
+              ? primaryGreen.withValues(alpha: 0.15)
               : Colors.transparent,
           borderRadius: BorderRadius.circular(100),
-          border:
-              isActive ? Border.all(color: _primaryGreen, width: 1.5) : null,
+          border: isActive ? Border.all(color: primaryGreen, width: 1.5) : null,
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, color: _primaryGreen, size: 24),
+            Icon(icon, color: primaryGreen, size: 24),
             const SizedBox(height: 4),
             Text(
               label,
               style: const TextStyle(
-                color: _primaryGreen,
+                color: primaryGreen,
                 fontSize: 11,
                 fontFamily: 'Inter',
                 fontWeight: FontWeight.w700,

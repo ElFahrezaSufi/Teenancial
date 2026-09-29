@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import '../widgets/common/custom_card.dart';
 
 // ─────────────────────────────────────────────
 //  DATA MODEL
@@ -121,7 +122,6 @@ class _DompetScreenState extends State<DompetScreen> {
       body: Stack(
         fit: StackFit.expand,
         children: [
-          // Background
           Opacity(
             opacity: 0.4,
             child: Image.asset(
@@ -129,15 +129,12 @@ class _DompetScreenState extends State<DompetScreen> {
               fit: BoxFit.cover,
             ),
           ),
-
-          // Konten
           SafeArea(
             child: SingleChildScrollView(
               padding: const EdgeInsets.fromLTRB(24, 24, 24, 120),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  // Kelompok per jenis
                   ...groupedJenis.map((jenis) {
                     final list = _data.byJenis(jenis);
                     if (list.isEmpty) return const SizedBox.shrink();
@@ -146,18 +143,13 @@ class _DompetScreenState extends State<DompetScreen> {
                       items: list,
                     );
                   }),
-
                   const SizedBox(height: 16),
-
-                  // Tombol tambah
                   GestureDetector(
                     onTap: _openTambahDompet,
-                    child: Container(
+                    child: CustomCard(
+                      borderRadius: 100,
+                      backgroundColor: _primaryGreen,
                       padding: const EdgeInsets.symmetric(vertical: 16),
-                      decoration: BoxDecoration(
-                        color: _primaryGreen,
-                        borderRadius: BorderRadius.circular(16),
-                      ),
                       child: const Center(
                         child: Text(
                           '+ Tambah dompet digital',
@@ -181,9 +173,6 @@ class _DompetScreenState extends State<DompetScreen> {
   }
 }
 
-// ─────────────────────────────────────────────
-//  GROUP PER JENIS
-// ─────────────────────────────────────────────
 class _DompetGroup extends StatelessWidget {
   final JenisDompet jenis;
   final List<DompetItem> items;
@@ -218,13 +207,9 @@ class _DompetGroup extends StatelessWidget {
         ...items.map(
           (item) => Padding(
             padding: const EdgeInsets.only(bottom: 10),
-            child: Container(
+            child: CustomCard(
+              backgroundColor: _cardBg,
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-              decoration: BoxDecoration(
-                color: _cardBg,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: _primaryGreen, width: 2),
-              ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -307,7 +292,6 @@ class _TambahDompetScreenState extends State<_TambahDompetScreen> {
       return;
     }
 
-    // Cek apakah teks jenis cocok dengan salah satu kategori
     final jenis = _selectedJenis ??
         _jenisMap.entries
             .where((e) => jenisText.toLowerCase().contains(e.key.toLowerCase()))
@@ -349,7 +333,6 @@ class _TambahDompetScreenState extends State<_TambahDompetScreen> {
             child: Stack(
               alignment: Alignment.center,
               children: [
-                // Tombol back
                 Align(
                   alignment: Alignment.centerLeft,
                   child: IconButton(
@@ -358,7 +341,6 @@ class _TambahDompetScreenState extends State<_TambahDompetScreen> {
                         color: _primaryGreen, size: 32),
                   ),
                 ),
-                // Judul
                 const Text(
                   'Tambah Baru',
                   style: TextStyle(
@@ -389,7 +371,6 @@ class _TambahDompetScreenState extends State<_TambahDompetScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  // Jenis Dompet
                   _FieldLabel(label: 'Jenis Dompet'),
                   const SizedBox(height: 8),
                   GestureDetector(
@@ -406,8 +387,6 @@ class _TambahDompetScreenState extends State<_TambahDompetScreen> {
                     ),
                   ),
                   const SizedBox(height: 20),
-
-                  // Nama Dompet
                   _FieldLabel(label: 'Nama Dompet'),
                   const SizedBox(height: 8),
                   _InputField(
@@ -415,8 +394,6 @@ class _TambahDompetScreenState extends State<_TambahDompetScreen> {
                     hint: 'Opsional',
                   ),
                   const SizedBox(height: 20),
-
-                  // Jumlah Uang
                   _FieldLabel(label: 'Jumlah Uang'),
                   const SizedBox(height: 8),
                   _InputField(
@@ -427,8 +404,6 @@ class _TambahDompetScreenState extends State<_TambahDompetScreen> {
                     prefixText: 'Rp ',
                   ),
                   const SizedBox(height: 20),
-
-                  // Catatan
                   _FieldLabel(label: 'Catatan'),
                   const SizedBox(height: 8),
                   _InputField(
@@ -437,16 +412,12 @@ class _TambahDompetScreenState extends State<_TambahDompetScreen> {
                     maxLines: 3,
                   ),
                   const SizedBox(height: 32),
-
-                  // Tombol Simpan
                   GestureDetector(
                     onTap: _simpan,
-                    child: Container(
+                    child: CustomCard(
+                      borderRadius: 100,
+                      backgroundColor: _primaryGreen,
                       padding: const EdgeInsets.symmetric(vertical: 18),
-                      decoration: BoxDecoration(
-                        color: _primaryGreen,
-                        borderRadius: BorderRadius.circular(16),
-                      ),
                       child: const Center(
                         child: Text(
                           'Simpan',
@@ -530,9 +501,6 @@ class _TambahDompetScreenState extends State<_TambahDompetScreen> {
   }
 }
 
-// ─────────────────────────────────────────────
-//  WIDGET HELPERS
-// ─────────────────────────────────────────────
 class _FieldLabel extends StatelessWidget {
   final String label;
   const _FieldLabel({required this.label});
@@ -572,12 +540,9 @@ class _InputField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: _cardBg,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: _primaryGreen, width: 2),
-      ),
+    return CustomCard(
+      backgroundColor: _cardBg,
+      padding: EdgeInsets.zero,
       child: TextField(
         controller: controller,
         keyboardType: keyboardType,

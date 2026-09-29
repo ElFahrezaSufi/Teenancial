@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-
-import 'login_screen.dart';
+import 'package:go_router/go_router.dart'; // Import go_router
 
 class GetStarted extends StatelessWidget {
   const GetStarted({super.key});
@@ -21,19 +20,14 @@ class GetStarted extends StatelessWidget {
               placeholderBuilder: (context) => const SizedBox.shrink(),
             ),
           ),
-
-          // Konten UI
           SafeArea(
             child: Padding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 24.0,
-                vertical: 24.0,
-              ),
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 24.0, vertical: 24.0),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  // 1. Teks Atas
                   const Text(
                     'Kelola Keuangan Anda dan\nWujudkan Target Finansial Anda',
                     textAlign: TextAlign.center,
@@ -45,14 +39,10 @@ class GetStarted extends StatelessWidget {
                       height: 1.4,
                     ),
                   ),
-
-                  // 2. Logo
                   SvgPicture.asset(
                     'assets/images/logo_teenancial.svg',
                     width: 270,
                   ),
-
-                  // 3. Teks Bawah & Tombol Mulai
                   Column(
                     children: [
                       const Text(
@@ -66,50 +56,15 @@ class GetStarted extends StatelessWidget {
                           height: 1.4,
                         ),
                       ),
-
                       const SizedBox(height: 28),
-
-                      // Tombol Mulai dengan Animasi
                       GestureDetector(
                         onTap: () {
-                          Navigator.pushReplacement(
-                            context,
-                            PageRouteBuilder(
-                              pageBuilder: (
-                                context,
-                                animation,
-                                secondaryAnimation,
-                              ) =>
-                                  LoginScreen(),
-                              transitionsBuilder: (
-                                context,
-                                animation,
-                                secondaryAnimation,
-                                child,
-                              ) {
-                                const beginOffset = Offset(0.0, 1.0);
-                                const endOffset = Offset.zero;
-                                const curve = Curves.easeInOutCubic;
-
-                                var slideTween = Tween(
-                                  begin: beginOffset,
-                                  end: endOffset,
-                                ).chain(CurveTween(curve: curve));
-
-                                return SlideTransition(
-                                  position: animation.drive(slideTween),
-                                  child: child,
-                                );
-                              },
-                              transitionDuration: const Duration(
-                                milliseconds: 400,
-                              ),
-                            ),
-                          );
+                          // Menggunakan go_router untuk pindah ke halaman login
+                          context.go('/login');
                         },
                         child: SizedBox(
                           width: 310,
-                          height: 68 + 6,
+                          height: 74,
                           child: Stack(
                             children: [
                               Positioned(
