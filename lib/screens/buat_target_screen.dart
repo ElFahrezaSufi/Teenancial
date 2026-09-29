@@ -1,6 +1,9 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import '../widgets/common/custom_text_field.dart';
+import '../widgets/common/custom_card.dart';
+import '../utils/currency_formatter.dart';
 
 const Color _primaryGreen = Color(0xFF627931);
 const Color _scaffoldBg = Color(0xFFEDEFE2);
@@ -146,96 +149,77 @@ class _BuatTargetScreenState extends State<BuatTargetScreen> {
                   const SizedBox(height: 8),
                   GestureDetector(
                     onTap: _pickImage,
-                    child: Container(
-                      height: 160,
-                      decoration: BoxDecoration(
-                        color: _appBarBg,
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(
-                          color: _primaryGreen.withValues(alpha: 0.5),
-                          width: 2,
-                        ),
-                        image: _selectedImage != null
-                            ? DecorationImage(
-                                image: FileImage(_selectedImage!),
-                                fit: BoxFit.cover,
-                              )
-                            : null,
-                      ),
-                      child: _selectedImage == null
-                          ? Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(Icons.add_a_photo_outlined,
-                                    size: 40,
-                                    color:
-                                        _primaryGreen.withValues(alpha: 0.7)),
-                                const SizedBox(height: 8),
-                                Text(
-                                  'Ketuk untuk unggah foto',
-                                  style: TextStyle(
-                                    color: _primaryGreen.withValues(alpha: 0.7),
-                                    fontSize: 14,
-                                    fontFamily: 'Inter',
-                                  ),
+                    child: CustomCard(
+                      backgroundColor: _appBarBg,
+                      borderRadius: 16,
+                      padding: EdgeInsets.zero,
+                      child: SizedBox(
+                        height: 160,
+                        child: _selectedImage != null
+                            ? ClipRRect(
+                                borderRadius: BorderRadius.circular(14),
+                                child: Image.file(
+                                  _selectedImage!,
+                                  fit: BoxFit.cover,
+                                  width: double.infinity,
                                 ),
-                              ],
-                            )
-                          : null,
+                              )
+                            : Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(Icons.add_a_photo_outlined,
+                                      size: 40,
+                                      color:
+                                          _primaryGreen.withValues(alpha: 0.7)),
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    'Ketuk untuk unggah foto',
+                                    style: TextStyle(
+                                      color:
+                                          _primaryGreen.withValues(alpha: 0.7),
+                                      fontSize: 14,
+                                      fontFamily: 'Inter',
+                                    ),
+                                  ),
+                                ],
+                              ),
+                      ),
                     ),
                   ),
                   const SizedBox(height: 24),
-                  const Text(
-                    'Barang Target',
-                    style: TextStyle(
-                      color: _primaryGreen,
-                      fontSize: 16,
-                      fontFamily: 'Inter',
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  _buildCustomTextField(
+                  CustomTextField(
+                    label: 'Barang Target',
+                    hint: 'Contoh: Sepeda, Ipad...',
+                    prefixIcon: const Icon(Icons.shopping_bag_outlined,
+                        color: _primaryGreen),
                     controller: _namaBarangController,
-                    hintText: 'Contoh: Sepeda, Ipad...',
-                    icon: Icons.shopping_bag_outlined,
                   ),
                   const SizedBox(height: 24),
-                  const Text(
-                    'Perkiraan Harga Barang',
-                    style: TextStyle(
-                      color: _primaryGreen,
-                      fontSize: 16,
-                      fontFamily: 'Inter',
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  _buildCustomTextField(
+                  CustomTextField(
+                    label: 'Perkiraan Harga Barang',
+                    hint: 'Rp 0',
+                    prefixIcon: const Icon(Icons.payments_outlined,
+                        color: _primaryGreen),
+                    keyboardType: TextInputType.number,
                     controller: _hargaBarangController,
-                    hintText: 'Contoh: 1500000',
-                    icon: Icons.payments_outlined,
-                    isNumber: true,
+                    inputFormatters: [CurrencyInputFormatter()],
                   ),
                   const SizedBox(height: 48),
-                  SizedBox(
-                    height: 54,
-                    child: ElevatedButton(
-                      onPressed: _simpanData,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: _primaryGreen,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        elevation: 0,
-                      ),
-                      child: const Text(
-                        'Simpan',
-                        style: TextStyle(
-                          color: _fieldBg,
-                          fontSize: 16,
-                          fontFamily: 'Inter',
-                          fontWeight: FontWeight.w700,
+                  GestureDetector(
+                    onTap: _simpanData,
+                    child: CustomCard(
+                      borderRadius: 100,
+                      backgroundColor: _primaryGreen,
+                      padding: const EdgeInsets.symmetric(vertical: 18),
+                      child: const Center(
+                        child: Text(
+                          'Simpan',
+                          style: TextStyle(
+                            color: _fieldBg,
+                            fontSize: 16,
+                            fontFamily: 'Inter',
+                            fontWeight: FontWeight.w700,
+                          ),
                         ),
                       ),
                     ),
@@ -245,50 +229,6 @@ class _BuatTargetScreenState extends State<BuatTargetScreen> {
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildCustomTextField({
-    required TextEditingController controller,
-    required String hintText,
-    required IconData icon,
-    bool isNumber = false,
-  }) {
-    return Container(
-      decoration: BoxDecoration(
-        color: _primaryGreen,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      padding: const EdgeInsets.only(bottom: 2),
-      child: Container(
-        decoration: BoxDecoration(
-          color: _fieldBg,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: _primaryGreen, width: 2),
-        ),
-        child: TextField(
-          controller: controller,
-          keyboardType: isNumber ? TextInputType.number : TextInputType.text,
-          style: const TextStyle(
-            color: _primaryGreen,
-            fontSize: 15,
-            fontFamily: 'Inter',
-            fontWeight: FontWeight.w600,
-          ),
-          decoration: InputDecoration(
-            hintText: hintText,
-            hintStyle: TextStyle(
-              color: _primaryGreen.withValues(alpha: 0.5),
-              fontSize: 15,
-              fontFamily: 'Inter',
-              fontWeight: FontWeight.w500,
-            ),
-            prefixIcon: Icon(icon, color: _primaryGreen, size: 22),
-            border: InputBorder.none,
-            contentPadding: const EdgeInsets.symmetric(vertical: 16),
-          ),
-        ),
       ),
     );
   }

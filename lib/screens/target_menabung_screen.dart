@@ -1,6 +1,8 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'buat_target_screen.dart';
+import '../widgets/common/custom_card.dart';
+import 'dompet_screen.dart';
 
 const Color _primaryGreen = Color(0xFF627931);
 const Color _scaffoldBg = Color(0xFFEDEFE2);
@@ -10,20 +12,37 @@ const Color _progressBarBg = Color(0xFFCADCA4);
 
 class TargetItem {
   final String nama;
-  final String nominalTerkumpul;
-  final String nominalTarget;
+  final double targetAmount;
   final String imageUrl;
-  final double progress;
   bool isPinned;
 
   TargetItem({
     required this.nama,
-    required this.nominalTerkumpul,
-    required this.nominalTarget,
+    required this.targetAmount,
     required this.imageUrl,
-    required this.progress,
     this.isPinned = false,
   });
+}
+
+class TargetData {
+  TargetData._();
+  static final TargetData instance = TargetData._();
+
+  final List<TargetItem> items = [];
+
+  void pinItem(TargetItem itemToPin) {
+    for (var item in items) {
+      item.isPinned = (item == itemToPin);
+    }
+  }
+
+  TargetItem? get pinnedItem {
+    try {
+      return items.firstWhere((element) => element.isPinned);
+    } catch (e) {
+      return null;
+    }
+  }
 }
 
 class TargetMenabungScreen extends StatefulWidget {
@@ -34,7 +53,8 @@ class TargetMenabungScreen extends StatefulWidget {
 }
 
 class _TargetMenabungScreenState extends State<TargetMenabungScreen> {
-  List<TargetItem> daftarTarget = [];
+  final _data = TargetData.instance;
+
   Future<void> _navigasiDanTambahData(BuildContext context) async {
     final result = await Navigator.push(
       context,
@@ -45,17 +65,30 @@ class _TargetMenabungScreenState extends State<TargetMenabungScreen> {
 
     if (result != null) {
       setState(() {
-        daftarTarget.add(
+        double harga = double.tryParse(
+                result['harga'].toString().replaceAll(RegExp(r'[^0-9]'), '')) ??
+            0.0;
+
+        _data.items.add(
           TargetItem(
             nama: result['nama'],
-            nominalTerkumpul: 'Rp 0',
-            nominalTarget: 'Rp ${result['harga']},00',
+            targetAmount: harga,
             imageUrl: result['imagePath'],
-            progress: 0.0,
+            isPinned: false,
           ),
         );
       });
     }
+  }
+
+  String _formatRupiah(double value) {
+    final parts = value.toStringAsFixed(0).split('');
+    final buffer = StringBuffer();
+    for (int i = 0; i < parts.length; i++) {
+      if (i != 0 && (parts.length - i) % 3 == 0) buffer.write('.');
+      buffer.write(parts[i]);
+    }
+    return 'Rp ${buffer.toString()}';
   }
 
   @override
@@ -116,14 +149,14 @@ class _TargetMenabungScreenState extends State<TargetMenabungScreen> {
           ),
           SafeArea(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.all(24.0),
+              padding: const EdgeInsets.fromLTRB(24, 24, 24, 160),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  if (daftarTarget.isEmpty)
+                  if (_data.items.isEmpty)
                     _buildEmptyState()
                   else
-                    ...daftarTarget.map((item) => Padding(
+                    ..._data.items.map((item) => Padding(
                           padding: const EdgeInsets.only(bottom: 24.0),
                           child: _buildTargetCard(item),
                         )),
@@ -133,24 +166,27 @@ class _TargetMenabungScreenState extends State<TargetMenabungScreen> {
           ),
         ],
       ),
-      floatingActionButton: daftarTarget.isNotEmpty
-          ? FloatingActionButton(
-              onPressed: () => _navigasiDanTambahData(context),
-              backgroundColor: _primaryGreen,
-              child: const Icon(Icons.add, color: Colors.white, size: 30),
+      floatingActionButton: _data.items.isNotEmpty
+          ? Padding(
+              padding: const EdgeInsets.only(bottom: 140.0),
+              child: FloatingActionButton(
+                onPressed: () => _navigasiDanTambahData(context),
+                backgroundColor: _primaryGreen,
+                elevation: 4,
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(100)),
+                child: const Icon(Icons.add, color: Colors.white, size: 30),
+              ),
             )
           : null,
     );
   }
 
   Widget _buildEmptyState() {
-    return Container(
+    return CustomCard(
+      backgroundColor: _appBarBg,
+      borderRadius: 16,
       padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 20),
-      decoration: BoxDecoration(
-        color: _appBarBg,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: _primaryGreen.withValues(alpha: 0.3)),
-      ),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
@@ -181,24 +217,29 @@ class _TargetMenabungScreenState extends State<TargetMenabungScreen> {
             ),
           ),
           const SizedBox(height: 24),
-          ElevatedButton.icon(
-            onPressed: () => _navigasiDanTambahData(context),
-            icon: const Icon(Icons.add, size: 18, color: Colors.white),
-            label: const Text(
-              'Buat Target Baru',
-              style: TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.w600,
-                fontFamily: 'Inter',
-              ),
-            ),
-            style: ElevatedButton.styleFrom(
+          GestureDetector(
+            onTap: () => _navigasiDanTambahData(context),
+            child: CustomCard(
+              borderRadius: 100,
               backgroundColor: _primaryGreen,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(20),
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+              child: const Row(
+                mainAxisSize: MainAxisSize.min,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.add, size: 18, color: Colors.white),
+                  SizedBox(width: 8),
+                  Text(
+                    'Buat Target Baru',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                      fontFamily: 'Inter',
+                    ),
+                  ),
+                ],
               ),
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-              elevation: 0,
             ),
           ),
         ],
@@ -207,91 +248,165 @@ class _TargetMenabungScreenState extends State<TargetMenabungScreen> {
   }
 
   Widget _buildTargetCard(TargetItem item) {
-    return Container(
-      decoration: BoxDecoration(
-        color: _cardBg,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: _primaryGreen, width: 3),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Container(
-              height: 160,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: _primaryGreen, width: 2),
-                image: DecorationImage(
-                  image: item.imageUrl.startsWith('http')
-                      ? NetworkImage(item.imageUrl) as ImageProvider
-                      : FileImage(File(item.imageUrl)),
+    final double saldoSekarang = DompetData.instance.totalSaldo;
+    final double progress = item.targetAmount > 0
+        ? (saldoSekarang / item.targetAmount).clamp(0.0, 1.0)
+        : 0.0;
+
+    final String terkumpulStr = _formatRupiah(saldoSekarang);
+    final String targetStr = _formatRupiah(item.targetAmount);
+
+    return CustomCard(
+      backgroundColor: _cardBg,
+      borderRadius: 20,
+      padding: EdgeInsets.zero,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Stack(
+            children: [
+              ClipRRect(
+                borderRadius: const BorderRadius.only(
+                  topLeft: Radius.circular(18),
+                  topRight: Radius.circular(18),
+                ),
+                child: Image.file(
+                  File(item.imageUrl),
+                  height: 160,
+                  width: double.infinity,
                   fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) => Container(
+                      height: 160,
+                      color: Colors.grey[300],
+                      child:
+                          const Icon(Icons.broken_image, color: Colors.grey)),
                 ),
               ),
-            ),
-            const SizedBox(height: 16),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Row(
-                  children: [
-                    GestureDetector(
-                      onTap: () {
+              Positioned(
+                top: 12,
+                right: 12,
+                child: Container(
+                  width: 36,
+                  height: 36,
+                  decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.9),
+                      shape: BoxShape.circle,
+                      boxShadow: const [
+                        BoxShadow(
+                            color: Colors.black12,
+                            blurRadius: 4,
+                            offset: Offset(0, 2))
+                      ]),
+                  child: PopupMenuButton<String>(
+                    padding: EdgeInsets.zero,
+                    icon: const Icon(Icons.more_vert,
+                        color: _primaryGreen, size: 20),
+                    color: _appBarBg,
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12)),
+                    onSelected: (value) {
+                      if (value == 'delete') {
                         setState(() {
-                          item.isPinned = !item.isPinned;
+                          _data.items.remove(item);
                         });
-                      },
-                      child: Icon(
-                        Icons.push_pin,
-                        size: 20,
-                        color: item.isPinned
-                            ? const Color(0xFFFBBF24)
-                            : _primaryGreen,
+                      }
+                    },
+                    itemBuilder: (context) => [
+                      const PopupMenuItem(
+                        value: 'delete',
+                        child: Row(
+                          children: [
+                            Icon(Icons.delete_outline, color: Colors.red),
+                            SizedBox(width: 8),
+                            Text('Hapus Target',
+                                style: TextStyle(
+                                    color: Colors.red,
+                                    fontWeight: FontWeight.w600)),
+                          ],
+                        ),
                       ),
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      item.nama,
-                      style: const TextStyle(
-                        color: _primaryGreen,
-                        fontSize: 16,
-                        fontFamily: 'Inter',
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-                Expanded(
-                  child: Text(
-                    '${item.nominalTerkumpul}/ ${item.nominalTarget}',
-                    textAlign: TextAlign.right,
-                    style: const TextStyle(
-                      color: _primaryGreen,
-                      fontSize: 12,
-                      fontFamily: 'Inter',
-                      fontWeight: FontWeight.w600,
+              ),
+            ],
+          ),
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                GestureDetector(
+                  onTap: () {
+                    setState(() {
+                      if (item.isPinned) {
+                        item.isPinned = false;
+                      } else {
+                        _data.pinItem(item);
+                      }
+                    });
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: item.isPinned
+                          ? const Color(0xFFDAB62C).withValues(alpha: 0.2)
+                          : Colors.transparent,
+                      shape: BoxShape.circle,
                     ),
+                    child: Icon(
+                      item.isPinned ? Icons.push_pin : Icons.push_pin_outlined,
+                      size: 24,
+                      color:
+                          item.isPinned ? const Color(0xFFDAB62C) : Colors.grey,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        item.nama,
+                        style: const TextStyle(
+                          color: _primaryGreen,
+                          fontSize: 16,
+                          fontFamily: 'Inter',
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        '$terkumpulStr / $targetStr',
+                        style: TextStyle(
+                          color: _primaryGreen.withValues(alpha: 0.8),
+                          fontSize: 12,
+                          fontFamily: 'Inter',
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 12),
-            Stack(
+          ),
+          Padding(
+            padding: const EdgeInsets.only(left: 16, right: 16, bottom: 20),
+            child: Stack(
               children: [
                 Container(
-                  height: 6,
+                  height: 8,
                   decoration: BoxDecoration(
                     color: _progressBarBg,
                     borderRadius: BorderRadius.circular(100),
                   ),
                 ),
                 FractionallySizedBox(
-                  widthFactor: item.progress,
+                  widthFactor: progress,
                   child: Container(
-                    height: 6,
+                    height: 8,
                     decoration: BoxDecoration(
                       color: _primaryGreen,
                       borderRadius: BorderRadius.circular(100),
@@ -300,8 +415,8 @@ class _TargetMenabungScreenState extends State<TargetMenabungScreen> {
                 ),
               ],
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
