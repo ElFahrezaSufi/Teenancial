@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import '../data/mock_auth.dart';
+import '../widgets/common/custom_card.dart';
+import '../theme/app_colors.dart';
+import '../theme/app_text_styles.dart';
+
 import 'profile_screen.dart';
 import 'pemasukan_screen.dart';
 import 'pengeluaran_screen.dart';
@@ -11,11 +15,6 @@ import 'buat_target_screen.dart';
 import 'ruang_belajar_screen.dart';
 import '../data/belajar_data.dart';
 import 'tanya_feen_screen.dart';
-
-const Color _primaryGreen = Color(0xFF627931);
-const Color _lightGreen = Color(0xFFCADCA4);
-const Color _cardBg = Color(0xFFF7FFE7);
-const Color _orangeText = Color(0xFFE18151);
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -38,10 +37,24 @@ class _HomeScreenState extends State<HomeScreen> {
   bool _isFeenInitialized = false;
   bool _isDraggingFeen = false;
 
+  static const double _feenButtonWidth = 84.0;
+  static const double _feenBottomMargin = 220.0;
+
   @override
   void initState() {
     super.initState();
     _loadUserData();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_isFeenInitialized) {
+      final size = MediaQuery.of(context).size;
+      _feenX = size.width - _feenButtonWidth;
+      _feenY = size.height - _feenBottomMargin;
+      _isFeenInitialized = true;
+    }
   }
 
   void _loadUserData() {
@@ -71,12 +84,6 @@ class _HomeScreenState extends State<HomeScreen> {
     final double topPadding = MediaQuery.of(context).padding.top;
     final double xpProgress =
         maxXP > 0 ? (currentXP / maxXP).clamp(0.0, 1.0) : 0.0;
-
-    if (!_isFeenInitialized) {
-      _feenX = MediaQuery.of(context).size.width - 84;
-      _feenY = MediaQuery.of(context).size.height - 200;
-      _isFeenInitialized = true;
-    }
 
     return Scaffold(
       backgroundColor: Colors.transparent,
@@ -112,22 +119,10 @@ class _HomeScreenState extends State<HomeScreen> {
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text(
-                                    'Halo $displayName !',
-                                    style: const TextStyle(
-                                        color: _primaryGreen,
-                                        fontSize: 18,
-                                        fontFamily: 'Inter',
-                                        fontWeight: FontWeight.w800),
-                                  ),
-                                  Text(
-                                    'level $level',
-                                    style: const TextStyle(
-                                        color: _primaryGreen,
-                                        fontSize: 16,
-                                        fontFamily: 'Inter',
-                                        fontWeight: FontWeight.w700),
-                                  ),
+                                  Text('Halo $displayName !',
+                                      style: AppTextStyles.headerName),
+                                  Text('level $level',
+                                      style: AppTextStyles.headerLevel),
                                 ],
                               ),
                             ),
@@ -146,13 +141,13 @@ class _HomeScreenState extends State<HomeScreen> {
                                   width: 50,
                                   height: 50,
                                   decoration: BoxDecoration(
-                                    color: const Color(0xFFF8FFE8),
+                                    color: inputBg,
                                     shape: BoxShape.circle,
                                     border: Border.all(
-                                        color: _primaryGreen, width: 2),
+                                        color: primaryGreen, width: 2),
                                   ),
                                   child: const Icon(Icons.person,
-                                      color: _primaryGreen, size: 30),
+                                      color: primaryGreen, size: 30),
                                 ),
                               ),
                             ),
@@ -160,66 +155,44 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                         const SizedBox(height: 16),
 
-                        //card: Total Saldo
+                        // Total Saldo Card
                         GestureDetector(
                           onTap: _tambahTabunganMock,
-                          child: Container(
-                            decoration: BoxDecoration(
-                                color: _cardBg,
-                                borderRadius: BorderRadius.circular(24),
-                                border:
-                                    Border.all(color: _primaryGreen, width: 4)),
+                          child: CustomCard(
+                            backgroundColor: cardBg,
+                            borderRadius: 24,
+                            padding: const EdgeInsets.all(20),
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Padding(
-                                  padding: const EdgeInsets.all(20),
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      const Text('Total Saldo',
-                                          style: TextStyle(
-                                              color: _primaryGreen,
-                                              fontSize: 16,
-                                              fontFamily: 'Inter',
-                                              fontWeight: FontWeight.w700)),
-                                      const SizedBox(height: 4),
-                                      Text(
-                                          'Rp ${totalSaldo.toStringAsFixed(0)}',
-                                          style: const TextStyle(
-                                              color: _primaryGreen,
-                                              fontSize: 28,
-                                              fontFamily: 'Inter',
-                                              fontWeight: FontWeight.w800)),
-                                      const SizedBox(height: 16),
-                                      ClipRRect(
-                                        borderRadius: BorderRadius.circular(10),
-                                        child: LinearProgressIndicator(
-                                            value: xpProgress,
-                                            backgroundColor: _lightGreen,
-                                            color: _primaryGreen,
-                                            minHeight: 8),
-                                      ),
-                                      const SizedBox(height: 8),
-                                      Text(
-                                          '$currentXP/$maxXP xp menuju level ${level + 1}',
-                                          style: const TextStyle(
-                                              color: _primaryGreen,
-                                              fontSize: 12,
-                                              fontFamily: 'Inter',
-                                              fontWeight: FontWeight.w700)),
-                                    ],
-                                  ),
+                                const Text('Total Saldo',
+                                    style: AppTextStyles.sectionTitle),
+                                const SizedBox(height: 4),
+                                Text('Rp ${totalSaldo.toStringAsFixed(0)}',
+                                    style: AppTextStyles.balanceText),
+                                const SizedBox(height: 16),
+                                ClipRRect(
+                                  borderRadius: BorderRadius.circular(10),
+                                  child: LinearProgressIndicator(
+                                      value: xpProgress,
+                                      backgroundColor: lightGreen,
+                                      color: primaryGreen,
+                                      minHeight: 8),
                                 ),
+                                const SizedBox(height: 8),
+                                Text(
+                                    '$currentXP/$maxXP xp menuju level ${level + 1}',
+                                    style: AppTextStyles.captionGreen),
+                                const SizedBox(height: 16),
+
+                                // Perkiraan Minggu Depan
                                 Container(
                                   padding: const EdgeInsets.symmetric(
-                                      horizontal: 16, vertical: 12),
-                                  decoration: const BoxDecoration(
-                                      color: _primaryGreen,
-                                      borderRadius: BorderRadius.only(
-                                          bottomLeft: Radius.circular(18),
-                                          bottomRight: Radius.circular(18))),
+                                      horizontal: 12, vertical: 8),
+                                  decoration: BoxDecoration(
+                                    color: primaryGreen.withValues(alpha: 0.8),
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
                                   child: Row(
                                     mainAxisAlignment:
                                         MainAxisAlignment.spaceBetween,
@@ -230,13 +203,13 @@ class _HomeScreenState extends State<HomeScreen> {
                                             'assets/images/perkiraan.png',
                                             width: 16,
                                             height: 16,
-                                            color: const Color(0xFFE7F8C1),
+                                            color: iconLightGreen,
                                           ),
                                           const SizedBox(width: 8),
                                           const Text('Perkiraan Minggu Depan',
                                               style: TextStyle(
-                                                  color: Color(0xFFE7F8C1),
-                                                  fontSize: 13,
+                                                  color: iconLightGreen,
+                                                  fontSize: 12,
                                                   fontFamily: 'Inter',
                                                   fontWeight: FontWeight.w500)),
                                         ],
@@ -244,8 +217,8 @@ class _HomeScreenState extends State<HomeScreen> {
                                       Text(
                                           'Rp ${perkiraanMingguan.toStringAsFixed(0)}',
                                           style: const TextStyle(
-                                              color: Color(0xFFE7F8C1),
-                                              fontSize: 13,
+                                              color: iconLightGreen,
+                                              fontSize: 12,
                                               fontFamily: 'Inter',
                                               fontWeight: FontWeight.w700)),
                                     ],
@@ -257,7 +230,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                         const SizedBox(height: 32),
 
-                        //menu action
+                        // Menu Action
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
@@ -299,7 +272,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                         const SizedBox(height: 32),
 
-                        //target menabung
+                        // Target Menabung
                         _SectionHeader(
                           title: 'Target Menabung',
                           actionText: 'Lihat Semua',
@@ -311,28 +284,19 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                         const SizedBox(height: 12),
                         hasTargetMenabung
-                            ? Container(
-                                decoration: BoxDecoration(
-                                  color: _cardBg,
-                                  borderRadius: BorderRadius.circular(20),
-                                  border: Border.all(
-                                      color: _primaryGreen, width: 4),
-                                ),
+                            ? CustomCard(
+                                backgroundColor: cardBg,
+                                borderRadius: 20,
+                                padding: EdgeInsets.zero,
                                 child: Column(
                                   crossAxisAlignment:
                                       CrossAxisAlignment.stretch,
                                   children: [
-                                    ClipRRect(
-                                      borderRadius: const BorderRadius.only(
-                                        topLeft: Radius.circular(16),
-                                        topRight: Radius.circular(16),
-                                      ),
-                                      child: Image.network(
-                                        "https://placehold.co/324x167.png",
-                                        height: 167,
-                                        width: double.infinity,
-                                        fit: BoxFit.cover,
-                                      ),
+                                    Image.network(
+                                      "https://placehold.co/324x167.png",
+                                      height: 167,
+                                      width: double.infinity,
+                                      fit: BoxFit.cover,
                                     ),
                                     const Padding(
                                       padding: EdgeInsets.only(
@@ -344,18 +308,13 @@ class _HomeScreenState extends State<HomeScreen> {
                                         mainAxisAlignment:
                                             MainAxisAlignment.spaceBetween,
                                         children: [
-                                          Text(
-                                            'Ipad',
-                                            style: TextStyle(
-                                                color: _primaryGreen,
-                                                fontSize: 16,
-                                                fontFamily: 'Inter',
-                                                fontWeight: FontWeight.w700),
-                                          ),
+                                          Text('Ipad',
+                                              style:
+                                                  AppTextStyles.sectionTitle),
                                           Text(
                                             'Rp xxx.xxx,xx/ 6.000.000,00',
                                             style: TextStyle(
-                                                color: _primaryGreen,
+                                                color: primaryGreen,
                                                 fontSize: 12,
                                                 fontFamily: 'Inter',
                                                 fontWeight: FontWeight.w600),
@@ -371,8 +330,8 @@ class _HomeScreenState extends State<HomeScreen> {
                                             BorderRadius.circular(100),
                                         child: const LinearProgressIndicator(
                                           value: 0.15,
-                                          backgroundColor: _lightGreen,
-                                          color: _primaryGreen,
+                                          backgroundColor: lightGreen,
+                                          color: primaryGreen,
                                           minHeight: 6,
                                         ),
                                       ),
@@ -380,30 +339,22 @@ class _HomeScreenState extends State<HomeScreen> {
                                   ],
                                 ),
                               )
-                            : Container(
-                                width: double.infinity,
+                            : CustomCard(
+                                backgroundColor: cardBg,
+                                borderRadius: 20,
                                 padding: const EdgeInsets.symmetric(
                                     vertical: 32, horizontal: 20),
-                                decoration: BoxDecoration(
-                                  color: _cardBg,
-                                  borderRadius: BorderRadius.circular(20),
-                                  border: Border.all(
-                                      color: _primaryGreen, width: 4),
-                                ),
                                 child: Column(
                                   children: [
                                     Icon(
                                       Icons.receipt_long_outlined,
                                       size: 60,
                                       color:
-                                          _primaryGreen.withValues(alpha: 0.5),
+                                          primaryGreen.withValues(alpha: 0.5),
                                     ),
                                     const SizedBox(height: 12),
                                     const Text('Belum ada target impian nih!',
-                                        style: TextStyle(
-                                            color: _primaryGreen,
-                                            fontWeight: FontWeight.w700,
-                                            fontFamily: 'Inter')),
+                                        style: AppTextStyles.sectionTitle),
                                     const SizedBox(height: 4),
                                     const Text(
                                         'Yuk mulai tabung uangmu untuk beli barang impianmu.',
@@ -433,7 +384,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                         ),
                                       ),
                                       style: ElevatedButton.styleFrom(
-                                        backgroundColor: _primaryGreen,
+                                        backgroundColor: primaryGreen,
                                         shape: RoundedRectangleBorder(
                                           borderRadius:
                                               BorderRadius.circular(20),
@@ -448,9 +399,14 @@ class _HomeScreenState extends State<HomeScreen> {
                               ),
                         const SizedBox(height: 32),
 
-                        //ruang belajar
+                        // Ruang Belajar
                         _SectionHeader(
                           title: 'Ruang Belajar',
+                          actionText: 'Lihat Semua',
+                          onActionTap: () => Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                  builder: (_) => const RuangBelajarScreen())),
                         ),
                         const SizedBox(height: 12),
                         GestureDetector(
@@ -469,7 +425,7 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
 
-          //floating button tanya feen
+          // Floating button Tanya Feen
           AnimatedPositioned(
             duration: _isDraggingFeen
                 ? Duration.zero
@@ -487,8 +443,8 @@ class _HomeScreenState extends State<HomeScreen> {
                   _feenY += details.delta.dy;
                   _feenX =
                       _feenX.clamp(0.0, MediaQuery.of(context).size.width - 80);
-                  _feenY = _feenY.clamp(
-                      0.0, MediaQuery.of(context).size.height - 180);
+                  _feenY = _feenY.clamp(0.0,
+                      MediaQuery.of(context).size.height - _feenBottomMargin);
                 });
               },
               onPanEnd: (details) {
@@ -500,7 +456,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   if (_feenX + 30 < centerScreen) {
                     _feenX = 24.0;
                   } else {
-                    _feenX = screenWidth - 84.0;
+                    _feenX = screenWidth - _feenButtonWidth;
                   }
                 });
               },
@@ -514,9 +470,9 @@ class _HomeScreenState extends State<HomeScreen> {
                     width: 60,
                     height: 60,
                     decoration: BoxDecoration(
-                        color: const Color(0xFFADBC8D),
+                        color: feenButtonBg,
                         shape: BoxShape.circle,
-                        border: Border.all(color: _primaryGreen, width: 2)),
+                        border: Border.all(color: primaryGreen, width: 2)),
                     child: const Center(
                         child: Text('?',
                             style: TextStyle(
@@ -529,13 +485,13 @@ class _HomeScreenState extends State<HomeScreen> {
                     padding:
                         const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                     decoration: BoxDecoration(
-                        color: const Color(0xFFF8FFE8),
+                        color: inputBg,
                         borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: _primaryGreen, width: 1)),
+                        border: Border.all(color: primaryGreen, width: 1)),
                     child: const Text(
                       'Tanya Feen',
                       style: TextStyle(
-                          color: _primaryGreen,
+                          color: primaryGreen,
                           fontSize: 10,
                           fontWeight: FontWeight.w700),
                     ),
@@ -575,7 +531,7 @@ class _ActionMenu extends StatelessWidget {
             width: 72,
             height: 72,
             decoration: const BoxDecoration(
-              color: _primaryGreen,
+              color: primaryGreen,
               shape: BoxShape.circle,
             ),
             child: Center(
@@ -586,36 +542,29 @@ class _ActionMenu extends StatelessWidget {
                         assetPath,
                         width: 36,
                         height: 36,
-                        color: const Color(0xFFE7F9C1),
+                        color: iconLightGreen,
                         errorBuilder: (context, error, stackTrace) =>
                             const Icon(Icons.broken_image,
-                                color: Color(0xFFE7F9C1)),
+                                color: iconLightGreen),
                       )
                     : SvgPicture.asset(
                         assetPath,
                         width: 36,
                         height: 36,
                         colorFilter: const ColorFilter.mode(
-                            Color(0xFFE7F9C1), BlendMode.srcIn),
+                            iconLightGreen, BlendMode.srcIn),
                         placeholderBuilder: (context) => const SizedBox(
                           width: 24,
                           height: 24,
                           child: CircularProgressIndicator(
-                              color: Color(0xFFE7F9C1), strokeWidth: 2),
+                              color: iconLightGreen, strokeWidth: 2),
                         ),
                       ),
               ),
             ),
           ),
           const SizedBox(height: 8),
-          Text(
-            label,
-            style: const TextStyle(
-                color: _primaryGreen,
-                fontSize: 12,
-                fontFamily: 'Inter',
-                fontWeight: FontWeight.w700),
-          ),
+          Text(label, style: AppTextStyles.captionGreen),
         ],
       ),
     );
@@ -636,20 +585,18 @@ class _BelajarCard extends StatelessWidget {
         current != null ? 'Tingkat: ${current.level.tingkat}' : '';
     final double progress = current?.levelProgress ?? 1.0;
 
-    return Container(
+    return CustomCard(
+      backgroundColor: cardBg,
+      borderRadius: 20,
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-          color: _cardBg,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: _primaryGreen, width: 4)),
       child: Row(
         children: [
           Container(
             width: 50,
             height: 50,
             decoration: BoxDecoration(
-                color: _lightGreen, borderRadius: BorderRadius.circular(12)),
-            child: const Icon(Icons.menu_book, color: _primaryGreen),
+                color: lightGreen, borderRadius: BorderRadius.circular(12)),
+            child: const Icon(Icons.menu_book, color: primaryGreen),
           ),
           const SizedBox(width: 16),
           Expanded(
@@ -663,7 +610,7 @@ class _BelajarCard extends StatelessWidget {
                       child: Text(
                         judulModul,
                         style: const TextStyle(
-                            color: _primaryGreen,
+                            color: primaryGreen,
                             fontSize: 14,
                             fontFamily: 'Inter',
                             fontWeight: FontWeight.w800),
@@ -676,7 +623,7 @@ class _BelajarCard extends StatelessWidget {
                       Text(
                         labelTingkat,
                         style: const TextStyle(
-                            color: _primaryGreen,
+                            color: primaryGreen,
                             fontSize: 11,
                             fontFamily: 'Inter',
                             fontWeight: FontWeight.w600),
@@ -689,8 +636,8 @@ class _BelajarCard extends StatelessWidget {
                   borderRadius: BorderRadius.circular(10),
                   child: LinearProgressIndicator(
                       value: progress,
-                      backgroundColor: _lightGreen,
-                      color: _primaryGreen,
+                      backgroundColor: lightGreen,
+                      color: primaryGreen,
                       minHeight: 6),
                 ),
               ],
@@ -717,19 +664,14 @@ class _SectionHeader extends StatelessWidget {
       children: [
         Text(title,
             style: const TextStyle(
-                color: _primaryGreen,
+                color: primaryGreen,
                 fontSize: 18,
                 fontFamily: 'Inter',
                 fontWeight: FontWeight.w800)),
         if (actionText != null)
           GestureDetector(
             onTap: onActionTap,
-            child: Text(actionText!,
-                style: const TextStyle(
-                    color: _orangeText,
-                    fontSize: 14,
-                    fontFamily: 'Inter',
-                    fontWeight: FontWeight.w700)),
+            child: Text(actionText!, style: AppTextStyles.actionText),
           ),
       ],
     );

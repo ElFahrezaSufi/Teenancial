@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'get_started.dart';
 import 'signup_screen.dart';
-import 'main_screen.dart';
 import '../data/mock_auth.dart';
+import '../widgets/common/custom_text_field.dart';
+import '../widgets/common/custom_card.dart';
+import 'package:go_router/go_router.dart';
 
 const Color _primaryGreen = Color(0xFF637932);
 const Color _darkGreen = Color(0xFF415020);
@@ -78,11 +80,7 @@ class _LoginScreenState extends State<LoginScreen> {
             backgroundColor: _primaryGreen,
           ),
         );
-
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => const MainScreen()),
-        );
+        context.go('/home');
       } else if (status == 'email_not_found') {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -194,7 +192,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                   textAlign: TextAlign.center,
                                   style: TextStyle(
                                     color: _primaryGreen,
-                                    fontSize: 22,
+                                    fontSize: 25,
                                     fontFamily: 'Inter',
                                     fontWeight: FontWeight.w700,
                                   ),
@@ -211,13 +209,13 @@ class _LoginScreenState extends State<LoginScreen> {
                                   ),
                                 ),
                                 const SizedBox(height: 32),
-                                const _FieldLabel('Email'),
-                                const SizedBox(height: 8),
-                                _RoundedTextField(
-                                  controller: _emailController,
-                                  hintText: 'eg.nama@gmail.com',
-                                  prefixIcon: Icons.email_outlined,
+                                CustomTextField(
+                                  label: 'Email',
+                                  hint: 'eg.nama@gmail.com',
+                                  prefixIcon: const Icon(Icons.email_outlined,
+                                      color: _primaryGreen),
                                   keyboardType: TextInputType.emailAddress,
+                                  controller: _emailController,
                                   validator: (value) {
                                     if (value == null || value.trim().isEmpty) {
                                       return 'Email wajib diisi';
@@ -228,14 +226,13 @@ class _LoginScreenState extends State<LoginScreen> {
                                     return null;
                                   },
                                 ),
-                                const SizedBox(height: 16),
-                                const _FieldLabel('Password'),
-                                const SizedBox(height: 8),
-                                _RoundedTextField(
-                                  controller: _passwordController,
-                                  hintText: '********',
-                                  prefixIcon: Icons.lock_outline,
+                                CustomTextField(
+                                  label: 'Password',
+                                  hint: '********',
+                                  prefixIcon: const Icon(Icons.lock_outline,
+                                      color: _primaryGreen),
                                   obscureText: _obscurePassword,
+                                  controller: _passwordController,
                                   suffixIcon: IconButton(
                                     icon: Icon(
                                       _obscurePassword
@@ -261,7 +258,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                   child: TextButton(
                                     style: TextButton.styleFrom(
                                       padding: const EdgeInsets.only(
-                                          top: 8, bottom: 16),
+                                          top: 0, bottom: 16),
                                       minimumSize: const Size(0, 0),
                                       tapTargetSize:
                                           MaterialTapTargetSize.shrinkWrap,
@@ -307,17 +304,36 @@ class _LoginScreenState extends State<LoginScreen> {
                                           ),
                                   ),
                                 ),
-                                const SizedBox(height: 24),
-                                const Text(
-                                  'Atau masuk dengan',
-                                  textAlign: TextAlign.center,
-                                  style: TextStyle(
-                                      color: _primaryGreen,
-                                      fontSize: 13,
-                                      fontFamily: 'Inter',
-                                      fontWeight: FontWeight.w600),
-                                ),
                                 const SizedBox(height: 16),
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      child: Divider(
+                                        color: _primaryGreen.withValues(
+                                            alpha: 0.3),
+                                        thickness: 1.5,
+                                        endIndent: 12,
+                                      ),
+                                    ),
+                                    const Text(
+                                      'Atau masuk dengan',
+                                      style: TextStyle(
+                                          color: _primaryGreen,
+                                          fontSize: 13,
+                                          fontFamily: 'Inter',
+                                          fontWeight: FontWeight.w600),
+                                    ),
+                                    Expanded(
+                                      child: Divider(
+                                        color: _primaryGreen.withValues(
+                                            alpha: 0.3),
+                                        thickness: 1.5,
+                                        indent: 12,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 12),
                                 _GoogleLoginButton(onTap: () {
                                   // TODO: Tambahkan fungsi login google di sini
                                 }),
@@ -372,110 +388,6 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 }
 
-class _FieldLabel extends StatelessWidget {
-  const _FieldLabel(this.text);
-  final String text;
-
-  @override
-  Widget build(BuildContext context) {
-    return Text(text,
-        style: const TextStyle(
-            color: _primaryGreen,
-            fontSize: 14,
-            fontFamily: 'Inter',
-            fontWeight: FontWeight.w600));
-  }
-}
-
-class _RoundedTextField extends StatelessWidget {
-  const _RoundedTextField({
-    required this.controller,
-    required this.hintText,
-    required this.prefixIcon,
-    this.obscureText = false,
-    this.keyboardType,
-    this.suffixIcon,
-    this.validator,
-  });
-
-  final TextEditingController controller;
-  final String hintText;
-  final IconData prefixIcon;
-  final bool obscureText;
-  final TextInputType? keyboardType;
-  final Widget? suffixIcon;
-  final String? Function(String?)? validator;
-
-  @override
-  Widget build(BuildContext context) {
-    return FormField<String>(
-      validator: validator,
-      initialValue: controller.text,
-      builder: (FormFieldState<String> state) {
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              decoration: BoxDecoration(
-                color: state.hasError ? Colors.redAccent : _primaryGreen,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              padding: const EdgeInsets.only(bottom: 2),
-              child: Container(
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF8FFE8),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                      color: state.hasError ? Colors.redAccent : _primaryGreen,
-                      width: 2),
-                ),
-                child: TextField(
-                  controller: controller,
-                  obscureText: obscureText,
-                  keyboardType: keyboardType,
-                  onChanged: (value) {
-                    state.didChange(value);
-                  },
-                  style: const TextStyle(
-                      color: _primaryGreen,
-                      fontSize: 15,
-                      fontFamily: 'Inter',
-                      fontWeight: FontWeight.w600),
-                  decoration: InputDecoration(
-                    hintText: hintText,
-                    hintStyle: TextStyle(
-                        color: _primaryGreen.withValues(alpha: 0.5),
-                        fontSize: 15,
-                        fontFamily: 'Inter',
-                        fontWeight: FontWeight.w500),
-                    prefixIcon: Icon(prefixIcon,
-                        color:
-                            state.hasError ? Colors.redAccent : _primaryGreen,
-                        size: 22),
-                    suffixIcon: suffixIcon,
-                    contentPadding: const EdgeInsets.symmetric(vertical: 16),
-                    border: InputBorder.none,
-                  ),
-                ),
-              ),
-            ),
-            if (state.hasError)
-              Padding(
-                padding: const EdgeInsets.only(top: 8, left: 16),
-                child: Text(state.errorText ?? '',
-                    style: const TextStyle(
-                        color: Colors.redAccent,
-                        fontSize: 12,
-                        fontFamily: 'Inter',
-                        fontWeight: FontWeight.w600)),
-              ),
-          ],
-        );
-      },
-    );
-  }
-}
-
 class _GoogleLoginButton extends StatelessWidget {
   const _GoogleLoginButton({required this.onTap});
   final VoidCallback onTap;
@@ -484,17 +396,12 @@ class _GoogleLoginButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: onTap,
-      child: Container(
+      child: SizedBox(
         height: 54,
-        decoration: BoxDecoration(
-            color: _primaryGreen, borderRadius: BorderRadius.circular(12)),
-        padding: const EdgeInsets.only(bottom: 2),
-        child: Container(
-          decoration: BoxDecoration(
-              color: const Color(0xFFF8FFE8),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: _primaryGreen, width: 2)),
-          alignment: Alignment.center,
+        child: CustomCard(
+          borderRadius: 12,
+          padding: EdgeInsets.zero,
+          backgroundColor: const Color(0xFFF8FFE8),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
@@ -507,7 +414,7 @@ class _GoogleLoginButton extends StatelessWidget {
               const Text(
                 'Google',
                 style: TextStyle(
-                    color: _primaryGreen,
+                    color: Color(0xFF637932),
                     fontSize: 16,
                     fontFamily: 'Inter',
                     fontWeight: FontWeight.w700),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../data/belajar_data.dart';
+import '../widgets/common/custom_card.dart';
 
 const Color _primaryGreen = Color(0xFF627931);
 const Color _scaffoldBg = Color(0xFFEDEFE2);
@@ -15,7 +16,6 @@ class RuangBelajarScreen extends StatefulWidget {
 }
 
 class _RuangBelajarScreenState extends State<RuangBelajarScreen> {
-  // Gunakan singleton agar data terbagi dengan home_screen
   final _data = BelajarData.instance;
 
   void _completeModule(int levelIndex, int moduleIndex) {
@@ -142,14 +142,9 @@ class _LevelSection extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // ── Level header card ──────────────────────────────────────────────
-          Container(
+          CustomCard(
+            backgroundColor: _cardBg,
             padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: _cardBg,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: _primaryGreen, width: 1.5),
-            ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -271,12 +266,9 @@ class _ModuleCard extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: 10),
       child: GestureDetector(
         onTap: locked ? null : onToggleExpand,
-        child: Container(
-          decoration: BoxDecoration(
-            color: _cardBg,
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: _primaryGreen, width: 1.5),
-          ),
+        child: CustomCard(
+          backgroundColor: _cardBg,
+          padding: EdgeInsets.zero,
           child: Column(
             children: [
               Padding(
