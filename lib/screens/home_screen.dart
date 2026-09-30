@@ -1,7 +1,8 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import '../data/mock_auth.dart';
+import '../data/dompet_model.dart';
+import '../data/target_model.dart';
 import '../widgets/common/custom_card.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_text_styles.dart';
@@ -11,12 +12,14 @@ import 'pemasukan_screen.dart';
 import 'pengeluaran_screen.dart';
 import 'pinjaman_screen.dart';
 import 'transfer_screen.dart';
-import 'dompet_screen.dart';
 import 'target_menabung_screen.dart';
 import 'buat_target_screen.dart';
 import 'ruang_belajar_screen.dart';
-import '../data/belajar_data.dart';
 import 'tanya_feen_screen.dart';
+
+import '../widgets/home/action_menu.dart';
+import '../widgets/home/section_header.dart';
+import '../widgets/home/belajar_card.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -305,7 +308,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              _ActionMenu(
+                              ActionMenu(
                                 assetPath: 'assets/images/pemasukan.svg',
                                 label: 'Pemasukan',
                                 onTap: () => Navigator.push(
@@ -314,7 +317,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                         builder: (_) =>
                                             const PemasukanScreen())),
                               ),
-                              _ActionMenu(
+                              ActionMenu(
                                 assetPath: 'assets/images/pengeluaran.svg',
                                 label: 'Pengeluaran',
                                 onTap: () => Navigator.push(
@@ -323,7 +326,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                         builder: (_) =>
                                             const PengeluaranScreen())),
                               ),
-                              _ActionMenu(
+                              ActionMenu(
                                 assetPath: 'assets/images/pinjaman.svg',
                                 label: 'Pinjaman',
                                 onTap: () => Navigator.push(
@@ -332,7 +335,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                         builder: (_) =>
                                             const PinjamanScreen())),
                               ),
-                              _ActionMenu(
+                              ActionMenu(
                                 assetPath: 'assets/images/transfer.png',
                                 label: 'Transfer',
                                 iconPadding: const EdgeInsets.only(left: 4.0),
@@ -347,7 +350,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           const SizedBox(height: 32),
 
                           // Target Menabung
-                          _SectionHeader(
+                          SectionHeader(
                             title: 'Target Menabung',
                             actionText: 'Lihat Semua',
                             onActionTap: () async {
@@ -534,7 +537,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           const SizedBox(height: 24),
 
                           // Ruang Belajar
-                          _SectionHeader(
+                          SectionHeader(
                             title: 'Ruang Belajar',
                             actionText: 'Lihat Semua',
                             onActionTap: () => Navigator.push(
@@ -550,7 +553,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                 MaterialPageRoute(
                                     builder: (_) =>
                                         const RuangBelajarScreen())),
-                            child: _BelajarCard(),
+                            child: BelajarCard(),
                           ),
                           const SizedBox(height: 120),
                         ],
@@ -639,178 +642,6 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ],
       ),
-    );
-  }
-}
-
-class _ActionMenu extends StatelessWidget {
-  final String assetPath;
-  final String label;
-  final VoidCallback onTap;
-  final EdgeInsetsGeometry iconPadding;
-
-  const _ActionMenu({
-    required this.assetPath,
-    required this.label,
-    required this.onTap,
-    this.iconPadding = EdgeInsets.zero,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final bool isPng = assetPath.toLowerCase().endsWith('.png');
-
-    return GestureDetector(
-      onTap: onTap,
-      child: Column(
-        children: [
-          Container(
-            width: 72,
-            height: 72,
-            decoration: const BoxDecoration(
-              color: primaryGreen,
-              shape: BoxShape.circle,
-            ),
-            child: Center(
-              child: Padding(
-                padding: iconPadding,
-                child: isPng
-                    ? Image.asset(
-                        assetPath,
-                        width: 36,
-                        height: 36,
-                        color: iconLightGreen,
-                        errorBuilder: (context, error, stackTrace) =>
-                            const Icon(Icons.broken_image,
-                                color: iconLightGreen),
-                      )
-                    : SvgPicture.asset(
-                        assetPath,
-                        width: 36,
-                        height: 36,
-                        colorFilter: const ColorFilter.mode(
-                            iconLightGreen, BlendMode.srcIn),
-                        placeholderBuilder: (context) => const SizedBox(
-                          width: 24,
-                          height: 24,
-                          child: CircularProgressIndicator(
-                              color: iconLightGreen, strokeWidth: 2),
-                        ),
-                      ),
-              ),
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(label, style: AppTextStyles.captionGreen),
-        ],
-      ),
-    );
-  }
-}
-
-class _BelajarCard extends StatelessWidget {
-  _BelajarCard();
-
-  final _data = BelajarData.instance;
-
-  @override
-  Widget build(BuildContext context) {
-    final current = _data.currentModule;
-
-    final String judulModul = current?.module.title ?? 'Semua modul selesai!';
-    final String labelTingkat =
-        current != null ? 'Tingkat: ${current.level.tingkat}' : '';
-    final double progress = current?.levelProgress ?? 1.0;
-
-    return CustomCard(
-      backgroundColor: cardBg,
-      borderRadius: 20,
-      padding: const EdgeInsets.all(16),
-      child: Row(
-        children: [
-          Container(
-            width: 50,
-            height: 50,
-            decoration: BoxDecoration(
-                color: lightGreen, borderRadius: BorderRadius.circular(12)),
-            child: const Icon(Icons.menu_book, color: primaryGreen),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Expanded(
-                      child: Text(
-                        judulModul,
-                        style: const TextStyle(
-                            color: primaryGreen,
-                            fontSize: 14,
-                            fontFamily: 'Inter',
-                            fontWeight: FontWeight.w800),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                    if (labelTingkat.isNotEmpty) ...[
-                      const SizedBox(width: 8),
-                      Text(
-                        labelTingkat,
-                        style: const TextStyle(
-                            color: primaryGreen,
-                            fontSize: 11,
-                            fontFamily: 'Inter',
-                            fontWeight: FontWeight.w600),
-                      ),
-                    ],
-                  ],
-                ),
-                const SizedBox(height: 12),
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(10),
-                  child: LinearProgressIndicator(
-                      value: progress,
-                      backgroundColor: lightGreen,
-                      color: primaryGreen,
-                      minHeight: 6),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _SectionHeader extends StatelessWidget {
-  final String title;
-  final String? actionText;
-  final VoidCallback? onActionTap;
-
-  const _SectionHeader(
-      {required this.title, this.actionText, this.onActionTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(title,
-            style: const TextStyle(
-                color: primaryGreen,
-                fontSize: 18,
-                fontFamily: 'Inter',
-                fontWeight: FontWeight.w800)),
-        if (actionText != null)
-          GestureDetector(
-            onTap: onActionTap,
-            child: Text(actionText!, style: AppTextStyles.actionText),
-          ),
-      ],
     );
   }
 }
