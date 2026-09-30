@@ -7,9 +7,13 @@ import '../widgets/common/primary_button.dart';
 import '../widgets/transaction/source_toggle.dart';
 import '../widgets/transaction/account_selection_list.dart';
 import '../widgets/transaction/transaction_scaffold.dart';
+import '../data/transaction_model.dart';
+import '../repositories/transaction_repository.dart';
 
 class PemasukanScreen extends StatefulWidget {
-  const PemasukanScreen({super.key});
+  final TransactionModel? transactionToEdit;
+
+  const PemasukanScreen({super.key, this.transactionToEdit});
 
   @override
   State<PemasukanScreen> createState() => _PemasukanScreenState();
@@ -18,25 +22,104 @@ class PemasukanScreen extends StatefulWidget {
 class _PemasukanScreenState extends State<PemasukanScreen> {
   final _formKey = GlobalKey<FormState>();
   final _jumlahController = TextEditingController();
-  final _kategoriController = TextEditingController();
   final _catatanController = TextEditingController();
 
   int _selectedSource = 0; // 0 = Cash, 1 = Digital
-  int? _selectedAccount; // Akun digital yang dipilih
-  String? _selectedKategori;
+  int? _selectedAccount;
+  String? _selectedCategoryId;
+
+  bool _isLoading = false;
+  late List<CategoryModel> _incomeCategories;
+
+  @override
+  void initState() {
+    super.initState();
+    _incomeCategories = TransactionRepository.instance.getCategoriesByType(TransactionType.income);
+    
+    if (widget.transactionToEdit != null) {
+      final t = widget.transactionToEdit!;
+      _jumlahController.text = CurrencyInputFormatter.formatValue(t.amount.toStringAsFixed(0));
+      _catatanController.text = t.notes;
+      _selectedCategoryId = t.categoryId;
+      _selectedSource = t.isDigital ? 1 : 0;
+      if (t.isDigital) _selectedAccount = 0;
+    }
+  }
 
   @override
   void dispose() {
     _jumlahController.dispose();
-    _kategoriController.dispose();
     _catatanController.dispose();
     super.dispose();
   }
 
+  Future<void> _submitData() async {
+    if (!_formKey.currentState!.validate()) return;
+    if (_selectedSource == 1 && _selectedAccount == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Pilih akun digital terlebih dahulu'), backgroundColor: Colors.red),
+      );
+      return;
+    }
+
+    setState(() => _isLoading = true);
+
+    try {
+      final amountStr = _jumlahController.text.replaceAll(RegExp(r'[^0-9]'), '');
+      final amount = double.tryParse(amountStr) ?? 0.0;
+      final categoryId = _selectedCategoryId ?? _incomeCategories.first.id;
+      final cat = TransactionRepository.instance.getCategoryById(categoryId);
+
+      final transaction = TransactionModel(
+        id: widget.transactionToEdit?.id ?? DateTime.now().millisecondsSinceEpoch.toString(),
+        title: _catatanController.text.isNotEmpty ? _catatanController.text : cat.name,
+        amount: amount,
+        date: widget.transactionToEdit?.date ?? DateTime.now(),
+        notes: _catatanController.text,
+        categoryId: categoryId,
+        type: TransactionType.income,
+        isDigital: _selectedSource == 1,
+      );
+
+      if (widget.transactionToEdit != null) {
+        await TransactionRepository.instance.updateTransaction(transaction);
+      } else {
+        await TransactionRepository.instance.addTransaction(transaction);
+      }
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('✅ Data berhasil disimpan!'),
+            backgroundColor: primaryGreen,
+          ),
+        );
+        Navigator.pop(context, true); // return true to indicate change
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('❌ Gagal menyimpan: $e'), backgroundColor: Colors.red),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    final title = widget.transactionToEdit != null ? 'Edit Pemasukan' : 'Pemasukan';
+    
+    // Siapkan list of String untuk Dropdown (harus distinct & dari ID, tapi kita tampilkan name, namun CustomDropdownField saat ini menggunakan list of String untuk value, jadi kita pake id saja atau label. CustomDropdownField menerima string dan mereturn string. Kita mapping id -> name)
+    // CustomDropdownField mereturn value yang dipilih (yang ada di items). 
+    final dropdownItems = _incomeCategories.map((c) => c.name).toList();
+    final selectedCatName = _selectedCategoryId != null 
+        ? _incomeCategories.firstWhere((c) => c.id == _selectedCategoryId, orElse: () => _incomeCategories.first).name 
+        : null;
+
     return TransactionScaffold(
-      title: 'Pemasukan',
+      title: title,
       child: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24.0),
@@ -60,7 +143,6 @@ class _PemasukanScreenState extends State<PemasukanScreen> {
                   },
                 ),
 
-                // Tampilkan daftar akun digital jika "Digital" dipilih
                 AnimatedSize(
                   duration: const Duration(milliseconds: 300),
                   curve: Curves.easeInOut,
@@ -86,17 +168,20 @@ class _PemasukanScreenState extends State<PemasukanScreen> {
                     if (value == null || value.isEmpty) {
                       return 'Jumlah uang tidak boleh kosong';
                     }
+                    if (value == 'Rp 0' || value == '0') {
+                      return 'Jumlah harus lebih dari 0';
+                    }
                     return null;
                   },
                 ),
                 CustomDropdownField(
                   label: 'Kategori',
                   hint: 'Pilih Kategori',
-                  value: _selectedKategori,
-                  items: const ['Uang Jajan', 'Hadiah', 'Gaji', 'Lainnya'],
+                  value: selectedCatName,
+                  items: dropdownItems,
                   onChanged: (value) {
                     setState(() {
-                      _selectedKategori = value;
+                      _selectedCategoryId = _incomeCategories.firstWhere((c) => c.name == value).id;
                     });
                   },
                   validator: (value) {
@@ -110,21 +195,17 @@ class _PemasukanScreenState extends State<PemasukanScreen> {
                   label: 'Catatan',
                   hint: 'Tambah catatan (opsional)',
                   controller: _catatanController,
+                  validator: (value) {
+                    if (value != null && value.length > 50) {
+                      return 'Catatan maksimal 50 karakter';
+                    }
+                    return null;
+                  },
                 ),
                 const SizedBox(height: 24),
                 PrimaryButton(
-                  label: 'Simpan',
-                  onPressed: () {
-                    if (_formKey.currentState!.validate()) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('✅ Data berhasil disimpan!'),
-                          backgroundColor: primaryGreen,
-                        ),
-                      );
-                      Navigator.pop(context);
-                    }
-                  },
+                  label: _isLoading ? 'Menyimpan...' : 'Simpan',
+                  onPressed: _isLoading ? () {} : () { _submitData(); },
                 ),
               ],
             ),
