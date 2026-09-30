@@ -1,11 +1,8 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import '../data/mock_auth.dart';
 import '../data/dompet_model.dart';
 import '../data/target_model.dart';
-import '../widgets/common/custom_card.dart';
 import '../theme/app_colors.dart';
-import '../theme/app_text_styles.dart';
 
 import 'profile_screen.dart';
 import 'pemasukan_screen.dart';
@@ -20,6 +17,9 @@ import 'tanya_feen_screen.dart';
 import '../widgets/home/action_menu.dart';
 import '../widgets/home/section_header.dart';
 import '../widgets/home/belajar_card.dart';
+import '../widgets/home/profile_header.dart';
+import '../widgets/home/total_saldo_card.dart';
+import '../widgets/home/target_menabung_home.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -170,137 +170,32 @@ class _HomeScreenState extends State<HomeScreen> {
                           SizedBox(height: topPadding + 20),
 
                           // Header: Profil & Level
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Padding(
-                                padding: const EdgeInsets.only(left: 24),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text('Halo $displayName !',
-                                        style: AppTextStyles.headerName),
-                                    Text('level $level',
-                                        style: AppTextStyles.headerLevel),
-                                  ],
-                                ),
-                              ),
-                              Padding(
-                                padding: const EdgeInsets.only(right: 24),
-                                child: GestureDetector(
-                                  onTap: () async {
-                                    await Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                          builder: (context) =>
-                                              const ProfileScreen()),
-                                    );
-                                    setState(() {
-                                      _loadUserData();
-                                    });
-                                  },
-                                  child: Container(
-                                    width: 50,
-                                    height: 50,
-                                    decoration: BoxDecoration(
-                                      color: inputBg,
-                                      shape: BoxShape.circle,
-                                      border: Border.all(
-                                          color: primaryGreen, width: 2),
-                                      image: ProfileScreen.profileImage != null
-                                          ? DecorationImage(
-                                              image: FileImage(
-                                                  ProfileScreen.profileImage!),
-                                              fit: BoxFit.cover,
-                                            )
-                                          : null,
-                                    ),
-                                    child: ProfileScreen.profileImage == null
-                                        ? const Icon(Icons.person,
-                                            color: primaryGreen, size: 30)
-                                        : null,
-                                  ),
-                                ),
-                              ),
-                            ],
+                          ProfileHeader(
+                            displayName: displayName,
+                            level: level,
+                            onProfileTap: () async {
+                              await Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                    builder: (context) => const ProfileScreen()),
+                              );
+                              setState(() {
+                                _loadUserData();
+                              });
+                            },
                           ),
                           const SizedBox(height: 16),
 
-                          // Total Saldo Card (Membaca Saldo Asli)
-                          GestureDetector(
+                          // Total Saldo Card
+                          TotalSaldoCard(
+                            totalSaldoReal: totalSaldoReal,
+                            perkiraanMingguanReal: perkiraanMingguanReal,
+                            xpProgress: xpProgress,
+                            currentXP: currentXP,
+                            maxXP: maxXP,
+                            level: level,
+                            formatRupiah: _formatRupiah,
                             onTap: _tambahTabunganMock,
-                            child: CustomCard(
-                              backgroundColor: cardBg,
-                              borderRadius: 24,
-                              padding: const EdgeInsets.all(20),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  const Text('Total Saldo',
-                                      style: AppTextStyles.sectionTitle),
-                                  const SizedBox(height: 4),
-                                  Text(_formatRupiah(totalSaldoReal),
-                                      style: AppTextStyles.balanceText),
-                                  const SizedBox(height: 16),
-                                  ClipRRect(
-                                    borderRadius: BorderRadius.circular(10),
-                                    child: LinearProgressIndicator(
-                                        value: xpProgress,
-                                        backgroundColor: lightGreen,
-                                        color: primaryGreen,
-                                        minHeight: 8),
-                                  ),
-                                  const SizedBox(height: 8),
-                                  Text(
-                                      '$currentXP/$maxXP xp menuju level ${level + 1}',
-                                      style: AppTextStyles.captionGreen),
-                                  const SizedBox(height: 16),
-
-                                  // Perkiraan Minggu Depan
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(
-                                        horizontal: 12, vertical: 8),
-                                    decoration: BoxDecoration(
-                                      color:
-                                          primaryGreen.withValues(alpha: 0.8),
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    child: Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.spaceBetween,
-                                      children: [
-                                        Row(
-                                          children: [
-                                            Image.asset(
-                                              'assets/images/perkiraan.png',
-                                              width: 16,
-                                              height: 16,
-                                              color: iconLightGreen,
-                                            ),
-                                            const SizedBox(width: 8),
-                                            const Text('Perkiraan Minggu Depan',
-                                                style: TextStyle(
-                                                    color: iconLightGreen,
-                                                    fontSize: 12,
-                                                    fontFamily: 'Inter',
-                                                    fontWeight:
-                                                        FontWeight.w500)),
-                                          ],
-                                        ),
-                                        Text(
-                                            _formatRupiah(
-                                                perkiraanMingguanReal),
-                                            style: const TextStyle(
-                                                color: iconLightGreen,
-                                                fontSize: 12,
-                                                fontFamily: 'Inter',
-                                                fontWeight: FontWeight.w700)),
-                                      ],
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
                           ),
                           const SizedBox(height: 32),
 
@@ -364,176 +259,12 @@ class _HomeScreenState extends State<HomeScreen> {
                           ),
                           const SizedBox(height: 12),
 
-                          currentTarget != null
-                              ? Column(
-                                  children: [
-                                    CustomCard(
-                                      backgroundColor: cardBg,
-                                      borderRadius: 20,
-                                      padding: EdgeInsets.zero,
-                                      child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.stretch,
-                                        children: [
-                                          ClipRRect(
-                                            borderRadius:
-                                                const BorderRadius.only(
-                                              topLeft: Radius.circular(18),
-                                              topRight: Radius.circular(18),
-                                            ),
-                                            child: Image.file(
-                                              File(currentTarget.imageUrl),
-                                              height: 167,
-                                              width: double.infinity,
-                                              fit: BoxFit.cover,
-                                              errorBuilder: (context, error,
-                                                      stackTrace) =>
-                                                  Container(
-                                                      height: 167,
-                                                      color: Colors.grey[300],
-                                                      child: const Icon(
-                                                          Icons.broken_image,
-                                                          color: Colors.grey)),
-                                            ),
-                                          ),
-                                          Padding(
-                                            padding: const EdgeInsets.only(
-                                                left: 16,
-                                                right: 16,
-                                                top: 16,
-                                                bottom: 12),
-                                            child: Row(
-                                              mainAxisAlignment:
-                                                  MainAxisAlignment
-                                                      .spaceBetween,
-                                              children: [
-                                                Text(currentTarget.nama,
-                                                    style: AppTextStyles
-                                                        .sectionTitle),
-                                                Text(
-                                                  '${_formatRupiah(totalSaldoReal)}/ ${_formatRupiah(currentTarget.targetAmount)}',
-                                                  style: const TextStyle(
-                                                      color: primaryGreen,
-                                                      fontSize: 12,
-                                                      fontFamily: 'Inter',
-                                                      fontWeight:
-                                                          FontWeight.w600),
-                                                ),
-                                              ],
-                                            ),
-                                          ),
-                                          Padding(
-                                            padding: const EdgeInsets.only(
-                                                left: 16,
-                                                right: 16,
-                                                bottom: 20),
-                                            child: ClipRRect(
-                                              borderRadius:
-                                                  BorderRadius.circular(100),
-                                              child: LinearProgressIndicator(
-                                                value: currentTarget
-                                                            .targetAmount >
-                                                        0
-                                                    ? (totalSaldoReal /
-                                                            currentTarget
-                                                                .targetAmount)
-                                                        .clamp(0.0, 1.0)
-                                                    : 0.0,
-                                                backgroundColor: lightGreen,
-                                                color: primaryGreen,
-                                                minHeight: 6,
-                                              ),
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                    const SizedBox(height: 16),
-                                    GestureDetector(
-                                      onTap: _tambahTargetData,
-                                      child: Padding(
-                                        padding: const EdgeInsets.symmetric(
-                                            vertical: 8.0),
-                                        child: Row(
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.center,
-                                          children: [
-                                            const Icon(Icons.add,
-                                                size: 16,
-                                                color: Color(0xFFDAB62C)),
-                                            const SizedBox(width: 4),
-                                            const Text(
-                                              'Buat Target Baru',
-                                              style: TextStyle(
-                                                color: Color(0xFFDAB62C),
-                                                fontSize: 15,
-                                                fontWeight: FontWeight.w800,
-                                                fontFamily: 'Inter',
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                )
-                              : CustomCard(
-                                  backgroundColor: cardBg,
-                                  borderRadius: 20,
-                                  padding: const EdgeInsets.symmetric(
-                                      vertical: 32, horizontal: 20),
-                                  child: Column(
-                                    children: [
-                                      Icon(
-                                        Icons.receipt_long_outlined,
-                                        size: 60,
-                                        color:
-                                            primaryGreen.withValues(alpha: 0.5),
-                                      ),
-                                      const SizedBox(height: 12),
-                                      const Text('Belum ada target impian nih!',
-                                          style: AppTextStyles.sectionTitle),
-                                      const SizedBox(height: 4),
-                                      const Text(
-                                          'Yuk mulai tabung uangmu untuk beli barang impianmu.',
-                                          textAlign: TextAlign.center,
-                                          style: TextStyle(
-                                              color: Colors.grey,
-                                              fontSize: 12,
-                                              fontFamily: 'Inter')),
-                                      const SizedBox(height: 16),
-                                      GestureDetector(
-                                        onTap: _tambahTargetData,
-                                        child: CustomCard(
-                                          borderRadius: 100,
-                                          backgroundColor: primaryGreen,
-                                          padding: const EdgeInsets.symmetric(
-                                              horizontal: 24, vertical: 14),
-                                          child: const Row(
-                                            mainAxisSize: MainAxisSize.min,
-                                            mainAxisAlignment:
-                                                MainAxisAlignment.center,
-                                            children: [
-                                              Icon(Icons.add,
-                                                  size: 18,
-                                                  color: Colors.white),
-                                              SizedBox(width: 8),
-                                              Text(
-                                                'Buat Target Baru',
-                                                style: TextStyle(
-                                                  color: Colors.white,
-                                                  fontSize: 15,
-                                                  fontWeight: FontWeight.w600,
-                                                  fontFamily: 'Inter',
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                      )
-                                    ],
-                                  ),
-                                ),
+                          TargetMenabungHome(
+                            currentTarget: currentTarget,
+                            totalSaldoReal: totalSaldoReal,
+                            formatRupiah: _formatRupiah,
+                            onTambahTarget: _tambahTargetData,
+                          ),
                           const SizedBox(height: 24),
 
                           // Ruang Belajar
