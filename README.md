@@ -1,6 +1,6 @@
 # Teenancial
 
-Teenancial adalah aplikasi yang dirancang khusus untuk membantu remaja mencatat dan mengelola keuangan harian secara mandiri dan disiplin. Aplikasi ini memfasilitasi pencatatan aktivitas keuangan (pemasukan, pengeluaran), manajemen dompet digital/tunai, penetapan target tabungan (savings goal) lengkap dengan grafik tren saldo secara dinamis, serta ruang pembelajaran pengelolaan keuangan.
+Teenancial adalah aplikasi yang dirancang khusus untuk membantu remaja mencatat dan mengelola keuangan harian secara mandiri dan disiplin. Aplikasi ini memfasilitasi pencatatan aktivitas keuangan (pemasukan, pengeluaran), manajemen dompet digital/tunai, penetapan target tabungan (savings goal) lengkap dengan grafik tren saldo secara dinamis, dan ruang pembelajaran pengelolaan keuangan, serta fitur ChatBot yang siap membantu untuk mengelola keuangan user.
 
 ## Kelompok Pura-Pura Galiat
 
