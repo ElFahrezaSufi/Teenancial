@@ -304,11 +304,31 @@ class _TargetMenabungScreenState extends State<TargetMenabungScreen> {
                     color: _appBarBg,
                     shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12)),
-                    onSelected: (value) {
+                    onSelected: (value) async {
                       if (value == 'delete') {
-                        setState(() {
-                          _data.items.remove(item);
-                        });
+                        final bool? confirm = await showDialog<bool>(
+                          context: context,
+                          builder: (ctx) => AlertDialog(
+                            title: const Text('Hapus Target', style: TextStyle(color: _primaryGreen)),
+                            content: const Text('Apakah Anda yakin ingin menghapus target ini?'),
+                            actions: [
+                              TextButton(
+                                onPressed: () => Navigator.pop(ctx, false),
+                                child: const Text('Batal', style: TextStyle(color: Colors.grey)),
+                              ),
+                              TextButton(
+                                onPressed: () => Navigator.pop(ctx, true),
+                                child: const Text('Hapus', style: TextStyle(color: Colors.red)),
+                              ),
+                            ],
+                          ),
+                        );
+
+                        if (confirm == true) {
+                          setState(() {
+                            _data.items.remove(item);
+                          });
+                        }
                       }
                     },
                     itemBuilder: (context) => [
