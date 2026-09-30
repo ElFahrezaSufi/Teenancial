@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:intl/date_symbol_data_local.dart';
 import 'data/mock_auth.dart';
 import 'theme/app_colors.dart';
 import 'screens/splash_screen.dart';
@@ -13,6 +14,7 @@ import 'screens/login_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await initializeDateFormatting('id_ID', null);
   await MockAuth.init();
   runApp(const MyApp());
 }
