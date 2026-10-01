@@ -3,6 +3,7 @@ import '../theme/app_colors.dart';
 import '../utils/currency_formatter.dart';
 import '../widgets/common/custom_text_field.dart';
 import '../widgets/common/custom_dropdown_field.dart';
+import '../widgets/common/primary_button.dart';
 import '../widgets/transaction/source_toggle.dart';
 import '../widgets/transaction/account_selection_list.dart';
 import '../widgets/transaction/transaction_scaffold.dart';
@@ -189,7 +190,8 @@ class _TransferScreenState extends State<TransferScreen> {
                         )
                       : const SizedBox(height: 24),
                 ),
-                ElevatedButton(
+                PrimaryButton(
+                  label: 'Simpan',
                   onPressed: () {
                     if (_formKey.currentState!.validate()) {
                       ScaffoldMessenger.of(context).showSnackBar(
@@ -201,23 +203,6 @@ class _TransferScreenState extends State<TransferScreen> {
                       Navigator.pop(context);
                     }
                   },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: primaryGreen,
-                    elevation: 0,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(100),
-                    ),
-                  ),
-                  child: const Text(
-                    'Simpan',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 16,
-                      fontFamily: 'Inter',
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
                 ),
               ],
             ),

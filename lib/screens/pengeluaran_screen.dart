@@ -3,6 +3,7 @@ import '../theme/app_colors.dart';
 import '../utils/currency_formatter.dart';
 import '../widgets/common/custom_text_field.dart';
 import '../widgets/common/custom_dropdown_field.dart';
+import '../widgets/common/primary_button.dart';
 import '../widgets/transaction/source_toggle.dart';
 import '../widgets/transaction/account_selection_list.dart';
 import '../widgets/transaction/transaction_scaffold.dart';
@@ -213,29 +214,9 @@ class _PengeluaranScreenState extends State<PengeluaranScreen> {
                   },
                 ),
                 const SizedBox(height: 24),
-                ElevatedButton(
-                  onPressed: _isLoading
-                      ? null
-                      : () {
-                          _submitData();
-                        },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: primaryGreen,
-                    elevation: 0,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(100),
-                    ),
-                  ),
-                  child: Text(
-                    _isLoading ? 'Menyimpan...' : 'Simpan',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 16,
-                      fontFamily: 'Inter',
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
+                PrimaryButton(
+                  label: _isLoading ? 'Menyimpan...' : 'Simpan',
+                  onPressed: _isLoading ? null : _submitData,
                 ),
               ],
             ),

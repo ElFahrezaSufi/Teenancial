@@ -3,7 +3,7 @@ import '../../theme/app_colors.dart';
 
 class PrimaryButton extends StatelessWidget {
   final String label;
-  final VoidCallback onPressed;
+  final VoidCallback? onPressed; // Diubah jadi nullable agar mendukung state disabled (loading)
 
   const PrimaryButton({
     super.key,
@@ -19,9 +19,10 @@ class PrimaryButton extends StatelessWidget {
         onPressed: onPressed,
         style: ElevatedButton.styleFrom(
           backgroundColor: primaryGreen,
+          disabledBackgroundColor: primaryGreen.withValues(alpha: 0.5), // Warna saat disabled
           padding: const EdgeInsets.symmetric(vertical: 18),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(100), // Diubah ke 100 sesuai komit temanmu
           ),
           elevation: 0,
         ),
@@ -38,3 +39,4 @@ class PrimaryButton extends StatelessWidget {
     );
   }
 }
+
