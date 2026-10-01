@@ -1,7 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import '../data/target_model.dart';
-import '../data/dompet_model.dart';
+import '../repositories/dompet_repository.dart';
 import '../theme/app_colors.dart';
 import '../widgets/common/custom_card.dart';
 import 'buat_target_screen.dart';
@@ -209,7 +209,7 @@ class _TargetMenabungScreenState extends State<TargetMenabungScreen> {
   }
 
   Widget _buildTargetCard(TargetItem item) {
-    final double saldoSekarang = DompetData.instance.totalSaldo;
+    final double saldoSekarang = DompetRepository.instance.totalSaldo;
     final double progress = item.targetAmount > 0
         ? (saldoSekarang / item.targetAmount).clamp(0.0, 1.0)
         : 0.0;

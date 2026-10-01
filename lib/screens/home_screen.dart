@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../data/mock_auth.dart';
-import '../data/dompet_model.dart';
+import '../repositories/dompet_repository.dart';
 import '../data/target_model.dart';
 import '../theme/app_colors.dart';
 
@@ -70,14 +70,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
   void _tambahTabunganMock() {
     setState(() {
-      try {
-        final cashItem = DompetData.instance.items
-            .firstWhere((e) => e.jenis == JenisDompet.cash);
-        cashItem.jumlah += 50000;
-      } catch (e) {
-        // Jika tidak ada item cash, amannya dilewati
-      }
-
       currentXP += 50;
       if (currentXP >= maxXP) {
         level++;
@@ -134,7 +126,7 @@ class _HomeScreenState extends State<HomeScreen> {
     final double topPadding = MediaQuery.of(context).padding.top;
     final double xpProgress =
         maxXP > 0 ? (currentXP / maxXP).clamp(0.0, 1.0) : 0.0;
-    final double totalSaldoReal = DompetData.instance.totalSaldo;
+    final double totalSaldoReal = DompetRepository.instance.totalSaldo;
     final double perkiraanMingguanReal =
         totalSaldoReal + (totalSaldoReal * 0.02);
 

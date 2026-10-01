@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../data/dompet_model.dart';
+import '../repositories/dompet_repository.dart';
 import '../theme/app_colors.dart';
 import '../widgets/common/custom_card.dart';
 
 class TambahDompetScreen extends StatefulWidget {
-  const TambahDompetScreen({super.key});
+  final DompetItem? itemToEdit;
+
+  const TambahDompetScreen({super.key, this.itemToEdit});
 
   @override
   State<TambahDompetScreen> createState() => _TambahDompetScreenState();
@@ -18,12 +21,26 @@ class _TambahDompetScreenState extends State<TambahDompetScreen> {
   final _catatanCtrl = TextEditingController();
 
   JenisDompet? _selectedJenis;
+  bool _isLoading = false;
 
   final Map<String, JenisDompet> _jenisMap = {
     'Cash': JenisDompet.cash,
     'Accounts': JenisDompet.accounts,
     'Card': JenisDompet.card,
   };
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.itemToEdit != null) {
+      final item = widget.itemToEdit!;
+      _selectedJenis = item.jenis;
+      _jenisDompetCtrl.text = _jenisMap.entries.firstWhere((e) => e.value == item.jenis, orElse: () => _jenisMap.entries.first).key;
+      _namaDompetCtrl.text = item.nama;
+      _jumlahCtrl.text = item.jumlah.toStringAsFixed(0);
+      _catatanCtrl.text = item.catatan ?? '';
+    }
+  }
 
   @override
   void dispose() {
@@ -34,7 +51,7 @@ class _TambahDompetScreenState extends State<TambahDompetScreen> {
     super.dispose();
   }
 
-  void _simpan() {
+  Future<void> _simpan() async {
     final jenisText = _jenisDompetCtrl.text.trim();
     final nama = _namaDompetCtrl.text.trim();
     final jumlahText = _jumlahCtrl.text.trim();
@@ -43,7 +60,7 @@ class _TambahDompetScreenState extends State<TambahDompetScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Jenis dan Nama dompet wajib diisi'),
-          backgroundColor: primaryGreen,
+          backgroundColor: Colors.red,
         ),
       );
       return;
@@ -61,20 +78,81 @@ class _TambahDompetScreenState extends State<TambahDompetScreen> {
         ) ??
         0;
 
-    DompetData.instance.tambah(DompetItem(
-      id: DateTime.now().millisecondsSinceEpoch.toString(),
-      jenis: jenis,
-      nama: nama,
-      jumlah: jumlah,
-      catatan:
-          _catatanCtrl.text.trim().isEmpty ? null : _catatanCtrl.text.trim(),
-    ));
+    setState(() => _isLoading = true);
 
-    Navigator.pop(context, true);
+    try {
+      final item = DompetItem(
+        id: widget.itemToEdit?.id ?? DateTime.now().millisecondsSinceEpoch.toString(),
+        jenis: jenis,
+        nama: nama,
+        jumlah: jumlah,
+        catatan: _catatanCtrl.text.trim().isEmpty ? null : _catatanCtrl.text.trim(),
+      );
+
+      if (widget.itemToEdit != null) {
+        await DompetRepository.instance.updateDompet(item);
+      } else {
+        await DompetRepository.instance.addDompet(item);
+      }
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('✅ Dompet berhasil disimpan!'), backgroundColor: primaryGreen),
+        );
+        Navigator.pop(context, true);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('❌ Gagal menyimpan: $e'), backgroundColor: Colors.red),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _hapus() async {
+    if (widget.itemToEdit == null) return;
+
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Hapus Dompet', style: TextStyle(color: primaryGreen)),
+        content: const Text('Yakin ingin menghapus dompet ini? Aksi tidak dapat dibatalkan.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Batal', style: TextStyle(color: Colors.grey))),
+          TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Hapus', style: TextStyle(color: Colors.red))),
+        ],
+      ),
+    );
+
+    if (confirm != true) return;
+
+    setState(() => _isLoading = true);
+    try {
+      await DompetRepository.instance.deleteDompet(widget.itemToEdit!.id);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('✅ Dompet berhasil dihapus!'), backgroundColor: primaryGreen),
+        );
+        Navigator.pop(context, true);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('❌ Gagal menghapus: $e'), backgroundColor: Colors.red),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    final title = widget.itemToEdit != null ? 'Edit Dompet' : 'Tambah Baru';
+
     return Scaffold(
       backgroundColor: scaffoldBg,
       appBar: PreferredSize(
@@ -98,15 +176,23 @@ class _TambahDompetScreenState extends State<TambahDompetScreen> {
                         color: primaryGreen, size: 32),
                   ),
                 ),
-                const Text(
-                  'Tambah Baru',
-                  style: TextStyle(
+                Text(
+                  title,
+                  style: const TextStyle(
                     color: primaryGreen,
                     fontSize: 22,
                     fontFamily: 'Inter',
                     fontWeight: FontWeight.w700,
                   ),
                 ),
+                if (widget.itemToEdit != null)
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: IconButton(
+                      onPressed: _isLoading ? null : _hapus,
+                      icon: const Icon(Icons.delete_outline, color: Colors.red),
+                    ),
+                  ),
               ],
             ),
           ),
@@ -148,7 +234,7 @@ class _TambahDompetScreenState extends State<TambahDompetScreen> {
                   const SizedBox(height: 8),
                   _InputField(
                     controller: _namaDompetCtrl,
-                    hint: 'Opsional',
+                    hint: 'Misal: SeaBank, Dana',
                   ),
                   const SizedBox(height: 20),
                   const _FieldLabel(label: 'Jumlah Uang'),
@@ -170,15 +256,15 @@ class _TambahDompetScreenState extends State<TambahDompetScreen> {
                   ),
                   const SizedBox(height: 32),
                   GestureDetector(
-                    onTap: _simpan,
+                    onTap: _isLoading ? null : _simpan,
                     child: CustomCard(
                       borderRadius: 100,
-                      backgroundColor: primaryGreen,
+                      backgroundColor: _isLoading ? Colors.grey : primaryGreen,
                       padding: const EdgeInsets.symmetric(vertical: 18),
-                      child: const Center(
+                      child: Center(
                         child: Text(
-                          'Simpan',
-                          style: TextStyle(
+                          _isLoading ? 'Menyimpan...' : 'Simpan',
+                          style: const TextStyle(
                             color: Colors.white,
                             fontSize: 16,
                             fontFamily: 'Inter',
