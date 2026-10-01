@@ -5,6 +5,7 @@ import '../data/transaction_model.dart';
 import '../repositories/transaction_repository.dart';
 import 'pemasukan_screen.dart';
 import 'pengeluaran_screen.dart';
+import '../widgets/common/custom_card.dart'; // IMPORT CUSTOM CARD AGAR DESAIN SERAGAM
 
 const Color _primaryGreen = Color(0xFF627931);
 const Color _scaffoldBg = Color(0xFFEDEFE2);
@@ -48,10 +49,15 @@ class _TrendChartPainter extends CustomPainter {
     }
 
     if (values.length == 1) {
-      // Just draw a line in the middle if only one value
       final double y = size.height / 2;
-      canvas.drawLine(Offset(0, y), Offset(size.width, y), Paint()..color = const Color(0xFFE53935)..strokeWidth = 2);
-      canvas.drawCircle(Offset(size.width/2, y), 3, Paint()..color = const Color(0xFFE53935));
+      canvas.drawLine(
+          Offset(0, y),
+          Offset(size.width, y),
+          Paint()
+            ..color = const Color(0xFFE53935)
+            ..strokeWidth = 2);
+      canvas.drawCircle(Offset(size.width / 2, y), 3,
+          Paint()..color = const Color(0xFFE53935));
       return;
     }
 
@@ -120,10 +126,10 @@ class RiwayatScreen extends StatefulWidget {
 }
 
 class _RiwayatScreenState extends State<RiwayatScreen> {
-  int _selectedFilter = 0; // 0: Mingguan, 1: Bulanan, 2: Tahunan
+  int _selectedFilter = 0;
   _LoadState _loadState = _LoadState.loading;
   String _errorMessage = '';
-  
+
   List<TransactionModel> _allTransactions = [];
   List<TransactionGroup> _filteredGroups = [];
   List<double> _trendData = [];
@@ -138,7 +144,8 @@ class _RiwayatScreenState extends State<RiwayatScreen> {
   Future<void> _loadData({bool simulateError = false}) async {
     setState(() => _loadState = _LoadState.loading);
     try {
-      final data = await TransactionRepository.instance.getTransactions(simulateError: simulateError);
+      final data = await TransactionRepository.instance
+          .getTransactions(simulateError: simulateError);
       _allTransactions = data;
       _processData();
     } catch (e) {
@@ -169,8 +176,9 @@ class _RiwayatScreenState extends State<RiwayatScreen> {
       cutoff = now.subtract(const Duration(days: 365));
     }
 
-    final filtered = _allTransactions.where((t) => t.date.isAfter(cutoff)).toList();
-    
+    final filtered =
+        _allTransactions.where((t) => t.date.isAfter(cutoff)).toList();
+
     if (filtered.isEmpty) {
       setState(() {
         _loadState = _LoadState.empty;
@@ -180,21 +188,20 @@ class _RiwayatScreenState extends State<RiwayatScreen> {
       return;
     }
 
-    // Grouping
     final Map<String, List<TransactionModel>> groups = {};
     for (var t in filtered) {
-      // Create date label like "Rabu, 08 Juli 2026"
       final dateStr = DateFormat('EEEE, dd MMMM yyyy', 'id_ID').format(t.date);
       if (!groups.containsKey(dateStr)) groups[dateStr] = [];
       groups[dateStr]!.add(t);
     }
 
-    _filteredGroups = groups.entries.map((e) => TransactionGroup(dateLabel: e.key, items: e.value)).toList();
-    // Sort groups descending
-    _filteredGroups.sort((a, b) => b.items.first.date.compareTo(a.items.first.date));
+    _filteredGroups = groups.entries
+        .map((e) => TransactionGroup(dateLabel: e.key, items: e.value))
+        .toList();
+    _filteredGroups
+        .sort((a, b) => b.items.first.date.compareTo(a.items.first.date));
 
-    // Trend calculation (Cumulative balance over the period, reversed so chronological)
-    filtered.sort((a, b) => a.date.compareTo(b.date)); // chronological
+    filtered.sort((a, b) => a.date.compareTo(b.date));
     double balance = 0.0;
     _trendData = [];
     for (var t in filtered) {
@@ -207,8 +214,9 @@ class _RiwayatScreenState extends State<RiwayatScreen> {
     }
     if (_trendData.isEmpty) _trendData = [0.0];
 
-    // Max Label calculation (just total income in that period for simplicity)
-    double totalIncome = filtered.where((t) => t.type == TransactionType.income).fold(0, (sum, t) => sum + t.amount);
+    double totalIncome = filtered
+        .where((t) => t.type == TransactionType.income)
+        .fold(0, (sum, t) => sum + t.amount);
     _maxLabel = '+ ${_formatCurrency(totalIncome)}';
 
     setState(() {
@@ -230,12 +238,13 @@ class _RiwayatScreenState extends State<RiwayatScreen> {
   }
 
   Future<void> _deleteTransaction(String id) async {
-    // Tampilkan Dialog Konfirmasi Destruktif
     final bool? confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Hapus Transaksi', style: TextStyle(color: _primaryGreen)),
-        content: const Text('Apakah Anda yakin ingin menghapus data ini? Aksi ini tidak dapat dibatalkan.'),
+        title: const Text('Hapus Transaksi',
+            style: TextStyle(color: _primaryGreen)),
+        content: const Text(
+            'Apakah Anda yakin ingin menghapus data ini? Aksi ini tidak dapat dibatalkan.'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
@@ -251,23 +260,26 @@ class _RiwayatScreenState extends State<RiwayatScreen> {
 
     if (confirm != true) return;
 
-    // Proses delete
     setState(() => _loadState = _LoadState.loading);
     try {
       await TransactionRepository.instance.deleteTransaction(id);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('✅ Data berhasil dihapus!'), backgroundColor: _primaryGreen),
+          const SnackBar(
+              content: Text('✅ Data berhasil dihapus!'),
+              backgroundColor: _primaryGreen),
         );
       }
       _loadData();
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('❌ Gagal menghapus: $e'), backgroundColor: Colors.red),
+          SnackBar(
+              content: Text('❌ Gagal menghapus: $e'),
+              backgroundColor: Colors.red),
         );
       }
-      _loadData(); // reload anyway to reset loading state
+      _loadData();
     }
   }
 
@@ -275,9 +287,9 @@ class _RiwayatScreenState extends State<RiwayatScreen> {
     final result = await Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => item.type == TransactionType.income 
-          ? PemasukanScreen(transactionToEdit: item) 
-          : PengeluaranScreen(transactionToEdit: item),
+        builder: (_) => item.type == TransactionType.income
+            ? PemasukanScreen(transactionToEdit: item)
+            : PengeluaranScreen(transactionToEdit: item),
       ),
     );
 
@@ -330,17 +342,17 @@ class _RiwayatScreenState extends State<RiwayatScreen> {
               ),
             ),
             const SizedBox(height: 20),
-            _Skeleton(width: 100, height: 16),
+            const _Skeleton(width: 100, height: 16),
             const SizedBox(height: 10),
-            _Skeleton(width: double.infinity, height: 180),
+            const _Skeleton(width: double.infinity, height: 180),
             const SizedBox(height: 24),
-            _Skeleton(width: 130, height: 16),
+            const _Skeleton(width: 130, height: 16),
             const SizedBox(height: 12),
-            _Skeleton(width: double.infinity, height: 72),
+            const _Skeleton(width: double.infinity, height: 72),
             const SizedBox(height: 10),
-            _Skeleton(width: double.infinity, height: 72),
+            const _Skeleton(width: double.infinity, height: 72),
             const SizedBox(height: 10),
-            _Skeleton(width: double.infinity, height: 72),
+            const _Skeleton(width: double.infinity, height: 72),
           ],
         ),
       ),
@@ -356,9 +368,12 @@ class _RiwayatScreenState extends State<RiwayatScreen> {
           children: [
             const Icon(Icons.error_outline, size: 60, color: Colors.red),
             const SizedBox(height: 16),
-            Text(
+            const Text(
               'Oops, terjadi kesalahan!',
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: _primaryGreen),
+              style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: _primaryGreen),
             ),
             const SizedBox(height: 8),
             Text(
@@ -369,12 +384,14 @@ class _RiwayatScreenState extends State<RiwayatScreen> {
             const SizedBox(height: 24),
             ElevatedButton(
               style: ElevatedButton.styleFrom(
-                backgroundColor: _primaryGreen,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12)
-              ),
+                  backgroundColor: _primaryGreen,
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12)),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 24, vertical: 12)),
               onPressed: () => _loadData(),
-              child: const Text('Coba Lagi', style: TextStyle(color: Colors.white)),
+              child: const Text('Coba Lagi',
+                  style: TextStyle(color: Colors.white)),
             ),
           ],
         ),
@@ -389,11 +406,15 @@ class _RiwayatScreenState extends State<RiwayatScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.receipt_long_outlined, size: 80, color: _primaryGreen.withValues(alpha: 0.5)),
+            Icon(Icons.receipt_long_outlined,
+                size: 80, color: _primaryGreen.withValues(alpha: 0.5)),
             const SizedBox(height: 16),
             const Text(
               'Belum ada transaksi',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: _primaryGreen),
+              style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: _primaryGreen),
             ),
             const SizedBox(height: 8),
             const Text(
@@ -426,7 +447,8 @@ class _RiwayatScreenState extends State<RiwayatScreen> {
           ),
           if (_loadState == _LoadState.loading) _buildLoading(),
           if (_loadState == _LoadState.error) _buildError(),
-          if (_loadState == _LoadState.success || _loadState == _LoadState.empty)
+          if (_loadState == _LoadState.success ||
+              _loadState == _LoadState.empty)
             SafeArea(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.all(24.0),
@@ -463,7 +485,6 @@ class _RiwayatScreenState extends State<RiwayatScreen> {
                         ),
                       ],
                     ),
-                    
                     if (_loadState == _LoadState.empty)
                       Padding(
                         padding: const EdgeInsets.only(top: 60),
@@ -481,12 +502,11 @@ class _RiwayatScreenState extends State<RiwayatScreen> {
                         ),
                       ),
                       const SizedBox(height: 10),
-                      Container(
-                        decoration: BoxDecoration(
-                          color: _cardBg,
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(color: _primaryGreen, width: 2),
-                        ),
+
+                      // KOTAK TREN SALDO MENGGUNAKAN CUSTOM CARD
+                      CustomCard(
+                        backgroundColor: _cardBg,
+                        borderRadius: 16,
                         padding: const EdgeInsets.all(12),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.end,
@@ -621,7 +641,7 @@ class _SemuaAktivitasScreen extends StatelessWidget {
                   child: IconButton(
                     icon: const Icon(Icons.arrow_back_ios_new,
                         color: _primaryGreen, size: 20),
-                    onPressed: () => Navigator.pop(context, true), // signal refresh
+                    onPressed: () => Navigator.pop(context, true),
                   ),
                 ),
               ],
@@ -770,13 +790,11 @@ class _TransactionCard extends StatelessWidget {
     final cat = TransactionRepository.instance.getCategoryById(item.categoryId);
     final bool isExpense = item.type == TransactionType.expense;
 
-    return Container(
+    // KARTU TRANSAKSI MENGGUNAKAN CUSTOM CARD
+    return CustomCard(
+      backgroundColor: _cardBg,
+      borderRadius: 16,
       padding: const EdgeInsets.only(left: 14, right: 4, top: 12, bottom: 12),
-      decoration: BoxDecoration(
-        color: _cardBg,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: _primaryGreen, width: 2),
-      ),
       child: Row(
         children: [
           Container(

@@ -3,7 +3,6 @@ import '../theme/app_colors.dart';
 import '../utils/currency_formatter.dart';
 import '../widgets/common/custom_text_field.dart';
 import '../widgets/common/custom_dropdown_field.dart';
-import '../widgets/common/primary_button.dart';
 import '../widgets/transaction/source_toggle.dart';
 import '../widgets/transaction/account_selection_list.dart';
 import '../widgets/transaction/transaction_scaffold.dart';
@@ -34,11 +33,13 @@ class _PemasukanScreenState extends State<PemasukanScreen> {
   @override
   void initState() {
     super.initState();
-    _incomeCategories = TransactionRepository.instance.getCategoriesByType(TransactionType.income);
-    
+    _incomeCategories = TransactionRepository.instance
+        .getCategoriesByType(TransactionType.income);
+
     if (widget.transactionToEdit != null) {
       final t = widget.transactionToEdit!;
-      _jumlahController.text = CurrencyInputFormatter.formatValue(t.amount.toStringAsFixed(0));
+      _jumlahController.text =
+          CurrencyInputFormatter.formatValue(t.amount.toStringAsFixed(0));
       _catatanController.text = t.notes;
       _selectedCategoryId = t.categoryId;
       _selectedSource = t.isDigital ? 1 : 0;
@@ -57,7 +58,9 @@ class _PemasukanScreenState extends State<PemasukanScreen> {
     if (!_formKey.currentState!.validate()) return;
     if (_selectedSource == 1 && _selectedAccount == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Pilih akun digital terlebih dahulu'), backgroundColor: Colors.red),
+        const SnackBar(
+            content: Text('Pilih akun digital terlebih dahulu'),
+            backgroundColor: Colors.red),
       );
       return;
     }
@@ -65,14 +68,18 @@ class _PemasukanScreenState extends State<PemasukanScreen> {
     setState(() => _isLoading = true);
 
     try {
-      final amountStr = _jumlahController.text.replaceAll(RegExp(r'[^0-9]'), '');
+      final amountStr =
+          _jumlahController.text.replaceAll(RegExp(r'[^0-9]'), '');
       final amount = double.tryParse(amountStr) ?? 0.0;
       final categoryId = _selectedCategoryId ?? _incomeCategories.first.id;
       final cat = TransactionRepository.instance.getCategoryById(categoryId);
 
       final transaction = TransactionModel(
-        id: widget.transactionToEdit?.id ?? DateTime.now().millisecondsSinceEpoch.toString(),
-        title: _catatanController.text.isNotEmpty ? _catatanController.text : cat.name,
+        id: widget.transactionToEdit?.id ??
+            DateTime.now().millisecondsSinceEpoch.toString(),
+        title: _catatanController.text.isNotEmpty
+            ? _catatanController.text
+            : cat.name,
         amount: amount,
         date: widget.transactionToEdit?.date ?? DateTime.now(),
         notes: _catatanController.text,
@@ -99,7 +106,9 @@ class _PemasukanScreenState extends State<PemasukanScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('❌ Gagal menyimpan: $e'), backgroundColor: Colors.red),
+          SnackBar(
+              content: Text('❌ Gagal menyimpan: $e'),
+              backgroundColor: Colors.red),
         );
       }
     } finally {
@@ -109,13 +118,15 @@ class _PemasukanScreenState extends State<PemasukanScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final title = widget.transactionToEdit != null ? 'Edit Pemasukan' : 'Pemasukan';
-    
-    // Siapkan list of String untuk Dropdown (harus distinct & dari ID, tapi kita tampilkan name, namun CustomDropdownField saat ini menggunakan list of String untuk value, jadi kita pake id saja atau label. CustomDropdownField menerima string dan mereturn string. Kita mapping id -> name)
-    // CustomDropdownField mereturn value yang dipilih (yang ada di items). 
+    final title =
+        widget.transactionToEdit != null ? 'Edit Pemasukan' : 'Pemasukan';
+
     final dropdownItems = _incomeCategories.map((c) => c.name).toList();
-    final selectedCatName = _selectedCategoryId != null 
-        ? _incomeCategories.firstWhere((c) => c.id == _selectedCategoryId, orElse: () => _incomeCategories.first).name 
+    final selectedCatName = _selectedCategoryId != null
+        ? _incomeCategories
+            .firstWhere((c) => c.id == _selectedCategoryId,
+                orElse: () => _incomeCategories.first)
+            .name
         : null;
 
     return TransactionScaffold(
@@ -142,7 +153,6 @@ class _PemasukanScreenState extends State<PemasukanScreen> {
                     });
                   },
                 ),
-
                 AnimatedSize(
                   duration: const Duration(milliseconds: 300),
                   curve: Curves.easeInOut,
@@ -157,7 +167,6 @@ class _PemasukanScreenState extends State<PemasukanScreen> {
                         )
                       : const SizedBox.shrink(),
                 ),
-
                 CustomTextField(
                   label: 'Jumlah Uang',
                   hint: 'Rp 0',
@@ -181,7 +190,9 @@ class _PemasukanScreenState extends State<PemasukanScreen> {
                   items: dropdownItems,
                   onChanged: (value) {
                     setState(() {
-                      _selectedCategoryId = _incomeCategories.firstWhere((c) => c.name == value).id;
+                      _selectedCategoryId = _incomeCategories
+                          .firstWhere((c) => c.name == value)
+                          .id;
                     });
                   },
                   validator: (value) {
@@ -203,9 +214,29 @@ class _PemasukanScreenState extends State<PemasukanScreen> {
                   },
                 ),
                 const SizedBox(height: 24),
-                PrimaryButton(
-                  label: _isLoading ? 'Menyimpan...' : 'Simpan',
-                  onPressed: _isLoading ? () {} : () { _submitData(); },
+                ElevatedButton(
+                  onPressed: _isLoading
+                      ? null
+                      : () {
+                          _submitData();
+                        },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: primaryGreen,
+                    elevation: 0,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(100),
+                    ),
+                  ),
+                  child: Text(
+                    _isLoading ? 'Menyimpan...' : 'Simpan',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontFamily: 'Inter',
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
                 ),
               ],
             ),
