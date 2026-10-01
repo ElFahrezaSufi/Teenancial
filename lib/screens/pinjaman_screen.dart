@@ -3,7 +3,6 @@ import '../theme/app_colors.dart';
 import '../utils/currency_formatter.dart';
 import '../widgets/common/custom_text_field.dart';
 import '../widgets/common/custom_dropdown_field.dart';
-import '../widgets/common/primary_button.dart';
 import '../widgets/transaction/source_toggle.dart';
 import '../widgets/transaction/account_selection_list.dart';
 import '../widgets/transaction/transaction_scaffold.dart';
@@ -152,8 +151,8 @@ class _PinjamanScreenState extends State<PinjamanScreen> {
                 SourceToggle(
                   label: 'Sumber Uang',
                   option1: 'Cash',
-                  icon1: Icons.money,
                   option2: 'Digital',
+                  icon1: Icons.money,
                   icon2: Icons.phone_android,
                   selectedIndex: _selectedSource,
                   onSelect: (index) {
@@ -271,8 +270,7 @@ class _PinjamanScreenState extends State<PinjamanScreen> {
                     ),
                   ),
                 ),
-                PrimaryButton(
-                  label: 'Simpan',
+                ElevatedButton(
                   onPressed: () {
                     if (_formKey.currentState!.validate()) {
                       ScaffoldMessenger.of(context).showSnackBar(
@@ -286,6 +284,23 @@ class _PinjamanScreenState extends State<PinjamanScreen> {
                       Navigator.pop(context);
                     }
                   },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: primaryGreen,
+                    elevation: 0,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(100),
+                    ),
+                  ),
+                  child: const Text(
+                    'Simpan',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontFamily: 'Inter',
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
                 ),
               ],
             ),
