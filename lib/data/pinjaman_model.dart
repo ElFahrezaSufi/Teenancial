@@ -7,12 +7,12 @@ extension JenisPinjamanLabel on JenisPinjaman {
 class PinjamanItem {
   final String id;
   final JenisPinjaman jenis;
-  final String nama; // nama teman
+  final String nama; 
   final double jumlah;
   final String kategori;
   final DateTime jatuhTempo;
   final String catatan;
-  final String? dompetId; // relasi ke DompetItem.id (sumber uang)
+  final String? dompetId; 
 
   const PinjamanItem({
     required this.id,
