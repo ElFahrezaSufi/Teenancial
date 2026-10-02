@@ -24,6 +24,16 @@ class MyApp extends StatelessWidget {
         useMaterial3: true,
       ),
       routerConfig: appRouter,
+      // Responsif: di layar lebar (768/1280 px) konten dibatasi dan dipusatkan.
+      builder: (context, child) => ColoredBox(
+        color: const Color(0xFFEDEFE2),
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 600),
+            child: child ?? const SizedBox.shrink(),
+          ),
+        ),
+      ),
     );
   }
 }
