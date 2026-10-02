@@ -169,7 +169,8 @@ class _HomeScreenState extends State<HomeScreen> {
                               await Navigator.push(
                                 context,
                                 MaterialPageRoute(
-                                    builder: (context) => const ProfileScreen()),
+                                    builder: (context) =>
+                                        const ProfileScreen()),
                               );
                               setState(() {
                                 _loadUserData();
@@ -198,39 +199,51 @@ class _HomeScreenState extends State<HomeScreen> {
                               ActionMenu(
                                 assetPath: 'assets/images/pemasukan.svg',
                                 label: 'Pemasukan',
-                                onTap: () => Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                        builder: (_) =>
-                                            const PemasukanScreen())),
+                                onTap: () async {
+                                  await Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                          builder: (_) =>
+                                              const PemasukanScreen()));
+                                  if (mounted) setState(() {});
+                                },
                               ),
                               ActionMenu(
                                 assetPath: 'assets/images/pengeluaran.svg',
                                 label: 'Pengeluaran',
-                                onTap: () => Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                        builder: (_) =>
-                                            const PengeluaranScreen())),
+                                onTap: () async {
+                                  await Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                          builder: (_) =>
+                                              const PengeluaranScreen()));
+                                  if (mounted) setState(() {});
+                                },
                               ),
                               ActionMenu(
                                 assetPath: 'assets/images/pinjaman.svg',
                                 label: 'Pinjaman',
-                                onTap: () => Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                        builder: (_) =>
-                                            const PinjamanScreen())),
+                                onTap: () async {
+                                  await Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                          builder: (_) =>
+                                              const PinjamanScreen()));
+                                  if (mounted) setState(() {});
+                                },
                               ),
                               ActionMenu(
                                 assetPath: 'assets/images/transfer.png',
                                 label: 'Transfer',
                                 iconPadding: const EdgeInsets.only(left: 4.0),
-                                onTap: () => Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                        builder: (_) =>
-                                            const TransferScreen())),
+                                onTap: () async {
+                                  await Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                          builder: (_) =>
+                                              const TransferScreen()));
+                                  if (mounted) setState(() {});
+                                },
                               ),
                             ],
                           ),

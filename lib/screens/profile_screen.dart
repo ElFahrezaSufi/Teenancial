@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import '../data/mock_auth.dart';
+import '../data/sim_settings.dart';
 import '../theme/app_colors.dart';
 import '../widgets/common/custom_card.dart';
 
@@ -268,6 +269,33 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     controller: _emailController,
                     isEditing: false,
                     keyboardType: TextInputType.emailAddress,
+                  ),
+                  const SizedBox(height: 24),
+                  ValueListenableBuilder<bool>(
+                    valueListenable: SimSettings.forceError,
+                    builder: (context, value, _) => CustomCard(
+                      backgroundColor: cardBg,
+                      borderRadius: 16,
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 4),
+                      child: SwitchListTile(
+                        contentPadding: EdgeInsets.zero,
+                        activeColor: primaryGreen,
+                        title: const Text(
+                          'Simulasi gagal memuat data',
+                          style: TextStyle(
+                              color: primaryGreen,
+                              fontWeight: FontWeight.w700,
+                              fontSize: 14),
+                        ),
+                        subtitle: const Text(
+                          'Mode demo: buka Riwayat/Dompet untuk melihat state error + "Coba lagi".',
+                          style: TextStyle(fontSize: 11),
+                        ),
+                        value: value,
+                        onChanged: (v) => SimSettings.forceError.value = v,
+                      ),
+                    ),
                   ),
                   const SizedBox(height: 24),
                   GestureDetector(
