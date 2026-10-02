@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../data/sim_settings.dart';
 import 'package:intl/intl.dart';
 import '../data/transaction_model.dart';
 import '../repositories/transaction_repository.dart';
@@ -34,7 +35,18 @@ class _RiwayatScreenState extends State<RiwayatScreen> {
   @override
   void initState() {
     super.initState();
+    SimSettings.forceError.addListener(_onSimChanged);
     _loadData();
+  }
+
+  @override
+  void dispose() {
+    SimSettings.forceError.removeListener(_onSimChanged);
+    super.dispose();
+  }
+
+  void _onSimChanged() {
+    if (mounted) _loadData();
   }
 
   Future<void> _loadData({bool simulateError = false}) async {

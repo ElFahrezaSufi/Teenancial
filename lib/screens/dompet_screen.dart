@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../data/sim_settings.dart';
 import '../data/dompet_model.dart';
 import '../repositories/dompet_repository.dart';
 import '../theme/app_colors.dart';
@@ -23,7 +24,18 @@ class _DompetScreenState extends State<DompetScreen> {
   @override
   void initState() {
     super.initState();
+    SimSettings.forceError.addListener(_onSimChanged);
     _loadData();
+  }
+
+  @override
+  void dispose() {
+    SimSettings.forceError.removeListener(_onSimChanged);
+    super.dispose();
+  }
+
+  void _onSimChanged() {
+    if (mounted) _loadData();
   }
 
   Future<void> _loadData({bool simulateError = false}) async {

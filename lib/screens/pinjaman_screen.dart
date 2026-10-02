@@ -7,6 +7,10 @@ import '../widgets/common/primary_button.dart';
 import '../widgets/transaction/source_toggle.dart';
 import '../widgets/transaction/account_selection_list.dart';
 import '../widgets/transaction/transaction_scaffold.dart';
+import '../data/pinjaman_model.dart';
+import '../repositories/dompet_repository.dart';
+import '../repositories/pinjaman_repository.dart';
+import 'pinjaman_list_screen.dart';
 
 class PinjamanScreen extends StatefulWidget {
   const PinjamanScreen({super.key});
@@ -31,6 +35,7 @@ class _PinjamanScreenState extends State<PinjamanScreen> {
       ? "${_selectedDateObj!.day}/${_selectedDateObj!.month}/${_selectedDateObj!.year}"
       : '';
   bool _simpanKeDaftar = false;
+  bool _isLoading = false;
 
   @override
   void dispose() {
@@ -39,6 +44,76 @@ class _PinjamanScreenState extends State<PinjamanScreen> {
     _catatanController.dispose();
     _temanController.dispose();
     super.dispose();
+  }
+
+  Future<void> _submit() async {
+    if (_isLoading) return;
+    if (!_formKey.currentState!.validate()) return;
+
+    final repo = DompetRepository.instance;
+    final dompetId = repo.idFromSelection(_selectedSource, _selectedAccount);
+    if (dompetId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+            content: Text('Pilih akun digital terlebih dahulu'),
+            backgroundColor: Colors.red),
+      );
+      return;
+    }
+    final amount = double.tryParse(
+            _jumlahController.text.replaceAll(RegExp(r'[^0-9]'), '')) ??
+        0;
+    if (amount <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+            content: Text('Jumlah uang harus lebih dari 0'),
+            backgroundColor: Colors.red),
+      );
+      return;
+    }
+
+    setState(() => _isLoading = true);
+    try {
+      final jenis =
+          _selectedTab == 0 ? JenisPinjaman.pinjaman : JenisPinjaman.piutang;
+      // Pinjaman = uang masuk ke dompet. Piutang = uang keluar dari dompet.
+      if (jenis == JenisPinjaman.pinjaman) {
+        await repo.tambahSaldo(dompetId, amount);
+      } else {
+        await repo.transfer(fromId: dompetId, amount: amount);
+      }
+      await PinjamanRepository.instance.add(PinjamanItem(
+        id: DateTime.now().millisecondsSinceEpoch.toString(),
+        jenis: jenis,
+        nama: _temanController.text.trim(),
+        jumlah: amount,
+        kategori: _selectedKategori ?? 'Lainnya',
+        jatuhTempo: _selectedDateObj!,
+        catatan: _catatanController.text,
+        dompetId: dompetId,
+      ));
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(jenis == JenisPinjaman.pinjaman
+              ? '✅ Data Pinjaman Tersimpan!'
+              : '✅ Data Piutang Tersimpan!'),
+          backgroundColor: primaryGreen,
+        ),
+      );
+      Navigator.pop(context, true);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+              content: Text(
+                  '❌ Gagal menyimpan: ${e.toString().replaceFirst('Exception: ', '')}'),
+              backgroundColor: Colors.red),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
   }
 
   Future<void> _selectDate(BuildContext context) async {
@@ -272,20 +347,23 @@ class _PinjamanScreenState extends State<PinjamanScreen> {
                   ),
                 ),
                 PrimaryButton(
-                  label: 'Simpan',
-                  onPressed: () {
-                    if (_formKey.currentState!.validate()) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(_selectedTab == 0
-                              ? '✅ Data Pinjaman Tersimpan!'
-                              : '✅ Data Piutang Tersimpan!'),
-                          backgroundColor: primaryGreen,
-                        ),
-                      );
-                      Navigator.pop(context);
-                    }
-                  },
+                  label: _isLoading ? 'Menyimpan...' : 'Simpan',
+                  onPressed: _isLoading ? null : _submit,
+                ),
+                const SizedBox(height: 12),
+                TextButton(
+                  onPressed: _isLoading
+                      ? null
+                      : () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (_) => const PinjamanListScreen()),
+                          ),
+                  child: const Text(
+                    'Lihat daftar pinjaman & piutang',
+                    style: TextStyle(
+                        color: primaryGreen, fontWeight: FontWeight.w700),
+                  ),
                 ),
               ],
             ),

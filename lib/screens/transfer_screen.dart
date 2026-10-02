@@ -7,6 +7,9 @@ import '../widgets/common/primary_button.dart';
 import '../widgets/transaction/source_toggle.dart';
 import '../widgets/transaction/account_selection_list.dart';
 import '../widgets/transaction/transaction_scaffold.dart';
+import '../data/transaction_model.dart';
+import '../repositories/dompet_repository.dart';
+import '../repositories/transaction_repository.dart';
 
 class TransferScreen extends StatefulWidget {
   const TransferScreen({super.key});
@@ -23,6 +26,7 @@ class _TransferScreenState extends State<TransferScreen> {
   final _untukController = TextEditingController();
 
   bool _isSelfTransfer = false;
+  bool _isLoading = false;
 
   // State untuk mode Normal (Ke Orang Lain)
   int _selectedSourceNormal = 0;
@@ -43,6 +47,81 @@ class _TransferScreenState extends State<TransferScreen> {
     _catatanController.dispose();
     _untukController.dispose();
     super.dispose();
+  }
+
+  void _showError(String msg) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(msg), backgroundColor: Colors.red),
+    );
+  }
+
+  Future<void> _submit() async {
+    if (_isLoading) return;
+    if (!_formKey.currentState!.validate()) return;
+
+    final amount = double.tryParse(
+            _jumlahController.text.replaceAll(RegExp(r'[^0-9]'), '')) ??
+        0;
+    if (amount <= 0) {
+      _showError('Jumlah uang harus lebih dari 0');
+      return;
+    }
+
+    final repo = DompetRepository.instance;
+    final String? fromId = _isSelfTransfer
+        ? repo.idFromSelection(_selectedSourceDari, _selectedAccountDari)
+        : repo.idFromSelection(_selectedSourceNormal, _selectedAccountNormal);
+    final String? toId = _isSelfTransfer
+        ? repo.idFromSelection(_selectedSourceKe, _selectedAccountKe)
+        : null;
+
+    if (fromId == null) {
+      _showError('Pilih akun digital sumber terlebih dahulu');
+      return;
+    }
+    if (_isSelfTransfer && toId == null) {
+      _showError('Pilih akun digital tujuan terlebih dahulu');
+      return;
+    }
+    if (_isSelfTransfer && fromId == toId) {
+      _showError('Sumber dan tujuan tidak boleh sama');
+      return;
+    }
+
+    setState(() => _isLoading = true);
+    try {
+      await repo.transfer(fromId: fromId, toId: toId, amount: amount);
+
+      // Transfer ke orang lain tercatat sebagai pengeluaran di riwayat.
+      if (!_isSelfTransfer) {
+        final untuk = _untukController.text.trim();
+        await TransactionRepository.instance.addTransaction(
+          TransactionModel(
+            id: DateTime.now().millisecondsSinceEpoch.toString(),
+            title: 'Transfer ke $untuk',
+            amount: amount,
+            date: DateTime.now(),
+            notes: _catatanController.text,
+            categoryId: 'c6',
+            type: TransactionType.expense,
+            isDigital: _selectedSourceNormal == 1,
+          ),
+        );
+      }
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('✅ Transfer berhasil!'),
+          backgroundColor: primaryGreen,
+        ),
+      );
+      Navigator.pop(context, true);
+    } catch (e) {
+      if (mounted) _showError('❌ Gagal transfer: ${e.toString().replaceFirst('Exception: ', '')}');
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
   }
 
   @override
@@ -191,18 +270,8 @@ class _TransferScreenState extends State<TransferScreen> {
                       : const SizedBox(height: 24),
                 ),
                 PrimaryButton(
-                  label: 'Simpan',
-                  onPressed: () {
-                    if (_formKey.currentState!.validate()) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('✅ Data berhasil disimpan!'),
-                          backgroundColor: primaryGreen,
-                        ),
-                      );
-                      Navigator.pop(context);
-                    }
-                  },
+                  label: _isLoading ? 'Menyimpan...' : 'Simpan',
+                  onPressed: _isLoading ? null : _submit,
                 ),
               ],
             ),
