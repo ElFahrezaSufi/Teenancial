@@ -123,16 +123,17 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final double topPadding = MediaQuery.of(context).padding.top;
-    final double xpProgress =
-        maxXP > 0 ? (currentXP / maxXP).clamp(0.0, 1.0) : 0.0;
-    final double totalSaldoReal = DompetRepository.instance.totalSaldo;
-    final double perkiraanMingguanReal =
-        totalSaldoReal + (totalSaldoReal * 0.02);
+    return ListenableBuilder(
+      listenable: DompetRepository.instance,
+      builder: (context, _) {
+        final double topPadding = MediaQuery.of(context).padding.top;
+        final double xpProgress = maxXP > 0 ? (currentXP / maxXP).clamp(0.0, 1.0) : 0.0;
+        final double totalSaldoReal = DompetRepository.instance.totalSaldo;
+        final double perkiraanMingguanReal = totalSaldoReal + (totalSaldoReal * 0.02);
+        
+        final TargetItem? currentTarget = TargetData.instance.pinnedItem;
 
-    final TargetItem? currentTarget = TargetData.instance.pinnedItem;
-
-    return Scaffold(
+        return Scaffold(
       backgroundColor: Colors.transparent,
       body: Stack(
         children: [
@@ -365,6 +366,8 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ],
       ),
+    );
+      }
     );
   }
 }

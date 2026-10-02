@@ -1,6 +1,7 @@
+import 'package:flutter/foundation.dart';
 import '../data/dompet_model.dart';
 
-class DompetRepository {
+class DompetRepository extends ChangeNotifier {
   DompetRepository._();
   static final DompetRepository instance = DompetRepository._();
 
@@ -26,6 +27,7 @@ class DompetRepository {
   Future<void> addDompet(DompetItem item) async {
     await Future.delayed(const Duration(seconds: 1)); // Simulasi Loading
     _items.add(item);
+    notifyListeners();
   }
 
   // UPDATE
@@ -34,6 +36,7 @@ class DompetRepository {
     final index = _items.indexWhere((d) => d.id == item.id);
     if (index != -1) {
       _items[index] = item;
+      notifyListeners();
     } else {
       throw Exception('Data dompet tidak ditemukan');
     }
@@ -43,6 +46,20 @@ class DompetRepository {
   Future<void> deleteDompet(String id) async {
     await Future.delayed(const Duration(seconds: 1)); // Simulasi Loading
     _items.removeWhere((d) => d.id == id);
+    notifyListeners();
+  }
+
+  // UPDATE SALDO (Fungsi Helper untuk Transaksi)
+  Future<void> addSaldo(String dompetId, double nominal) async {
+    final dompet = _items.firstWhere((d) => d.id == dompetId, orElse: () => throw Exception('Dompet tidak ditemukan'));
+    dompet.jumlah += nominal;
+    notifyListeners();
+  }
+
+  Future<void> subtractSaldo(String dompetId, double nominal) async {
+    final dompet = _items.firstWhere((d) => d.id == dompetId, orElse: () => throw Exception('Dompet tidak ditemukan'));
+    dompet.jumlah -= nominal;
+    notifyListeners();
   }
 
   double get totalSaldo => _items.fold(0, (sum, item) => sum + item.jumlah);

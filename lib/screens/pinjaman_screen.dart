@@ -7,6 +7,8 @@ import '../widgets/common/primary_button.dart';
 import '../widgets/transaction/source_toggle.dart';
 import '../widgets/transaction/account_selection_list.dart';
 import '../widgets/transaction/transaction_scaffold.dart';
+import '../data/transaction_model.dart';
+import '../repositories/transaction_repository.dart';
 
 class PinjamanScreen extends StatefulWidget {
   const PinjamanScreen({super.key});
@@ -31,6 +33,8 @@ class _PinjamanScreenState extends State<PinjamanScreen> {
       ? "${_selectedDateObj!.day}/${_selectedDateObj!.month}/${_selectedDateObj!.year}"
       : '';
   bool _simpanKeDaftar = false;
+
+  bool _isLoading = false;
 
   @override
   void dispose() {
@@ -64,6 +68,55 @@ class _PinjamanScreenState extends State<PinjamanScreen> {
       setState(() {
         _selectedDateObj = picked;
       });
+    }
+  }
+
+  Future<void> _submitData() async {
+    if (!_formKey.currentState!.validate()) return;
+    if (_selectedSource == 1 && _selectedAccount == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Pilih akun digital terlebih dahulu'), backgroundColor: Colors.red),
+      );
+      return;
+    }
+
+    setState(() => _isLoading = true);
+
+    try {
+      final amountStr = _jumlahController.text.replaceAll(RegExp(r'[^0-9]'), '');
+      final amount = double.tryParse(amountStr) ?? 0.0;
+      final isDebt = _selectedTab == 0; // 0 = Hutang (Debt), 1 = Piutang (Receivable)
+
+      final transaction = TransactionModel(
+        id: DateTime.now().millisecondsSinceEpoch.toString(),
+        title: '${isDebt ? 'Hutang dari' : 'Piutang ke'} ${_temanController.text}',
+        amount: amount,
+        date: DateTime.now(), // Tanggal transaksi sekarang, _selectedDateObj untuk batas waktu (bisa ditaruh di notes sementara)
+        notes: '${_catatanController.text} (Jatuh tempo: $_selectedDate)',
+        categoryId: 'c6', // Kategori lainnya
+        type: isDebt ? TransactionType.debt : TransactionType.receivable,
+        dompetId: _selectedSource == 0 ? 'd1' : 'd${(_selectedAccount ?? 0) + 2}',
+      );
+
+      await TransactionRepository.instance.addTransaction(transaction);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(isDebt ? '✅ Data Pinjaman Tersimpan!' : '✅ Data Piutang Tersimpan!'),
+            backgroundColor: primaryGreen,
+          ),
+        );
+        Navigator.pop(context, true);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('❌ Gagal menyimpan: $e'), backgroundColor: Colors.red),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -272,20 +325,8 @@ class _PinjamanScreenState extends State<PinjamanScreen> {
                   ),
                 ),
                 PrimaryButton(
-                  label: 'Simpan',
-                  onPressed: () {
-                    if (_formKey.currentState!.validate()) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(_selectedTab == 0
-                              ? '✅ Data Pinjaman Tersimpan!'
-                              : '✅ Data Piutang Tersimpan!'),
-                          backgroundColor: primaryGreen,
-                        ),
-                      );
-                      Navigator.pop(context);
-                    }
-                  },
+                  label: _isLoading ? 'Menyimpan...' : 'Simpan',
+                  onPressed: _isLoading ? null : _submitData,
                 ),
               ],
             ),

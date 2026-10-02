@@ -7,6 +7,8 @@ import '../widgets/common/primary_button.dart';
 import '../widgets/transaction/source_toggle.dart';
 import '../widgets/transaction/account_selection_list.dart';
 import '../widgets/transaction/transaction_scaffold.dart';
+import '../data/transaction_model.dart';
+import '../repositories/transaction_repository.dart';
 
 class TransferScreen extends StatefulWidget {
   const TransferScreen({super.key});
@@ -36,6 +38,8 @@ class _TransferScreenState extends State<TransferScreen> {
   int? _selectedAccountKe;
   String? _selectedKategori;
 
+  bool _isLoading = false;
+
   @override
   void dispose() {
     _jumlahController.dispose();
@@ -43,6 +47,62 @@ class _TransferScreenState extends State<TransferScreen> {
     _catatanController.dispose();
     _untukController.dispose();
     super.dispose();
+  }
+
+  Future<void> _submitData() async {
+    if (!_formKey.currentState!.validate()) return;
+    
+    // Simplifikasi mapping UI ke data dompetId
+    String sourceDompetId;
+    if (_isSelfTransfer) {
+      sourceDompetId = _selectedSourceDari == 0 ? 'd1' : 'd${(_selectedAccountDari ?? 0) + 2}';
+    } else {
+      sourceDompetId = _selectedSourceNormal == 0 ? 'd1' : 'd${(_selectedAccountNormal ?? 0) + 2}';
+    }
+
+    String? targetDompetId;
+    if (_isSelfTransfer) {
+      targetDompetId = _selectedSourceKe == 0 ? 'd1' : 'd${(_selectedAccountKe ?? 0) + 2}';
+    }
+
+    setState(() => _isLoading = true);
+
+    try {
+      final amountStr = _jumlahController.text.replaceAll(RegExp(r'[^0-9]'), '');
+      final amount = double.tryParse(amountStr) ?? 0.0;
+
+      final transaction = TransactionModel(
+        id: DateTime.now().millisecondsSinceEpoch.toString(),
+        title: _isSelfTransfer ? 'Transfer Internal' : (_untukController.text.isNotEmpty ? 'Transfer ke ${_untukController.text}' : 'Transfer'),
+        amount: amount,
+        date: DateTime.now(),
+        notes: _catatanController.text,
+        categoryId: 'c6', // Kategori lain-lain
+        type: TransactionType.transfer,
+        dompetId: sourceDompetId,
+        destinationDompetId: targetDompetId,
+      );
+
+      await TransactionRepository.instance.addTransaction(transaction);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('✅ Transfer berhasil disimpan!'),
+            backgroundColor: primaryGreen,
+          ),
+        );
+        Navigator.pop(context, true);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('❌ Gagal transfer: $e'), backgroundColor: Colors.red),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
   }
 
   @override
@@ -191,18 +251,8 @@ class _TransferScreenState extends State<TransferScreen> {
                       : const SizedBox(height: 24),
                 ),
                 PrimaryButton(
-                  label: 'Simpan',
-                  onPressed: () {
-                    if (_formKey.currentState!.validate()) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('✅ Data berhasil disimpan!'),
-                          backgroundColor: primaryGreen,
-                        ),
-                      );
-                      Navigator.pop(context);
-                    }
-                  },
+                  label: _isLoading ? 'Menyimpan...' : 'Simpan',
+                  onPressed: _isLoading ? null : _submitData,
                 ),
               ],
             ),

@@ -43,8 +43,13 @@ class _PengeluaranScreenState extends State<PengeluaranScreen> {
           CurrencyInputFormatter.formatValue(t.amount.toStringAsFixed(0));
       _catatanController.text = t.notes;
       _selectedCategoryId = t.categoryId;
-      _selectedSource = t.isDigital ? 1 : 0;
-      if (t.isDigital) _selectedAccount = 0;
+      if (t.dompetId == 'd1') {
+        _selectedSource = 0;
+        _selectedAccount = null;
+      } else {
+        _selectedSource = 1;
+        _selectedAccount = (int.tryParse(t.dompetId.replaceAll(RegExp(r'[^0-9]'), '')) ?? 2) - 2;
+      }
     }
   }
 
@@ -86,7 +91,7 @@ class _PengeluaranScreenState extends State<PengeluaranScreen> {
         notes: _catatanController.text,
         categoryId: categoryId,
         type: TransactionType.expense,
-        isDigital: _selectedSource == 1,
+        dompetId: _selectedSource == 0 ? 'd1' : 'd${(_selectedAccount ?? 0) + 2}',
       );
 
       if (widget.transactionToEdit != null) {

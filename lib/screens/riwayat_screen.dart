@@ -35,6 +35,17 @@ class _RiwayatScreenState extends State<RiwayatScreen> {
   void initState() {
     super.initState();
     _loadData();
+    TransactionRepository.instance.addListener(_onTransactionChanged);
+  }
+
+  @override
+  void dispose() {
+    TransactionRepository.instance.removeListener(_onTransactionChanged);
+    super.dispose();
+  }
+
+  void _onTransactionChanged() {
+    _loadData();
   }
 
   Future<void> _loadData({bool simulateError = false}) async {

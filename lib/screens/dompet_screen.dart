@@ -24,6 +24,17 @@ class _DompetScreenState extends State<DompetScreen> {
   void initState() {
     super.initState();
     _loadData();
+    DompetRepository.instance.addListener(_onDompetChanged);
+  }
+
+  @override
+  void dispose() {
+    DompetRepository.instance.removeListener(_onDompetChanged);
+    super.dispose();
+  }
+
+  void _onDompetChanged() {
+    _loadData();
   }
 
   Future<void> _loadData({bool simulateError = false}) async {

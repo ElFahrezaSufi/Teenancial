@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-enum TransactionType { income, expense }
+enum TransactionType { income, expense, transfer, debt, receivable }
 
 class CategoryModel {
   final String id;
@@ -24,7 +24,8 @@ class TransactionModel {
   final String notes;
   final String categoryId;
   final TransactionType type;
-  final bool isDigital; // true for Digital, false for Cash
+  final String dompetId; // Mandatory untuk semua jenis transaksi (dompet sumber)
+  final String? destinationDompetId; // Khusus untuk transaksi Transfer (dompet tujuan)
 
   TransactionModel({
     required this.id,
@@ -34,7 +35,8 @@ class TransactionModel {
     this.notes = '',
     required this.categoryId,
     required this.type,
-    required this.isDigital,
+    required this.dompetId,
+    this.destinationDompetId,
   });
 
   TransactionModel copyWith({
@@ -45,7 +47,8 @@ class TransactionModel {
     String? notes,
     String? categoryId,
     TransactionType? type,
-    bool? isDigital,
+    String? dompetId,
+    String? destinationDompetId,
   }) {
     return TransactionModel(
       id: id ?? this.id,
@@ -55,7 +58,8 @@ class TransactionModel {
       notes: notes ?? this.notes,
       categoryId: categoryId ?? this.categoryId,
       type: type ?? this.type,
-      isDigital: isDigital ?? this.isDigital,
+      dompetId: dompetId ?? this.dompetId,
+      destinationDompetId: destinationDompetId ?? this.destinationDompetId,
     );
   }
 }
