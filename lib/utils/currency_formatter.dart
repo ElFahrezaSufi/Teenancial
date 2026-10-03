@@ -2,6 +2,13 @@ import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 
 class CurrencyInputFormatter extends TextInputFormatter {
+  static String formatValue(String value) {
+    if (value.isEmpty) return '';
+    final f = NumberFormat.currency(locale: "id_ID", symbol: "Rp ", decimalDigits: 0);
+    int num = int.tryParse(value.replaceAll(RegExp(r'[^0-9]'), '')) ?? 0;
+    return f.format(num);
+  }
+
   @override
   TextEditingValue formatEditUpdate(
       TextEditingValue oldValue, TextEditingValue newValue) {

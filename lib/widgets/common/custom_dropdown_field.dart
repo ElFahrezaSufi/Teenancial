@@ -56,7 +56,7 @@ class CustomDropdownField extends StatelessWidget {
                     ),
                   ),
                   child: DropdownButtonFormField<String>(
-                    value: state.value,
+                    initialValue: state.value,
                     onChanged: (newValue) {
                       state.didChange(newValue);
                       if (onChanged != null) {

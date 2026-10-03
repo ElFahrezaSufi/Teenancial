@@ -1,49 +1,10 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'buat_target_screen.dart';
+import '../data/target_model.dart';
+import '../repositories/dompet_repository.dart';
+import '../theme/app_colors.dart';
 import '../widgets/common/custom_card.dart';
-import 'dompet_screen.dart';
-
-const Color _primaryGreen = Color(0xFF627931);
-const Color _scaffoldBg = Color(0xFFEDEFE2);
-const Color _appBarBg = Color(0xFFF8FFE8);
-const Color _cardBg = Color(0xFFF7FFE7);
-const Color _progressBarBg = Color(0xFFCADCA4);
-
-class TargetItem {
-  final String nama;
-  final double targetAmount;
-  final String imageUrl;
-  bool isPinned;
-
-  TargetItem({
-    required this.nama,
-    required this.targetAmount,
-    required this.imageUrl,
-    this.isPinned = false,
-  });
-}
-
-class TargetData {
-  TargetData._();
-  static final TargetData instance = TargetData._();
-
-  final List<TargetItem> items = [];
-
-  void pinItem(TargetItem itemToPin) {
-    for (var item in items) {
-      item.isPinned = (item == itemToPin);
-    }
-  }
-
-  TargetItem? get pinnedItem {
-    try {
-      return items.firstWhere((element) => element.isPinned);
-    } catch (e) {
-      return null;
-    }
-  }
-}
+import 'buat_target_screen.dart';
 
 class TargetMenabungScreen extends StatefulWidget {
   const TargetMenabungScreen({super.key});
@@ -94,14 +55,14 @@ class _TargetMenabungScreenState extends State<TargetMenabungScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: _scaffoldBg,
+      backgroundColor: scaffoldBg,
       appBar: PreferredSize(
         preferredSize: const Size.fromHeight(80),
         child: Container(
           decoration: const BoxDecoration(
-            color: _appBarBg,
+            color: appBarBg,
             border: Border(
-              bottom: BorderSide(color: _primaryGreen, width: 1.5),
+              bottom: BorderSide(color: primaryGreen, width: 1.5),
             ),
           ),
           child: SafeArea(
@@ -113,7 +74,7 @@ class _TargetMenabungScreenState extends State<TargetMenabungScreen> {
                     padding: const EdgeInsets.only(left: 8.0),
                     child: IconButton(
                       icon: const Icon(Icons.arrow_back_ios,
-                          color: _primaryGreen, size: 20),
+                          color: primaryGreen, size: 20),
                       onPressed: () => Navigator.pop(context),
                     ),
                   ),
@@ -122,7 +83,7 @@ class _TargetMenabungScreenState extends State<TargetMenabungScreen> {
                   child: Text(
                     'Target Menabung',
                     style: TextStyle(
-                      color: _primaryGreen,
+                      color: primaryGreen,
                       fontSize: 25,
                       fontFamily: 'Inter',
                       fontWeight: FontWeight.w700,
@@ -138,7 +99,7 @@ class _TargetMenabungScreenState extends State<TargetMenabungScreen> {
         fit: StackFit.expand,
         children: [
           Container(
-            color: _scaffoldBg,
+            color: scaffoldBg,
             child: Opacity(
               opacity: 0.4,
               child: Image.asset(
@@ -171,7 +132,7 @@ class _TargetMenabungScreenState extends State<TargetMenabungScreen> {
               padding: const EdgeInsets.only(bottom: 140.0),
               child: FloatingActionButton(
                 onPressed: () => _navigasiDanTambahData(context),
-                backgroundColor: _primaryGreen,
+                backgroundColor: primaryGreen,
                 elevation: 4,
                 shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(100)),
@@ -184,7 +145,7 @@ class _TargetMenabungScreenState extends State<TargetMenabungScreen> {
 
   Widget _buildEmptyState() {
     return CustomCard(
-      backgroundColor: _appBarBg,
+      backgroundColor: appBarBg,
       borderRadius: 16,
       padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 20),
       child: Column(
@@ -193,14 +154,14 @@ class _TargetMenabungScreenState extends State<TargetMenabungScreen> {
           Icon(
             Icons.receipt_long_outlined,
             size: 60,
-            color: _primaryGreen.withValues(alpha: 0.5),
+            color: primaryGreen.withValues(alpha: 0.5),
           ),
           const SizedBox(height: 16),
           const Text(
             'Belum ada target impian nih!',
             textAlign: TextAlign.center,
             style: TextStyle(
-              color: _primaryGreen,
+              color: primaryGreen,
               fontSize: 16,
               fontWeight: FontWeight.w600,
               fontFamily: 'Inter',
@@ -211,7 +172,7 @@ class _TargetMenabungScreenState extends State<TargetMenabungScreen> {
             'Yuk mulai tabung uangmu untuk beli barang impianmu.',
             textAlign: TextAlign.center,
             style: TextStyle(
-              color: _primaryGreen.withValues(alpha: 0.7),
+              color: primaryGreen.withValues(alpha: 0.7),
               fontSize: 12,
               fontFamily: 'Inter',
             ),
@@ -221,7 +182,7 @@ class _TargetMenabungScreenState extends State<TargetMenabungScreen> {
             onTap: () => _navigasiDanTambahData(context),
             child: CustomCard(
               borderRadius: 100,
-              backgroundColor: _primaryGreen,
+              backgroundColor: primaryGreen,
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
               child: const Row(
                 mainAxisSize: MainAxisSize.min,
@@ -248,7 +209,7 @@ class _TargetMenabungScreenState extends State<TargetMenabungScreen> {
   }
 
   Widget _buildTargetCard(TargetItem item) {
-    final double saldoSekarang = DompetData.instance.totalSaldo;
+    final double saldoSekarang = DompetRepository.instance.totalSaldo;
     final double progress = item.targetAmount > 0
         ? (saldoSekarang / item.targetAmount).clamp(0.0, 1.0)
         : 0.0;
@@ -257,7 +218,7 @@ class _TargetMenabungScreenState extends State<TargetMenabungScreen> {
     final String targetStr = _formatRupiah(item.targetAmount);
 
     return CustomCard(
-      backgroundColor: _cardBg,
+      backgroundColor: cardBg,
       borderRadius: 20,
       padding: EdgeInsets.zero,
       child: Column(
@@ -300,15 +261,35 @@ class _TargetMenabungScreenState extends State<TargetMenabungScreen> {
                   child: PopupMenuButton<String>(
                     padding: EdgeInsets.zero,
                     icon: const Icon(Icons.more_vert,
-                        color: _primaryGreen, size: 20),
-                    color: _appBarBg,
+                        color: primaryGreen, size: 20),
+                    color: appBarBg,
                     shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12)),
-                    onSelected: (value) {
+                    onSelected: (value) async {
                       if (value == 'delete') {
-                        setState(() {
-                          _data.items.remove(item);
-                        });
+                        final bool? confirm = await showDialog<bool>(
+                          context: context,
+                          builder: (ctx) => AlertDialog(
+                            title: const Text('Hapus Target', style: TextStyle(color: primaryGreen)),
+                            content: const Text('Apakah Anda yakin ingin menghapus target ini?'),
+                            actions: [
+                              TextButton(
+                                onPressed: () => Navigator.pop(ctx, false),
+                                child: const Text('Batal', style: TextStyle(color: Colors.grey)),
+                              ),
+                              TextButton(
+                                onPressed: () => Navigator.pop(ctx, true),
+                                child: const Text('Hapus', style: TextStyle(color: Colors.red)),
+                              ),
+                            ],
+                          ),
+                        );
+
+                        if (confirm == true) {
+                          setState(() {
+                            _data.items.remove(item);
+                          });
+                        }
                       }
                     },
                     itemBuilder: (context) => [
@@ -370,7 +351,7 @@ class _TargetMenabungScreenState extends State<TargetMenabungScreen> {
                       Text(
                         item.nama,
                         style: const TextStyle(
-                          color: _primaryGreen,
+                          color: primaryGreen,
                           fontSize: 16,
                           fontFamily: 'Inter',
                           fontWeight: FontWeight.w700,
@@ -380,7 +361,7 @@ class _TargetMenabungScreenState extends State<TargetMenabungScreen> {
                       Text(
                         '$terkumpulStr / $targetStr',
                         style: TextStyle(
-                          color: _primaryGreen.withValues(alpha: 0.8),
+                          color: primaryGreen.withValues(alpha: 0.8),
                           fontSize: 12,
                           fontFamily: 'Inter',
                           fontWeight: FontWeight.w600,
@@ -399,7 +380,7 @@ class _TargetMenabungScreenState extends State<TargetMenabungScreen> {
                 Container(
                   height: 8,
                   decoration: BoxDecoration(
-                    color: _progressBarBg,
+                    color: lightGreen,
                     borderRadius: BorderRadius.circular(100),
                   ),
                 ),
@@ -408,7 +389,7 @@ class _TargetMenabungScreenState extends State<TargetMenabungScreen> {
                   child: Container(
                     height: 8,
                     decoration: BoxDecoration(
-                      color: _primaryGreen,
+                      color: primaryGreen,
                       borderRadius: BorderRadius.circular(100),
                     ),
                   ),

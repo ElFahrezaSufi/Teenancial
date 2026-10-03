@@ -16,6 +16,16 @@ class MockAuth {
     if (usersJson != null) {
       final List<dynamic> decoded = jsonDecode(usersJson);
       _users = decoded.map((e) => Map<String, String>.from(e)).toList();
+    } else {
+      // Initialize with dummy data if empty
+      _users.add({
+        'email': 'dummy@teenancial.com',
+        'password': 'password123',
+        'name': 'Dummy User',
+        'age': '17',
+        'gender': 'Laki-laki',
+      });
+      await _saveData();
     }
     final String? savedActiveEmail = prefs.getString(_sessionKey);
     if (savedActiveEmail != null && savedActiveEmail.isNotEmpty) {

@@ -1,72 +1,13 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+import '../data/dompet_model.dart';
+import '../repositories/dompet_repository.dart';
+import '../theme/app_colors.dart';
 import '../widgets/common/custom_card.dart';
+import '../widgets/common/skeleton.dart';
+import 'tambah_dompet_screen.dart';
 
-// ─────────────────────────────────────────────
-//  DATA MODEL
-// ─────────────────────────────────────────────
-enum JenisDompet { cash, accounts, card }
+enum _LoadState { loading, success, error, empty }
 
-extension JenisDompetLabel on JenisDompet {
-  String get label {
-    switch (this) {
-      case JenisDompet.cash:
-        return 'Cash';
-      case JenisDompet.accounts:
-        return 'Accounts';
-      case JenisDompet.card:
-        return 'Card';
-    }
-  }
-}
-
-class DompetItem {
-  final String id;
-  final JenisDompet jenis;
-  final String nama;
-  double jumlah;
-  final String? catatan;
-
-  DompetItem({
-    required this.id,
-    required this.jenis,
-    required this.nama,
-    required this.jumlah,
-    this.catatan,
-  });
-}
-
-class DompetData {
-  DompetData._();
-  static final DompetData instance = DompetData._();
-
-  final List<DompetItem> items = [
-    DompetItem(id: '1', jenis: JenisDompet.cash, nama: 'Cash', jumlah: 0),
-    DompetItem(
-        id: '2', jenis: JenisDompet.accounts, nama: 'SeaBank', jumlah: 0),
-    DompetItem(id: '3', jenis: JenisDompet.accounts, nama: 'Go-Pay', jumlah: 0),
-    DompetItem(id: '4', jenis: JenisDompet.accounts, nama: 'Dana', jumlah: 0),
-    DompetItem(id: '5', jenis: JenisDompet.accounts, nama: 'Ovo', jumlah: 0),
-    DompetItem(id: '6', jenis: JenisDompet.card, nama: 'Mandiri', jumlah: 0),
-  ];
-
-  void tambah(DompetItem item) => items.add(item);
-
-  List<DompetItem> byJenis(JenisDompet jenis) =>
-      items.where((e) => e.jenis == jenis).toList();
-
-  double get totalSaldo => items.fold(0, (sum, item) => sum + item.jumlah);
-}
-
-const Color _primaryGreen = Color(0xFF627931);
-const Color _lightGreen = Color(0xFFCADCA4);
-const Color _cardBg = Color(0xFFF7FFE7);
-const Color _scaffoldBg = Color(0xFFEDEFE2);
-const Color _appBarBg = Color(0xFFF8FFE8);
-
-// ─────────────────────────────────────────────
-//  DOMPET SCREEN
-// ─────────────────────────────────────────────
 class DompetScreen extends StatefulWidget {
   const DompetScreen({super.key});
 
@@ -75,14 +16,134 @@ class DompetScreen extends StatefulWidget {
 }
 
 class _DompetScreenState extends State<DompetScreen> {
-  final _data = DompetData.instance;
+  _LoadState _loadState = _LoadState.loading;
+  String _errorMessage = '';
+  List<DompetItem> _dompets = [];
 
-  void _openTambahDompet() async {
+  @override
+  void initState() {
+    super.initState();
+    _loadData();
+  }
+
+  Future<void> _loadData({bool simulateError = false}) async {
+    setState(() => _loadState = _LoadState.loading);
+    try {
+      final data = await DompetRepository.instance.getDompets(simulateError: simulateError);
+      if (mounted) {
+        setState(() {
+          _dompets = data;
+          _loadState = data.isEmpty ? _LoadState.empty : _LoadState.success;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _errorMessage = e.toString();
+          _loadState = _LoadState.error;
+        });
+      }
+    }
+  }
+
+  void _openTambahDompet([DompetItem? item]) async {
     final result = await Navigator.push<bool>(
       context,
-      MaterialPageRoute(builder: (_) => const _TambahDompetScreen()),
+      MaterialPageRoute(builder: (_) => TambahDompetScreen(itemToEdit: item)),
     );
-    if (result == true) setState(() {});
+    if (result == true) _loadData();
+  }
+
+  Widget _buildLoading() {
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.all(24.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Skeleton(width: 100, height: 16),
+            const SizedBox(height: 10),
+            const Skeleton(width: double.infinity, height: 70),
+            const SizedBox(height: 10),
+            const Skeleton(width: double.infinity, height: 70),
+            const SizedBox(height: 24),
+            const Skeleton(width: 100, height: 16),
+            const SizedBox(height: 10),
+            const Skeleton(width: double.infinity, height: 70),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildError() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.error_outline, size: 60, color: Colors.red),
+            const SizedBox(height: 16),
+            const Text(
+              'Oops, terjadi kesalahan!',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: primaryGreen),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              _errorMessage,
+              textAlign: TextAlign.center,
+              style: const TextStyle(color: Colors.grey),
+            ),
+            const SizedBox(height: 24),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: primaryGreen,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12)
+              ),
+              onPressed: () => _loadData(),
+              child: const Text('Coba Lagi', style: TextStyle(color: Colors.white)),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEmpty() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.account_balance_wallet_outlined, size: 80, color: primaryGreen.withValues(alpha: 0.5)),
+            const SizedBox(height: 16),
+            const Text(
+              'Dompet masih kosong',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: primaryGreen),
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'Yuk tambahkan dompet pertamamu sekarang!',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: Colors.grey),
+            ),
+            const SizedBox(height: 24),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: primaryGreen,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12)
+              ),
+              onPressed: () => _openTambahDompet(),
+              child: const Text('Tambah Dompet', style: TextStyle(color: Colors.white)),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   @override
@@ -94,14 +155,14 @@ class _DompetScreenState extends State<DompetScreen> {
     ];
 
     return Scaffold(
-      backgroundColor: _scaffoldBg,
+      backgroundColor: scaffoldBg,
       appBar: PreferredSize(
         preferredSize: const Size.fromHeight(80),
         child: Container(
           decoration: const BoxDecoration(
-            color: _appBarBg,
+            color: appBarBg,
             border: Border(
-              bottom: BorderSide(color: _primaryGreen, width: 1.5),
+              bottom: BorderSide(color: primaryGreen, width: 1.5),
             ),
           ),
           child: const SafeArea(
@@ -109,7 +170,7 @@ class _DompetScreenState extends State<DompetScreen> {
               child: Text(
                 'Dompet',
                 style: TextStyle(
-                  color: _primaryGreen,
+                  color: primaryGreen,
                   fontSize: 25,
                   fontFamily: 'Inter',
                   fontWeight: FontWeight.w700,
@@ -129,44 +190,49 @@ class _DompetScreenState extends State<DompetScreen> {
               fit: BoxFit.cover,
             ),
           ),
-          SafeArea(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(24, 24, 24, 120),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  ...groupedJenis.map((jenis) {
-                    final list = _data.byJenis(jenis);
-                    if (list.isEmpty) return const SizedBox.shrink();
-                    return _DompetGroup(
-                      jenis: jenis,
-                      items: list,
-                    );
-                  }),
-                  const SizedBox(height: 16),
-                  GestureDetector(
-                    onTap: _openTambahDompet,
-                    child: CustomCard(
-                      borderRadius: 100,
-                      backgroundColor: _primaryGreen,
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      child: const Center(
-                        child: Text(
-                          '+ Tambah dompet digital',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 15,
-                            fontFamily: 'Inter',
-                            fontWeight: FontWeight.w700,
+          if (_loadState == _LoadState.loading) _buildLoading(),
+          if (_loadState == _LoadState.error) _buildError(),
+          if (_loadState == _LoadState.empty) _buildEmpty(),
+          if (_loadState == _LoadState.success)
+            SafeArea(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.fromLTRB(24, 24, 24, 120),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    ...groupedJenis.map((jenis) {
+                      final list = _dompets.where((e) => e.jenis == jenis).toList();
+                      if (list.isEmpty) return const SizedBox.shrink();
+                      return _DompetGroup(
+                        jenis: jenis,
+                        items: list,
+                        onItemTap: _openTambahDompet,
+                      );
+                    }),
+                    const SizedBox(height: 16),
+                    GestureDetector(
+                      onTap: () => _openTambahDompet(),
+                      child: CustomCard(
+                        borderRadius: 100,
+                        backgroundColor: primaryGreen,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        child: const Center(
+                          child: Text(
+                            '+ Tambah dompet digital',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 15,
+                              fontFamily: 'Inter',
+                              fontWeight: FontWeight.w700,
+                            ),
                           ),
                         ),
                       ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
-          ),
         ],
       ),
     );
@@ -176,8 +242,9 @@ class _DompetScreenState extends State<DompetScreen> {
 class _DompetGroup extends StatelessWidget {
   final JenisDompet jenis;
   final List<DompetItem> items;
+  final Function(DompetItem) onItemTap;
 
-  const _DompetGroup({required this.jenis, required this.items});
+  const _DompetGroup({required this.jenis, required this.items, required this.onItemTap});
 
   String _formatRupiah(double value) {
     final parts = value.toStringAsFixed(0).split('');
@@ -197,7 +264,7 @@ class _DompetGroup extends StatelessWidget {
         Text(
           jenis.label,
           style: const TextStyle(
-            color: _primaryGreen,
+            color: primaryGreen,
             fontSize: 14,
             fontFamily: 'Inter',
             fontWeight: FontWeight.w700,
@@ -207,373 +274,48 @@ class _DompetGroup extends StatelessWidget {
         ...items.map(
           (item) => Padding(
             padding: const EdgeInsets.only(bottom: 10),
-            child: CustomCard(
-              backgroundColor: _cardBg,
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    item.nama,
-                    style: const TextStyle(
-                      color: _primaryGreen,
-                      fontSize: 15,
-                      fontFamily: 'Inter',
-                      fontWeight: FontWeight.w600,
+            child: GestureDetector(
+              onTap: () => onItemTap(item),
+              child: CustomCard(
+                backgroundColor: cardBg,
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      item.nama,
+                      style: const TextStyle(
+                        color: primaryGreen,
+                        fontSize: 15,
+                        fontFamily: 'Inter',
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
-                  ),
-                  Text(
-                    item.jumlah == 0
-                        ? 'Rp xx.xxx,xx'
-                        : _formatRupiah(item.jumlah),
-                    style: const TextStyle(
-                      color: _primaryGreen,
-                      fontSize: 14,
-                      fontFamily: 'Inter',
-                      fontWeight: FontWeight.w500,
+                    Row(
+                      children: [
+                        Text(
+                          item.jumlah == 0
+                              ? 'Rp xx.xxx,xx'
+                              : _formatRupiah(item.jumlah),
+                          style: const TextStyle(
+                            color: primaryGreen,
+                            fontSize: 14,
+                            fontFamily: 'Inter',
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        const Icon(Icons.edit_outlined, size: 16, color: primaryGreen),
+                      ],
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),
         ),
         const SizedBox(height: 8),
       ],
-    );
-  }
-}
-
-// ─────────────────────────────────────────────
-//  TAMBAH DOMPET SCREEN
-// ─────────────────────────────────────────────
-class _TambahDompetScreen extends StatefulWidget {
-  const _TambahDompetScreen();
-
-  @override
-  State<_TambahDompetScreen> createState() => _TambahDompetScreenState();
-}
-
-class _TambahDompetScreenState extends State<_TambahDompetScreen> {
-  final _jenisDompetCtrl = TextEditingController();
-  final _namaDompetCtrl = TextEditingController();
-  final _jumlahCtrl = TextEditingController();
-  final _catatanCtrl = TextEditingController();
-
-  JenisDompet? _selectedJenis;
-
-  final Map<String, JenisDompet> _jenisMap = {
-    'Cash': JenisDompet.cash,
-    'Accounts': JenisDompet.accounts,
-    'Card': JenisDompet.card,
-  };
-
-  @override
-  void dispose() {
-    _jenisDompetCtrl.dispose();
-    _namaDompetCtrl.dispose();
-    _jumlahCtrl.dispose();
-    _catatanCtrl.dispose();
-    super.dispose();
-  }
-
-  void _simpan() {
-    final jenisText = _jenisDompetCtrl.text.trim();
-    final nama = _namaDompetCtrl.text.trim();
-    final jumlahText = _jumlahCtrl.text.trim();
-
-    if (jenisText.isEmpty || nama.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Jenis dan Nama dompet wajib diisi'),
-          backgroundColor: _primaryGreen,
-        ),
-      );
-      return;
-    }
-
-    final jenis = _selectedJenis ??
-        _jenisMap.entries
-            .where((e) => jenisText.toLowerCase().contains(e.key.toLowerCase()))
-            .map((e) => e.value)
-            .firstOrNull ??
-        JenisDompet.accounts;
-
-    final jumlah = double.tryParse(
-          jumlahText.replaceAll(RegExp(r'[^0-9]'), ''),
-        ) ??
-        0;
-
-    DompetData.instance.tambah(DompetItem(
-      id: DateTime.now().millisecondsSinceEpoch.toString(),
-      jenis: jenis,
-      nama: nama,
-      jumlah: jumlah,
-      catatan:
-          _catatanCtrl.text.trim().isEmpty ? null : _catatanCtrl.text.trim(),
-    ));
-
-    Navigator.pop(context, true);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: _scaffoldBg,
-      appBar: PreferredSize(
-        preferredSize: const Size.fromHeight(80),
-        child: Container(
-          decoration: const BoxDecoration(
-            color: _appBarBg,
-            border: Border(
-              bottom: BorderSide(color: _primaryGreen, width: 1.5),
-            ),
-          ),
-          child: SafeArea(
-            child: Stack(
-              alignment: Alignment.center,
-              children: [
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: IconButton(
-                    onPressed: () => Navigator.pop(context),
-                    icon: const Icon(Icons.chevron_left,
-                        color: _primaryGreen, size: 32),
-                  ),
-                ),
-                const Text(
-                  'Tambah Baru',
-                  style: TextStyle(
-                    color: _primaryGreen,
-                    fontSize: 22,
-                    fontFamily: 'Inter',
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-      body: Stack(
-        fit: StackFit.expand,
-        children: [
-          Opacity(
-            opacity: 0.4,
-            child: Image.asset(
-              'assets/images/bg_curve.png',
-              fit: BoxFit.cover,
-            ),
-          ),
-          SafeArea(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(24),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  _FieldLabel(label: 'Jenis Dompet'),
-                  const SizedBox(height: 8),
-                  GestureDetector(
-                    onTap: _showJenisPicker,
-                    child: AbsorbPointer(
-                      child: _InputField(
-                        controller: _jenisDompetCtrl,
-                        hint: 'Cash, card, accounts, etc',
-                        suffixIcon: const Icon(
-                          Icons.keyboard_arrow_down_rounded,
-                          color: _primaryGreen,
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  _FieldLabel(label: 'Nama Dompet'),
-                  const SizedBox(height: 8),
-                  _InputField(
-                    controller: _namaDompetCtrl,
-                    hint: 'Opsional',
-                  ),
-                  const SizedBox(height: 20),
-                  _FieldLabel(label: 'Jumlah Uang'),
-                  const SizedBox(height: 8),
-                  _InputField(
-                    controller: _jumlahCtrl,
-                    hint: 'Rp 0',
-                    keyboardType: TextInputType.number,
-                    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                    prefixText: 'Rp ',
-                  ),
-                  const SizedBox(height: 20),
-                  _FieldLabel(label: 'Catatan'),
-                  const SizedBox(height: 8),
-                  _InputField(
-                    controller: _catatanCtrl,
-                    hint: 'Opsional',
-                    maxLines: 3,
-                  ),
-                  const SizedBox(height: 32),
-                  GestureDetector(
-                    onTap: _simpan,
-                    child: CustomCard(
-                      borderRadius: 100,
-                      backgroundColor: _primaryGreen,
-                      padding: const EdgeInsets.symmetric(vertical: 18),
-                      child: const Center(
-                        child: Text(
-                          'Simpan',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 16,
-                            fontFamily: 'Inter',
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _showJenisPicker() {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: _appBarBg,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      builder: (_) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const SizedBox(height: 12),
-            Container(
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                color: _lightGreen,
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-            const SizedBox(height: 16),
-            const Text(
-              'Pilih Jenis Dompet',
-              style: TextStyle(
-                color: _primaryGreen,
-                fontSize: 16,
-                fontFamily: 'Inter',
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-            const SizedBox(height: 12),
-            ..._jenisMap.entries.map(
-              (e) => ListTile(
-                title: Text(
-                  e.key,
-                  style: const TextStyle(
-                    color: _primaryGreen,
-                    fontFamily: 'Inter',
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                trailing: _selectedJenis == e.value
-                    ? const Icon(Icons.check, color: _primaryGreen)
-                    : null,
-                onTap: () {
-                  setState(() {
-                    _selectedJenis = e.value;
-                    _jenisDompetCtrl.text = e.key;
-                  });
-                  Navigator.pop(context);
-                },
-              ),
-            ),
-            const SizedBox(height: 8),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _FieldLabel extends StatelessWidget {
-  final String label;
-  const _FieldLabel({required this.label});
-
-  @override
-  Widget build(BuildContext context) {
-    return Text(
-      label,
-      style: const TextStyle(
-        color: _primaryGreen,
-        fontSize: 14,
-        fontFamily: 'Inter',
-        fontWeight: FontWeight.w700,
-      ),
-    );
-  }
-}
-
-class _InputField extends StatelessWidget {
-  final TextEditingController controller;
-  final String hint;
-  final TextInputType? keyboardType;
-  final List<TextInputFormatter>? inputFormatters;
-  final String? prefixText;
-  final Widget? suffixIcon;
-  final int maxLines;
-
-  const _InputField({
-    required this.controller,
-    required this.hint,
-    this.keyboardType,
-    this.inputFormatters,
-    this.prefixText,
-    this.suffixIcon,
-    this.maxLines = 1,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return CustomCard(
-      backgroundColor: _cardBg,
-      padding: EdgeInsets.zero,
-      child: TextField(
-        controller: controller,
-        keyboardType: keyboardType,
-        inputFormatters: inputFormatters,
-        maxLines: maxLines,
-        style: const TextStyle(
-          color: _primaryGreen,
-          fontSize: 14,
-          fontFamily: 'Inter',
-          fontWeight: FontWeight.w500,
-        ),
-        decoration: InputDecoration(
-          hintText: hint,
-          hintStyle: TextStyle(
-            color: _primaryGreen.withValues(alpha: 0.45),
-            fontFamily: 'Inter',
-            fontSize: 14,
-          ),
-          prefixText: prefixText,
-          prefixStyle: const TextStyle(
-            color: _primaryGreen,
-            fontFamily: 'Inter',
-            fontSize: 14,
-            fontWeight: FontWeight.w500,
-          ),
-          suffixIcon: suffixIcon,
-          border: InputBorder.none,
-          contentPadding:
-              const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-        ),
-      ),
     );
   }
 }
