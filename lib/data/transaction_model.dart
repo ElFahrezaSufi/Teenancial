@@ -26,6 +26,8 @@ class TransactionModel {
   final TransactionType type;
   final String dompetId; // Mandatory untuk semua jenis transaksi (dompet sumber)
   final String? destinationDompetId; // Khusus untuk transaksi Transfer (dompet tujuan)
+  final DateTime? dueDate; // Batas waktu untuk pinjaman/piutang
+  final String? contactId; // ID kontak terkait (teman/tujuan)
 
   TransactionModel({
     required this.id,
@@ -37,6 +39,8 @@ class TransactionModel {
     required this.type,
     required this.dompetId,
     this.destinationDompetId,
+    this.dueDate,
+    this.contactId,
   });
 
   TransactionModel copyWith({
@@ -49,6 +53,8 @@ class TransactionModel {
     TransactionType? type,
     String? dompetId,
     String? destinationDompetId,
+    DateTime? dueDate,
+    String? contactId,
   }) {
     return TransactionModel(
       id: id ?? this.id,
@@ -60,6 +66,9 @@ class TransactionModel {
       type: type ?? this.type,
       dompetId: dompetId ?? this.dompetId,
       destinationDompetId: destinationDompetId ?? this.destinationDompetId,
+      dueDate: dueDate ?? this.dueDate,
+      contactId: contactId ?? this.contactId,
     );
   }
 }
+

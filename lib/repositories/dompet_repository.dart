@@ -6,7 +6,7 @@ class DompetRepository extends ChangeNotifier {
   static final DompetRepository instance = DompetRepository._();
 
   final List<DompetItem> _items = [
-    DompetItem(id: 'd1', jenis: JenisDompet.cash, nama: 'Dompet Utama (Cash)', jumlah: 150000),
+    DompetItem(id: 'd1', jenis: JenisDompet.cash, nama: 'Dompet Utama', jumlah: 150000),
     DompetItem(id: 'd2', jenis: JenisDompet.accounts, nama: 'SeaBank', jumlah: 500000),
     DompetItem(id: 'd3', jenis: JenisDompet.accounts, nama: 'Go-Pay', jumlah: 75000),
     DompetItem(id: 'd4', jenis: JenisDompet.accounts, nama: 'Dana', jumlah: 125000),
@@ -58,6 +58,9 @@ class DompetRepository extends ChangeNotifier {
 
   Future<void> subtractSaldo(String dompetId, double nominal) async {
     final dompet = _items.firstWhere((d) => d.id == dompetId, orElse: () => throw Exception('Dompet tidak ditemukan'));
+    if (dompet.jumlah < nominal) {
+      throw Exception('Saldo tidak mencukupi di dompet ${dompet.nama}');
+    }
     dompet.jumlah -= nominal;
     notifyListeners();
   }

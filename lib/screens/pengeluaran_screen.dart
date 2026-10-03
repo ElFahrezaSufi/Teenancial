@@ -4,11 +4,12 @@ import '../utils/currency_formatter.dart';
 import '../widgets/common/custom_text_field.dart';
 import '../widgets/common/custom_dropdown_field.dart';
 import '../widgets/common/primary_button.dart';
-import '../widgets/transaction/source_toggle.dart';
-import '../widgets/transaction/account_selection_list.dart';
+import '../widgets/transaction/dompet_selection_dropdown.dart';
 import '../widgets/transaction/transaction_scaffold.dart';
 import '../data/transaction_model.dart';
+import '../data/dompet_model.dart';
 import '../repositories/transaction_repository.dart';
+import '../repositories/dompet_repository.dart';
 
 class PengeluaranScreen extends StatefulWidget {
   final TransactionModel? transactionToEdit;
@@ -24,32 +25,43 @@ class _PengeluaranScreenState extends State<PengeluaranScreen> {
   final _jumlahController = TextEditingController();
   final _catatanController = TextEditingController();
 
-  int _selectedSource = 0; // 0 = Cash, 1 = Digital
-  int? _selectedAccount;
+  String? _selectedDompetId;
   String? _selectedCategoryId;
 
   bool _isLoading = false;
+  bool _isFetchingDompets = true;
   late List<CategoryModel> _expenseCategories;
+  List<DompetItem> _dompets = [];
 
   @override
   void initState() {
     super.initState();
     _expenseCategories = TransactionRepository.instance
         .getCategoriesByType(TransactionType.expense);
+    _fetchDompets();
+  }
 
-    if (widget.transactionToEdit != null) {
-      final t = widget.transactionToEdit!;
-      _jumlahController.text =
-          CurrencyInputFormatter.formatValue(t.amount.toStringAsFixed(0));
-      _catatanController.text = t.notes;
-      _selectedCategoryId = t.categoryId;
-      if (t.dompetId == 'd1') {
-        _selectedSource = 0;
-        _selectedAccount = null;
-      } else {
-        _selectedSource = 1;
-        _selectedAccount = (int.tryParse(t.dompetId.replaceAll(RegExp(r'[^0-9]'), '')) ?? 2) - 2;
-      }
+  Future<void> _fetchDompets() async {
+    try {
+      final dompets = await DompetRepository.instance.getDompets();
+      setState(() {
+        _dompets = dompets;
+        _isFetchingDompets = false;
+        
+        if (widget.transactionToEdit != null) {
+          final t = widget.transactionToEdit!;
+          _jumlahController.text =
+              CurrencyInputFormatter.formatValue(t.amount.toStringAsFixed(0));
+          _catatanController.text = t.notes;
+          _selectedCategoryId = t.categoryId;
+          _selectedDompetId = t.dompetId;
+        } else if (dompets.isNotEmpty) {
+           // Default to first dompet if available
+           _selectedDompetId = dompets.first.id;
+        }
+      });
+    } catch (e) {
+      setState(() => _isFetchingDompets = false);
     }
   }
 
@@ -62,10 +74,10 @@ class _PengeluaranScreenState extends State<PengeluaranScreen> {
 
   Future<void> _submitData() async {
     if (!_formKey.currentState!.validate()) return;
-    if (_selectedSource == 1 && _selectedAccount == null) {
+    if (_selectedDompetId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-            content: Text('Pilih akun digital terlebih dahulu'),
+            content: Text('Pilih sumber dana terlebih dahulu'),
             backgroundColor: Colors.red),
       );
       return;
@@ -91,7 +103,7 @@ class _PengeluaranScreenState extends State<PengeluaranScreen> {
         notes: _catatanController.text,
         categoryId: categoryId,
         type: TransactionType.expense,
-        dompetId: _selectedSource == 0 ? 'd1' : 'd${(_selectedAccount ?? 0) + 2}',
+        dompetId: _selectedDompetId!,
       );
 
       if (widget.transactionToEdit != null) {
@@ -111,9 +123,10 @@ class _PengeluaranScreenState extends State<PengeluaranScreen> {
       }
     } catch (e) {
       if (mounted) {
+        // Show exception message like "Saldo tidak mencukupi..."
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-              content: Text('❌ Gagal menyimpan: $e'),
+              content: Text(e.toString().replaceAll('Exception: ', '')),
               backgroundColor: Colors.red),
         );
       }
@@ -137,97 +150,79 @@ class _PengeluaranScreenState extends State<PengeluaranScreen> {
     return TransactionScaffold(
       title: title,
       child: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24.0),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                SourceToggle(
-                  label: 'Sumber Uang',
-                  option1: 'Cash',
-                  icon1: Icons.money,
-                  option2: 'Digital',
-                  icon2: Icons.phone_android,
-                  selectedIndex: _selectedSource,
-                  onSelect: (index) {
-                    setState(() {
-                      _selectedSource = index;
-                      if (index == 0) _selectedAccount = null;
-                    });
-                  },
+        child: _isFetchingDompets
+            ? const Center(child: CircularProgressIndicator(color: primaryGreen))
+            : SingleChildScrollView(
+                padding: const EdgeInsets.all(24.0),
+                child: Form(
+                  key: _formKey,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      DompetSelectionDropdown(
+                        label: 'Sumber Uang',
+                        hint: 'Pilih Sumber Uang',
+                        dompets: _dompets,
+                        selectedDompetId: _selectedDompetId,
+                        onChanged: (val) => setState(() => _selectedDompetId = val),
+                      ),
+                      CustomTextField(
+                        label: 'Jumlah Uang',
+                        hint: 'Rp 0',
+                        keyboardType: TextInputType.number,
+                        controller: _jumlahController,
+                        inputFormatters: [CurrencyInputFormatter()],
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Jumlah uang tidak boleh kosong';
+                          }
+                          if (value == 'Rp 0' || value == '0') {
+                            return 'Jumlah harus lebih dari 0';
+                          }
+                          return null;
+                        },
+                      ),
+                      CustomDropdownField(
+                        label: 'Kategori',
+                        hint: 'Pilih Kategori',
+                        value: selectedCatName,
+                        items: dropdownItems,
+                        onChanged: (value) {
+                          setState(() {
+                            _selectedCategoryId = _expenseCategories
+                                .firstWhere((c) => c.name == value)
+                                .id;
+                          });
+                        },
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Kategori tidak boleh kosong';
+                          }
+                          return null;
+                        },
+                      ),
+                      CustomTextField(
+                        label: 'Catatan',
+                        hint: 'Tambah catatan (opsional)',
+                        controller: _catatanController,
+                        validator: (value) {
+                          if (value != null && value.length > 50) {
+                            return 'Catatan maksimal 50 karakter';
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 24),
+                      PrimaryButton(
+                        label: _isLoading ? 'Menyimpan...' : 'Simpan',
+                        onPressed: _isLoading ? null : _submitData,
+                      ),
+                    ],
+                  ),
                 ),
-                AnimatedSize(
-                  duration: const Duration(milliseconds: 300),
-                  curve: Curves.easeInOut,
-                  child: _selectedSource == 1
-                      ? AccountSelectionList(
-                          selectedIndex: _selectedAccount,
-                          onSelect: (index) {
-                            setState(() {
-                              _selectedAccount = index;
-                            });
-                          },
-                        )
-                      : const SizedBox.shrink(),
-                ),
-                CustomTextField(
-                  label: 'Jumlah Uang',
-                  hint: 'Rp 0',
-                  keyboardType: TextInputType.number,
-                  controller: _jumlahController,
-                  inputFormatters: [CurrencyInputFormatter()],
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Jumlah uang tidak boleh kosong';
-                    }
-                    if (value == 'Rp 0' || value == '0') {
-                      return 'Jumlah harus lebih dari 0';
-                    }
-                    return null;
-                  },
-                ),
-                CustomDropdownField(
-                  label: 'Kategori',
-                  hint: 'Pilih Kategori',
-                  value: selectedCatName,
-                  items: dropdownItems,
-                  onChanged: (value) {
-                    setState(() {
-                      _selectedCategoryId = _expenseCategories
-                          .firstWhere((c) => c.name == value)
-                          .id;
-                    });
-                  },
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Kategori tidak boleh kosong';
-                    }
-                    return null;
-                  },
-                ),
-                CustomTextField(
-                  label: 'Catatan',
-                  hint: 'Tambah catatan (opsional)',
-                  controller: _catatanController,
-                  validator: (value) {
-                    if (value != null && value.length > 50) {
-                      return 'Catatan maksimal 50 karakter';
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 24),
-                PrimaryButton(
-                  label: _isLoading ? 'Menyimpan...' : 'Simpan',
-                  onPressed: _isLoading ? null : _submitData,
-                ),
-              ],
-            ),
-          ),
-        ),
+              ),
       ),
     );
   }
 }
+
