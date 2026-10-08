@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 import '../data/transaction_model.dart';
 import '../repositories/transaction_repository.dart';
 import '../theme/app_colors.dart';
+import '../widgets/common/custom_card.dart';
 import '../widgets/common/custom_filter_chip.dart';
 import '../widgets/common/skeleton.dart';
 import '../widgets/transaction/transaction_group.dart';
@@ -33,6 +34,17 @@ class _RiwayatScreenState extends State<RiwayatScreen> {
   @override
   void initState() {
     super.initState();
+    _loadData();
+    TransactionRepository.instance.addListener(_onTransactionChanged);
+  }
+
+  @override
+  void dispose() {
+    TransactionRepository.instance.removeListener(_onTransactionChanged);
+    super.dispose();
+  }
+
+  void _onTransactionChanged() {
     _loadData();
   }
 
@@ -379,12 +391,9 @@ class _RiwayatScreenState extends State<RiwayatScreen> {
                         ),
                       ),
                       const SizedBox(height: 10),
-                      Container(
-                        decoration: BoxDecoration(
-                          color: cardBg,
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(color: primaryGreen, width: 2),
-                        ),
+                      CustomCard(
+                        backgroundColor: cardBg,
+                        borderRadius: 16,
                         padding: const EdgeInsets.all(12),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.end,

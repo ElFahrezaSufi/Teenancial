@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../data/transaction_model.dart';
 import '../../repositories/transaction_repository.dart';
 import '../../theme/app_colors.dart';
+import '../common/custom_card.dart';
 
 class TransactionCard extends StatelessWidget {
   final TransactionModel item;
@@ -22,13 +23,10 @@ class TransactionCard extends StatelessWidget {
     final cat = TransactionRepository.instance.getCategoryById(item.categoryId);
     final bool isExpense = item.type == TransactionType.expense;
 
-    return Container(
+    return CustomCard(
+      backgroundColor: cardBg,
+      borderRadius: 16,
       padding: const EdgeInsets.only(left: 14, right: 4, top: 12, bottom: 12),
-      decoration: BoxDecoration(
-        color: cardBg,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: primaryGreen, width: 2),
-      ),
       child: Row(
         children: [
           Container(
