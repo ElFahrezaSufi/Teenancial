@@ -16,6 +16,13 @@ class ContactRepository extends ChangeNotifier {
     return List<ContactModel>.from(_contacts);
   }
 
+  ContactModel? getContactById(String? id) {
+    if (id == null) return null;
+    final index = _contacts.indexWhere((c) => c.id == id);
+    return index == -1 ? null : _contacts[index];
+  }
+
+
   Future<ContactModel> addContact(String name) async {
     await Future.delayed(const Duration(milliseconds: 300));
     

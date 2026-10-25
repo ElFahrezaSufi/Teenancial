@@ -125,6 +125,46 @@ class TransactionRepository extends ChangeNotifier {
     notifyListeners();
   }
 
+  // PINJAMAN: Hutang saya ke orang lain (uang yang saya pinjam)
+  List<TransactionModel> get debts =>
+      _transactions.where((t) => t.type == TransactionType.debt).toList();
+
+  // PINJAMAN: Piutang saya (uang yang saya pinjamkan ke orang lain)
+  List<TransactionModel> get receivables =>
+      _transactions.where((t) => t.type == TransactionType.receivable).toList();
+
+  /// Menandai hutang/piutang sebagai lunas.
+  /// - Hutang: uang keluar dari [dompetId] (saya membayar).
+  /// - Piutang: uang masuk ke [dompetId] (uang saya kembali).
+  /// Status & saldo hanya berubah jika seluruh proses berhasil.
+  Future<void> markAsPaid(String transactionId, String dompetId) async {
+    await Future.delayed(const Duration(milliseconds: 500)); // Simulasi Loading
+    final index = _transactions.indexWhere((t) => t.id == transactionId);
+    if (index == -1) {
+      throw Exception('Data pinjaman tidak ditemukan');
+    }
+
+    final item = _transactions[index];
+    if (item.type != TransactionType.debt &&
+        item.type != TransactionType.receivable) {
+      throw Exception('Transaksi ini bukan pinjaman');
+    }
+    if (item.isPaid) {
+      throw Exception('Pinjaman ini sudah lunas');
+    }
+
+    // Update saldo dulu (subtractSaldo melempar error jika saldo kurang),
+    // sehingga status tidak berubah bila pembayaran gagal.
+    if (item.type == TransactionType.debt) {
+      await DompetRepository.instance.subtractSaldo(dompetId, item.amount);
+    } else {
+      await DompetRepository.instance.addSaldo(dompetId, item.amount);
+    }
+
+    _transactions[index] = item.copyWith(isPaid: true);
+    notifyListeners();
+  }
+
   List<CategoryModel> getCategoriesByType(TransactionType type) {
     return categories.where((c) => c.type == type).toList();
   }

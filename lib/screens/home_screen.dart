@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../data/mock_auth.dart';
 import '../repositories/dompet_repository.dart';
+import '../repositories/transaction_repository.dart';
 import '../data/target_model.dart';
 import '../theme/app_colors.dart';
 
@@ -8,6 +9,7 @@ import 'profile_screen.dart';
 import 'pemasukan_screen.dart';
 import 'pengeluaran_screen.dart';
 import 'pinjaman_screen.dart';
+import 'daftar_pinjaman_screen.dart';
 import 'transfer_screen.dart';
 import 'target_menabung_screen.dart';
 import 'buat_target_screen.dart';
@@ -20,6 +22,7 @@ import '../widgets/home/belajar_card.dart';
 import '../widgets/home/profile_header.dart';
 import '../widgets/home/total_saldo_card.dart';
 import '../widgets/home/target_menabung_home.dart';
+import '../widgets/home/pinjaman_home.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -124,7 +127,10 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
-      listenable: DompetRepository.instance,
+      listenable: Listenable.merge([
+        DompetRepository.instance,
+        TransactionRepository.instance,
+      ]),
       builder: (context, _) {
         final double topPadding = MediaQuery.of(context).padding.top;
         final double xpProgress = maxXP > 0 ? (currentXP / maxXP).clamp(0.0, 1.0) : 0.0;
@@ -257,6 +263,27 @@ class _HomeScreenState extends State<HomeScreen> {
                             totalSaldoReal: totalSaldoReal,
                             formatRupiah: _formatRupiah,
                             onTambahTarget: _tambahTargetData,
+                          ),
+                          const SizedBox(height: 24),
+
+                          // Daftar Pinjaman
+                          SectionHeader(
+                            title: 'Daftar Pinjaman',
+                            actionText: 'Lihat Semua',
+                            onActionTap: () => Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                    builder: (_) =>
+                                        const DaftarPinjamanScreen())),
+                          ),
+                          const SizedBox(height: 12),
+                          PinjamanHome(
+                            formatRupiah: _formatRupiah,
+                            onTap: () => Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                    builder: (_) =>
+                                        const DaftarPinjamanScreen())),
                           ),
                           const SizedBox(height: 24),
 
