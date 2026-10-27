@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:provider/provider.dart';
 import 'config/app_config.dart';
@@ -19,18 +20,26 @@ void main() async {
   runApp(MyApp(storage: storage, auth: auth));
 }
 
-class MyApp extends StatelessWidget {
+class MyApp extends StatefulWidget {
   final StorageService storage;
   final AuthProvider auth;
 
   const MyApp({super.key, required this.storage, required this.auth});
 
   @override
+  State<MyApp> createState() => _MyAppState();
+}
+
+class _MyAppState extends State<MyApp> {
+  // Dibuat sekali agar state navigasi tidak reset saat rebuild.
+  late final GoRouter _router = createAppRouter(widget.auth);
+
+  @override
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
-        Provider<StorageService>.value(value: storage),
-        ChangeNotifierProvider<AuthProvider>.value(value: auth),
+        Provider<StorageService>.value(value: widget.storage),
+        ChangeNotifierProvider<AuthProvider>.value(value: widget.auth),
       ],
       child: MaterialApp.router(
         title: AppConfig.appName,
@@ -39,7 +48,7 @@ class MyApp extends StatelessWidget {
           colorScheme: ColorScheme.fromSeed(seedColor: primaryGreen),
           useMaterial3: true,
         ),
-        routerConfig: appRouter,
+        routerConfig: _router,
       ),
     );
   }
