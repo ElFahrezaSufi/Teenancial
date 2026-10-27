@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import '../data/mock_auth.dart';
+import 'package:provider/provider.dart';
+import '../providers/auth_provider.dart';
 import '../repositories/dompet_repository.dart';
 import '../repositories/transaction_repository.dart';
 import '../models/target_model.dart';
@@ -65,9 +66,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
   void _loadUserData() {
     setState(() {
-      displayName = MockAuth.activeUserName.isNotEmpty
-          ? MockAuth.activeUserName
-          : 'Pengguna';
+      final name = context.read<AuthProvider>().currentUser?.name ?? '';
+      displayName = name.isNotEmpty ? name : 'Pengguna';
     });
   }
 

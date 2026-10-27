@@ -2,7 +2,8 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
-import '../data/mock_auth.dart';
+import 'package:provider/provider.dart';
+import '../providers/auth_provider.dart';
 import '../theme/app_colors.dart';
 import '../widgets/common/custom_card.dart';
 
@@ -27,10 +28,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   void initState() {
     super.initState();
-    _fullNameController = TextEditingController(text: MockAuth.activeUserName);
-    _ageController = TextEditingController(text: MockAuth.activeAge);
-    _genderController = TextEditingController(text: MockAuth.activeGender);
-    _emailController = TextEditingController(text: MockAuth.activeEmail);
+    final user = context.read<AuthProvider>().currentUser;
+    _fullNameController = TextEditingController(text: user?.name ?? '');
+    _ageController = TextEditingController(text: user?.age ?? '');
+    _genderController = TextEditingController(text: user?.gender ?? '');
+    _emailController = TextEditingController(text: user?.email ?? '');
   }
 
   @override
@@ -49,7 +51,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   void _saveProfile() async {
-    await MockAuth.updateProfile(
+    await context.read<AuthProvider>().updateProfile(
       fullName: _fullNameController.text.trim(),
       age: _ageController.text.trim(),
       gender: _genderController.text.trim(),
@@ -93,7 +95,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Future<void> _handleLogout() async {
     setState(() => _isLoading = true);
-    await MockAuth.logout();
+    await context.read<AuthProvider>().logout();
 
     if (!mounted) return;
     context.go('/get_started');

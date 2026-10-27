@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import '../data/mock_auth.dart';
+import 'package:provider/provider.dart';
+import '../providers/auth_provider.dart';
 import 'login_screen.dart';
 import 'get_started.dart';
 import '../widgets/common/custom_text_field.dart';
@@ -69,7 +70,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
     if (_formKey.currentState?.validate() ?? false) {
       setState(() => _isLoading = true);
 
-      final bool success = await MockAuth.register(
+      final bool success = await context.read<AuthProvider>().register(
         name: _nameController.text.trim(),
         age: _ageController.text.trim(),
         gender: _selectedGender ?? '',

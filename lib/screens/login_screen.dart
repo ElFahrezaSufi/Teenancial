@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'get_started.dart';
 import 'signup_screen.dart';
-import '../data/mock_auth.dart';
+import 'package:provider/provider.dart';
+import '../providers/auth_provider.dart';
+import '../services/auth_service.dart';
 import '../widgets/common/custom_text_field.dart';
 import '../widgets/common/custom_card.dart';
 import 'package:go_router/go_router.dart';
@@ -64,7 +66,7 @@ class _LoginScreenState extends State<LoginScreen> {
       setState(() {
         _isLoading = true;
       });
-      final status = await MockAuth.login(
+      final status = await context.read<AuthProvider>().login(
         _emailController.text.trim(),
         _passwordController.text,
       );
@@ -73,7 +75,7 @@ class _LoginScreenState extends State<LoginScreen> {
         _isLoading = false;
       });
 
-      if (status == 'success') {
+      if (status == LoginResult.success) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Berhasil Masuk!'),
@@ -81,7 +83,7 @@ class _LoginScreenState extends State<LoginScreen> {
           ),
         );
         context.go('/home');
-      } else if (status == 'email_not_found') {
+      } else if (status == LoginResult.emailNotFound) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content:
@@ -89,7 +91,7 @@ class _LoginScreenState extends State<LoginScreen> {
             backgroundColor: Colors.redAccent,
           ),
         );
-      } else if (status == 'wrong_password') {
+      } else if (status == LoginResult.wrongPassword) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Password salah! Coba lagi.'),
