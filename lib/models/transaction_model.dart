@@ -74,5 +74,39 @@ class TransactionModel {
       isPaid: isPaid ?? this.isPaid,
     );
   }
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'title': title,
+        'amount': amount,
+        'date': date.toIso8601String(),
+        'notes': notes,
+        'categoryId': categoryId,
+        'type': type.name,
+        'dompetId': dompetId,
+        'destinationDompetId': destinationDompetId,
+        'dueDate': dueDate?.toIso8601String(),
+        'contactId': contactId,
+        'isPaid': isPaid,
+      };
+
+  factory TransactionModel.fromJson(Map<String, dynamic> json) {
+    return TransactionModel(
+      id: json['id'] as String,
+      title: json['title'] as String,
+      amount: (json['amount'] as num).toDouble(),
+      date: DateTime.parse(json['date'] as String),
+      notes: (json['notes'] as String?) ?? '',
+      categoryId: json['categoryId'] as String,
+      type: TransactionType.values.byName(json['type'] as String),
+      dompetId: json['dompetId'] as String,
+      destinationDompetId: json['destinationDompetId'] as String?,
+      dueDate: json['dueDate'] != null
+          ? DateTime.parse(json['dueDate'] as String)
+          : null,
+      contactId: json['contactId'] as String?,
+      isPaid: (json['isPaid'] as bool?) ?? false,
+    );
+  }
 }
 
