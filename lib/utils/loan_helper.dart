@@ -1,3 +1,4 @@
+import '../config/app_config.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../models/transaction_model.dart';
@@ -23,7 +24,7 @@ class LoanHelper {
       t.type == TransactionType.debt || t.type == TransactionType.receivable;
 
   static String formatDueDate(DateTime date) =>
-      DateFormat('dd MMM yyyy', 'id_ID').format(date);
+      DateFormat('dd MMM yyyy', AppConfig.locale).format(date);
 
   /// Selisih hari dari hari ini ke batas waktu (negatif = terlambat).
   /// Dibandingkan berdasarkan tanggal saja (tanpa jam).

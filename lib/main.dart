@@ -1,3 +1,4 @@
+import 'config/app_config.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'data/mock_auth.dart';
@@ -6,7 +7,7 @@ import 'routes/app_router.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await initializeDateFormatting('id_ID', null);
+  await initializeDateFormatting(AppConfig.locale, null);
   await MockAuth.init();
   runApp(const MyApp());
 }

@@ -1,3 +1,4 @@
+import '../config/app_config.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../models/transaction_model.dart';
@@ -96,7 +97,7 @@ class _RiwayatScreenState extends State<RiwayatScreen> {
     // Grouping
     final Map<String, List<TransactionModel>> groups = {};
     for (var t in filtered) {
-      final dateStr = DateFormat('EEEE, dd MMMM yyyy', 'id_ID').format(t.date);
+      final dateStr = DateFormat('EEEE, dd MMMM yyyy', AppConfig.locale).format(t.date);
       if (!groups.containsKey(dateStr)) groups[dateStr] = [];
       groups[dateStr]!.add(t);
     }

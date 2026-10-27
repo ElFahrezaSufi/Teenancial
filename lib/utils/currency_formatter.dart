@@ -1,10 +1,11 @@
+import '../config/app_config.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 
 class CurrencyInputFormatter extends TextInputFormatter {
   static String formatValue(String value) {
     if (value.isEmpty) return '';
-    final f = NumberFormat.currency(locale: "id_ID", symbol: "Rp ", decimalDigits: 0);
+    final f = NumberFormat.currency(locale: AppConfig.locale, symbol: "Rp ", decimalDigits: 0);
     int num = int.tryParse(value.replaceAll(RegExp(r'[^0-9]'), '')) ?? 0;
     return f.format(num);
   }
@@ -18,7 +19,7 @@ class CurrencyInputFormatter extends TextInputFormatter {
       final int selectionIndexFromTheRight =
           newValue.text.length - newValue.selection.end;
       final f = NumberFormat.currency(
-          locale: "id_ID", symbol: "Rp ", decimalDigits: 0);
+          locale: AppConfig.locale, symbol: "Rp ", decimalDigits: 0);
       int num = int.tryParse(newValue.text.replaceAll(RegExp(r'[^0-9]'), '')) ?? 0;
       final newString = f.format(num);
       return TextEditingValue(

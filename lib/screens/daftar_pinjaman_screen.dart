@@ -1,3 +1,4 @@
+import '../config/app_config.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../models/dompet_model.dart';
@@ -26,7 +27,7 @@ class _DaftarPinjamanScreenState extends State<DaftarPinjamanScreen> {
 
   String _formatCurrency(double value) {
     return NumberFormat.currency(
-      locale: 'id_ID',
+      locale: AppConfig.locale,
       symbol: 'Rp ',
       decimalDigits: 0,
     ).format(value);
