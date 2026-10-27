@@ -29,6 +29,8 @@ class TransactionModel {
   final DateTime? dueDate; // Batas waktu untuk pinjaman/piutang
   final String? contactId; // ID kontak terkait (teman/tujuan)
   final bool isPaid; // Status pelunasan (khusus hutang/piutang)
+  final DateTime? paidAt; // Waktu pelunasan (khusus hutang/piutang)
+  final String? settledDompetId; // Dompet yang dipakai saat pelunasan
 
   TransactionModel({
     required this.id,
@@ -43,6 +45,8 @@ class TransactionModel {
     this.dueDate,
     this.contactId,
     this.isPaid = false,
+    this.paidAt,
+    this.settledDompetId,
   });
 
   TransactionModel copyWith({
@@ -58,6 +62,9 @@ class TransactionModel {
     DateTime? dueDate,
     String? contactId,
     bool? isPaid,
+    DateTime? paidAt,
+    String? settledDompetId,
+    bool clearSettlement = false,
   }) {
     return TransactionModel(
       id: id ?? this.id,
@@ -71,7 +78,11 @@ class TransactionModel {
       destinationDompetId: destinationDompetId ?? this.destinationDompetId,
       dueDate: dueDate ?? this.dueDate,
       contactId: contactId ?? this.contactId,
-      isPaid: isPaid ?? this.isPaid,
+      isPaid: clearSettlement ? false : (isPaid ?? this.isPaid),
+      paidAt: clearSettlement ? null : (paidAt ?? this.paidAt),
+      settledDompetId: clearSettlement
+          ? null
+          : (settledDompetId ?? this.settledDompetId),
     );
   }
 
@@ -88,6 +99,8 @@ class TransactionModel {
         'dueDate': dueDate?.toIso8601String(),
         'contactId': contactId,
         'isPaid': isPaid,
+        'paidAt': paidAt?.toIso8601String(),
+        'settledDompetId': settledDompetId,
       };
 
   factory TransactionModel.fromJson(Map<String, dynamic> json) {
@@ -106,6 +119,10 @@ class TransactionModel {
           : null,
       contactId: json['contactId'] as String?,
       isPaid: (json['isPaid'] as bool?) ?? false,
+      paidAt: json['paidAt'] != null
+          ? DateTime.parse(json['paidAt'] as String)
+          : null,
+      settledDompetId: json['settledDompetId'] as String?,
     );
   }
 }

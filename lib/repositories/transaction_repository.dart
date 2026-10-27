@@ -138,7 +138,11 @@ class TransactionRepository extends ChangeNotifier {
       await DompetRepository.instance.addSaldo(dompetId, item.amount);
     }
 
-    _transactions[index] = item.copyWith(isPaid: true);
+    _transactions[index] = item.copyWith(
+      isPaid: true,
+      paidAt: DateTime.now(),
+      settledDompetId: dompetId,
+    );
     notifyListeners();
   }
 
