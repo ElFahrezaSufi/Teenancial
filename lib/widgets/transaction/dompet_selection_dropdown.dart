@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../data/dompet_model.dart';
+import '../../models/dompet_model.dart';
 import '../common/custom_dropdown_field.dart';
 
 class DompetSelectionDropdown extends StatelessWidget {

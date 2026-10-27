@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../data/transaction_model.dart';
+import '../models/transaction_model.dart';
 import '../theme/app_colors.dart';
 import '../widgets/transaction/transaction_group.dart';
 

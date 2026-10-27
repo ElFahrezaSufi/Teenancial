@@ -1,5 +1,5 @@
 import 'package:flutter/foundation.dart';
-import '../data/contact_model.dart';
+import '../models/contact_model.dart';
 
 class ContactRepository extends ChangeNotifier {
   ContactRepository._();

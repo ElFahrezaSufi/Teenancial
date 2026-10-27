@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../theme/app_colors.dart';
-import '../../data/contact_model.dart';
+import '../../models/contact_model.dart';
 
 class ContactSelectionAutocomplete extends StatelessWidget {
   final String label;

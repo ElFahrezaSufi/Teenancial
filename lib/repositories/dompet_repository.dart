@@ -1,5 +1,5 @@
 import 'package:flutter/foundation.dart';
-import '../data/dompet_model.dart';
+import '../models/dompet_model.dart';
 
 class DompetRepository extends ChangeNotifier {
   DompetRepository._();

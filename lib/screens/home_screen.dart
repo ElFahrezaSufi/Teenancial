@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../data/mock_auth.dart';
 import '../repositories/dompet_repository.dart';
 import '../repositories/transaction_repository.dart';
-import '../data/target_model.dart';
+import '../models/target_model.dart';
 import '../theme/app_colors.dart';
 
 import 'profile_screen.dart';

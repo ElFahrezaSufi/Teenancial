@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import '../data/dompet_model.dart';
-import '../data/transaction_model.dart';
+import '../models/dompet_model.dart';
+import '../models/transaction_model.dart';
 import '../repositories/dompet_repository.dart';
 import '../repositories/transaction_repository.dart';
 import '../theme/app_colors.dart';

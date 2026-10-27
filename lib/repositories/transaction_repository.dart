@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../data/transaction_model.dart';
+import '../models/transaction_model.dart';
 import 'dompet_repository.dart';
 
 class TransactionRepository extends ChangeNotifier {

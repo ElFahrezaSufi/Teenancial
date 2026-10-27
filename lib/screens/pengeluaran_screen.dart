@@ -6,8 +6,8 @@ import '../widgets/common/custom_dropdown_field.dart';
 import '../widgets/common/primary_button.dart';
 import '../widgets/transaction/dompet_selection_dropdown.dart';
 import '../widgets/transaction/transaction_scaffold.dart';
-import '../data/transaction_model.dart';
-import '../data/dompet_model.dart';
+import '../models/transaction_model.dart';
+import '../models/dompet_model.dart';
 import '../repositories/transaction_repository.dart';
 import '../repositories/dompet_repository.dart';
 

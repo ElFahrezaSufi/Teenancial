@@ -1,6 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
-import '../data/target_model.dart';
+import '../models/target_model.dart';
 import '../repositories/dompet_repository.dart';
 import '../theme/app_colors.dart';
 import '../widgets/common/custom_card.dart';

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import '../data/dompet_model.dart';
+import '../models/dompet_model.dart';
 import '../repositories/dompet_repository.dart';
 import '../theme/app_colors.dart';
 import '../widgets/common/custom_card.dart';
