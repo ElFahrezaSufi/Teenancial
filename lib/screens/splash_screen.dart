@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -28,13 +27,7 @@ class _SplashScreenState extends State<SplashScreen> {
 
     Future.delayed(const Duration(seconds: 4), () {
       if (!mounted) return;
-
-      final user = FirebaseAuth.instance.currentUser;
-      if (user != null) {
-        context.go('/home');
-      } else {
-        context.go('/get_started');
-      }
+      context.go('/home');
     });
   }
 

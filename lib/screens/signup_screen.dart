@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import '../repositories/auth_repository.dart';
-import 'login_screen.dart';
-import 'get_started.dart';
+import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
+import 'package:firebase_auth/firebase_auth.dart' hide AuthProvider;
+import '../providers/auth_provider.dart';
 import '../widgets/common/custom_text_field.dart';
 import '../widgets/common/custom_dropdown_field.dart';
 
@@ -27,8 +27,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
 
-  final AuthRepository _authRepository = AuthRepository();
-
   String? _selectedGender;
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
@@ -45,27 +43,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
   }
 
   void _goToGetStarted() {
-    Navigator.of(context).pushReplacement(
-      PageRouteBuilder(
-        pageBuilder: (context, animation, secondaryAnimation) =>
-            const GetStarted(),
-        transitionsBuilder: (context, animation, secondaryAnimation, child) {
-          const beginOffset = Offset(0.0, -1.0);
-          const endOffset = Offset.zero;
-          const curve = Curves.easeInOutCubic;
-          var slideTween = Tween(
-            begin: beginOffset,
-            end: endOffset,
-          ).chain(CurveTween(curve: curve));
-
-          return SlideTransition(
-            position: animation.drive(slideTween),
-            child: child,
-          );
-        },
-        transitionDuration: const Duration(milliseconds: 400),
-      ),
-    );
+    context.go('/get_started');
   }
 
   Future<void> _handleSignUp() async {
@@ -73,13 +51,13 @@ class _SignUpScreenState extends State<SignUpScreen> {
       setState(() => _isLoading = true);
 
       try {
-        await _authRepository.registerWithEmail(
-          email: _emailController.text.trim(),
-          password: _passwordController.text,
-          name: _nameController.text,
-          age: _ageController.text,
-          gender: _selectedGender ?? '',
-        );
+        await context.read<AuthProvider>().register(
+              email: _emailController.text.trim(),
+              password: _passwordController.text,
+              name: _nameController.text,
+              age: _ageController.text,
+              gender: _selectedGender ?? '',
+            );
 
         if (!mounted) return;
         setState(() => _isLoading = false);
@@ -91,10 +69,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
           ),
         );
 
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => const LoginScreen()),
-        );
+        context.go('/login');
       } on FirebaseAuthException catch (e) {
         if (!mounted) return;
         setState(() => _isLoading = false);
@@ -411,12 +386,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                                 Center(
                                   child: GestureDetector(
                                     onTap: () {
-                                      Navigator.pushReplacement(
-                                        context,
-                                        MaterialPageRoute(
-                                            builder: (context) =>
-                                                const LoginScreen()),
-                                      );
+                                      context.go('/login');
                                     },
                                     child: const Text.rich(
                                       TextSpan(

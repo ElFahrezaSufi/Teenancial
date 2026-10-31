@@ -28,15 +28,22 @@ class AuthRepository {
 
     final user = credential.user;
     if (user != null) {
-      await user.updateDisplayName(name.trim());
-      await _firestore.collection('users').doc(user.uid).set({
-        'uid': user.uid,
-        'email': user.email,
-        'name': name.trim(),
-        'age': age.trim(),
-        'gender': gender.trim(),
-        'createdAt': FieldValue.serverTimestamp(),
-      });
+      try {
+        await user.updateDisplayName(name.trim());
+        await _firestore.collection('users').doc(user.uid).set({
+          'uid': user.uid,
+          'email': user.email,
+          'name': name.trim(),
+          'age': age.trim(),
+          'gender': gender.trim(),
+          'createdAt': FieldValue.serverTimestamp(),
+        });
+      } catch (_) {
+        try {
+          await user.delete();
+        } catch (_) {}
+        rethrow;
+      }
     }
     return credential;
   }
@@ -45,13 +52,24 @@ class AuthRepository {
     await _auth.sendPasswordResetEmail(email: email.trim());
   }
 
+  static Future<void>? _googleInit;
+
+  Future<void> _ensureGoogleInitialized() {
+    return _googleInit ??= () async {
+      try {
+        await GoogleSignIn.instance.initialize();
+      } catch (_) {
+        _googleInit = null;
+        rethrow;
+      }
+    }();
+  }
+
   Future<UserCredential?> signInWithGoogle() async {
     try {
-      await GoogleSignIn.instance.initialize();
-      final GoogleSignInAccount? googleUser =
+      await _ensureGoogleInitialized();
+      final GoogleSignInAccount googleUser =
           await GoogleSignIn.instance.authenticate();
-
-      if (googleUser == null) return null;
 
       final googleAuth = googleUser.authentication;
       final credential = GoogleAuthProvider.credential(
@@ -74,6 +92,10 @@ class AuthRepository {
       }
 
       return userCredential;
+    } on GoogleSignInException catch (e) {
+      if (e.code == GoogleSignInExceptionCode.canceled) return null;
+      debugPrint("Error Login Google: $e");
+      throw Exception('Gagal masuk dengan Google: $e');
     } catch (e) {
       debugPrint("Error Login Google: $e");
       throw Exception('Gagal masuk dengan Google: $e');

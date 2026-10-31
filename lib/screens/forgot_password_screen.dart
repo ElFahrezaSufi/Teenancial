@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'login_screen.dart';
-import 'get_started.dart';
-import '../repositories/auth_repository.dart';
+import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
+import 'package:firebase_auth/firebase_auth.dart' hide AuthProvider;
+import '../providers/auth_provider.dart';
 import '../widgets/common/custom_text_field.dart';
 
 const Color _primaryGreen = Color(0xFF637932);
@@ -21,7 +21,6 @@ class ForgotPasswordScreen extends StatefulWidget {
 class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
-  final AuthRepository _authRepository = AuthRepository();
   bool _isLoading = false;
 
   @override
@@ -31,34 +30,11 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   }
 
   void _goToGetStarted() {
-    Navigator.of(context).pushReplacement(
-      PageRouteBuilder(
-        pageBuilder: (context, animation, secondaryAnimation) =>
-            const GetStarted(),
-        transitionsBuilder: (context, animation, secondaryAnimation, child) {
-          const beginOffset = Offset(0.0, -1.0);
-          const endOffset = Offset.zero;
-          const curve = Curves.easeInOutCubic;
-          var slideTween = Tween(
-            begin: beginOffset,
-            end: endOffset,
-          ).chain(CurveTween(curve: curve));
-
-          return SlideTransition(
-            position: animation.drive(slideTween),
-            child: child,
-          );
-        },
-        transitionDuration: const Duration(milliseconds: 400),
-      ),
-    );
+    context.go('/get_started');
   }
 
   void _goBackToLogin() {
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (context) => const LoginScreen()),
-    );
+    context.go('/login');
   }
 
   Future<void> _handleResetPassword() async {
@@ -66,9 +42,9 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       setState(() => _isLoading = true);
 
       try {
-        await _authRepository.sendPasswordResetEmail(
-          _emailController.text,
-        );
+        await context.read<AuthProvider>().sendPasswordResetEmail(
+              _emailController.text,
+            );
 
         if (!mounted) return;
         setState(() => _isLoading = false);

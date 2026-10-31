@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
+import '../providers/auth_provider.dart' show registrationInProgress;
+
 import '../screens/splash_screen.dart';
 import '../screens/main_screen.dart';
 import '../screens/home_screen.dart';
@@ -20,9 +22,13 @@ final GlobalKey<NavigatorState> rootNavigatorKey =
 final GoRouter appRouter = GoRouter(
   navigatorKey: rootNavigatorKey,
   initialLocation: '/splash',
-  refreshListenable:
-      GoRouterRefreshStream(FirebaseAuth.instance.authStateChanges()),
+  refreshListenable: Listenable.merge([
+    GoRouterRefreshStream(FirebaseAuth.instance.authStateChanges()),
+    registrationInProgress,
+  ]),
   redirect: (BuildContext context, GoRouterState state) {
+    if (registrationInProgress.value) return null;
+
     final user = FirebaseAuth.instance.currentUser;
     final isLoggedIn = user != null;
 
