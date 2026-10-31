@@ -96,12 +96,13 @@ class _LoginScreenState extends State<LoginScreen> {
     setState(() => _isLoading = true);
 
     try {
-      await context.read<AuthProvider>().signInWithGoogle();
+      final bool signedIn =
+          await context.read<AuthProvider>().signInWithGoogle();
 
       if (!mounted) return;
       setState(() => _isLoading = false);
 
-      if (context.read<AuthProvider>().isAuthenticated) {
+      if (signedIn) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Berhasil masuk dengan Google!'),

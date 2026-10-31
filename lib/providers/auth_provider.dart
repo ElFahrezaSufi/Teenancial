@@ -1,6 +1,9 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../repositories/auth_repository.dart';
+
+final ValueNotifier<bool> registrationInProgress = ValueNotifier<bool>(false);
 
 class AuthProvider extends ChangeNotifier {
   final FirebaseAuth _auth = FirebaseAuth.instance;
@@ -10,15 +13,28 @@ class AuthProvider extends ChangeNotifier {
   User? get user => _user;
   bool get isAuthenticated => _user != null;
 
+  late final StreamSubscription<User?> _authSub;
+
   AuthProvider() {
-    _auth.authStateChanges().listen((User? newUser) {
+    _user = _auth.currentUser;
+    _authSub = _auth.authStateChanges().listen((User? newUser) {
+      final bool sessionEnded = newUser == null;
+      final bool accountSwitched =
+          _user != null && newUser != null && _user!.uid != newUser.uid;
+
       _user = newUser;
 
-      if (newUser == null) {
+      if (sessionEnded || accountSwitched) {
         _clearUserData();
       }
       notifyListeners();
     });
+  }
+
+  @override
+  void dispose() {
+    _authSub.cancel();
+    super.dispose();
   }
 
   void _clearUserData() {
@@ -38,19 +54,29 @@ class AuthProvider extends ChangeNotifier {
     required String age,
     required String gender,
   }) async {
-    await _repository.registerWithEmail(
-      email: email,
-      password: password,
-      name: name,
-      age: age,
-      gender: gender,
-    );
-
-    await logout();
+    registrationInProgress.value = true;
+    try {
+      await _repository.registerWithEmail(
+        email: email,
+        password: password,
+        name: name,
+        age: age,
+        gender: gender,
+      );
+      await _repository.logout();
+    } catch (_) {
+      try {
+        await _repository.logout();
+      } catch (_) {}
+      rethrow;
+    } finally {
+      registrationInProgress.value = false;
+    }
   }
 
-  Future<void> signInWithGoogle() async {
-    await _repository.signInWithGoogle();
+  Future<bool> signInWithGoogle() async {
+    final credential = await _repository.signInWithGoogle();
+    return credential != null;
   }
 
   Future<void> sendPasswordResetEmail(String email) async {
