@@ -1,11 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'get_started.dart';
-import 'signup_screen.dart';
-import 'forgot_password_screen.dart';
-import '../repositories/auth_repository.dart';
+import 'package:firebase_auth/firebase_auth.dart' hide AuthProvider;
+import 'package:provider/provider.dart';
+import '../providers/auth_provider.dart';
 import '../widgets/common/custom_text_field.dart';
 import '../widgets/common/custom_card.dart';
 
@@ -25,7 +23,6 @@ class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
-  final AuthRepository _authRepository = AuthRepository();
 
   bool _obscurePassword = true;
   bool _isLoading = false;
@@ -37,47 +34,18 @@ class _LoginScreenState extends State<LoginScreen> {
     super.dispose();
   }
 
-  void _goToGetStarted() {
-    Navigator.of(context).pushReplacement(
-      PageRouteBuilder(
-        pageBuilder: (context, animation, secondaryAnimation) =>
-            const GetStarted(),
-        transitionsBuilder: (context, animation, secondaryAnimation, child) {
-          const beginOffset = Offset(0.0, -1.0);
-          const endOffset = Offset.zero;
-          const curve = Curves.easeInOutCubic;
-
-          var slideTween = Tween(
-            begin: beginOffset,
-            end: endOffset,
-          ).chain(CurveTween(curve: curve));
-
-          return SlideTransition(
-            position: animation.drive(slideTween),
-            child: child,
-          );
-        },
-        transitionDuration: const Duration(milliseconds: 400),
-      ),
-    );
-  }
-
   Future<void> _handleLogin() async {
     if (_formKey.currentState?.validate() ?? false) {
-      setState(() {
-        _isLoading = true;
-      });
+      setState(() => _isLoading = true);
 
       try {
-        await FirebaseAuth.instance.signInWithEmailAndPassword(
-          email: _emailController.text.trim(),
-          password: _passwordController.text,
-        );
+        await context.read<AuthProvider>().login(
+              _emailController.text.trim(),
+              _passwordController.text,
+            );
 
         if (!mounted) return;
-        setState(() {
-          _isLoading = false;
-        });
+        setState(() => _isLoading = false);
 
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -88,9 +56,7 @@ class _LoginScreenState extends State<LoginScreen> {
         context.go('/home');
       } on FirebaseAuthException catch (e) {
         if (!mounted) return;
-        setState(() {
-          _isLoading = false;
-        });
+        setState(() => _isLoading = false);
 
         String errorMessage = 'Login gagal. Terjadi kesalahan jaringan.';
         if (e.code == 'user-not-found') {
@@ -114,9 +80,7 @@ class _LoginScreenState extends State<LoginScreen> {
         );
       } catch (e) {
         if (!mounted) return;
-        setState(() {
-          _isLoading = false;
-        });
+        setState(() => _isLoading = false);
 
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -129,26 +93,27 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> _handleGoogleLogin() async {
-    setState(() {
-      _isLoading = true;
-    });
+    setState(() => _isLoading = true);
 
-    final userCredential = await _authRepository.signInWithGoogle();
+    try {
+      await context.read<AuthProvider>().signInWithGoogle();
 
-    if (!mounted) return;
-    setState(() {
-      _isLoading = false;
-    });
+      if (!mounted) return;
+      setState(() => _isLoading = false);
 
-    if (userCredential != null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Berhasil masuk dengan Google!'),
-          backgroundColor: _primaryGreen,
-        ),
-      );
-      context.go('/home');
-    } else {
+      if (context.read<AuthProvider>().isAuthenticated) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Berhasil masuk dengan Google!'),
+            backgroundColor: _primaryGreen,
+          ),
+        );
+        context.go('/home');
+      }
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _isLoading = false);
+
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Gagal masuk dengan Google, silakan coba lagi.'),
@@ -183,7 +148,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 child: GestureDetector(
                   onVerticalDragEnd: (details) {
                     if ((details.primaryVelocity ?? 0) > 100) {
-                      _goToGetStarted();
+                      context.go('/get_started');
                     }
                   },
                   child: Container(
@@ -216,7 +181,7 @@ class _LoginScreenState extends State<LoginScreen> {
                               children: [
                                 Center(
                                   child: GestureDetector(
-                                    onTap: _goToGetStarted,
+                                    onTap: () => context.go('/get_started'),
                                     child: Container(
                                       width: 80,
                                       height: 5,
@@ -321,15 +286,8 @@ class _LoginScreenState extends State<LoginScreen> {
                                       tapTargetSize:
                                           MaterialTapTargetSize.shrinkWrap,
                                     ),
-                                    onPressed: () {
-                                      Navigator.pushReplacement(
-                                        context,
-                                        MaterialPageRoute(
-                                          builder: (context) =>
-                                              const ForgotPasswordScreen(),
-                                        ),
-                                      );
-                                    },
+                                    onPressed: () =>
+                                        context.go('/forgot_password'),
                                     child: const Text(
                                       'Lupa Password?',
                                       style: TextStyle(
@@ -407,14 +365,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                 const SizedBox(height: 32),
                                 Center(
                                   child: GestureDetector(
-                                    onTap: () {
-                                      Navigator.pushReplacement(
-                                        context,
-                                        MaterialPageRoute(
-                                            builder: (context) =>
-                                                const SignUpScreen()),
-                                      );
-                                    },
+                                    onTap: () => context.go('/signup'),
                                     child: const Text.rich(
                                       TextSpan(
                                         children: [

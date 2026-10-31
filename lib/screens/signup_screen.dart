@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+import '../repositories/auth_repository.dart';
 import 'login_screen.dart';
 import 'get_started.dart';
 import '../widgets/common/custom_text_field.dart';
@@ -26,6 +26,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
+
+  final AuthRepository _authRepository = AuthRepository();
 
   String? _selectedGender;
   bool _obscurePassword = true;
@@ -71,27 +73,13 @@ class _SignUpScreenState extends State<SignUpScreen> {
       setState(() => _isLoading = true);
 
       try {
-        final credential =
-            await FirebaseAuth.instance.createUserWithEmailAndPassword(
+        await _authRepository.registerWithEmail(
           email: _emailController.text.trim(),
           password: _passwordController.text,
+          name: _nameController.text,
+          age: _ageController.text,
+          gender: _selectedGender ?? '',
         );
-
-        final user = credential.user;
-        if (user != null) {
-          await user.updateDisplayName(_nameController.text.trim());
-          await FirebaseFirestore.instance
-              .collection('users')
-              .doc(user.uid)
-              .set({
-            'uid': user.uid,
-            'email': user.email,
-            'name': _nameController.text.trim(),
-            'age': _ageController.text.trim(),
-            'gender': _selectedGender ?? '',
-            'createdAt': FieldValue.serverTimestamp(),
-          });
-        }
 
         if (!mounted) return;
         setState(() => _isLoading = false);
@@ -252,7 +240,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                                             return 'Isi umur';
                                           }
                                           if (int.tryParse(value) == null) {
-                                            return 'Harus berupa angka';
+                                            return 'Harus angka';
                                           }
                                           return null;
                                         },
@@ -290,9 +278,43 @@ class _SignUpScreenState extends State<SignUpScreen> {
                                     if (value == null || value.trim().isEmpty) {
                                       return 'Email wajib diisi';
                                     }
-                                    if (!value.contains('@')) {
-                                      return 'Format email tidak valid';
+
+                                    String email = value.trim().toLowerCase();
+
+                                    final emailRegex = RegExp(
+                                        r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$');
+                                    if (!emailRegex.hasMatch(email)) {
+                                      return 'Format email salah (contoh: nama@gmail.com)';
                                     }
+
+                                    final allowedDomains = [
+                                      'gmail.com',
+                                      'yahoo.com',
+                                      'yahoo.co.id',
+                                      'outlook.com',
+                                      'hotmail.com',
+                                      'icloud.com',
+                                      'student.usu.ac.id'
+                                    ];
+
+                                    final parts = email.split('@');
+                                    if (parts.length == 2) {
+                                      String domain = parts[1];
+                                      if (!allowedDomains.contains(domain)) {
+                                        if (domain.contains('gmail') ||
+                                            domain.startsWith('gmai') ||
+                                            domain.startsWith('gami')) {
+                                          return 'Format email salah (contoh: nama@gmail.com)';
+                                        }
+                                        if (domain.contains('yahoo') ||
+                                            domain.startsWith('yaho')) {
+                                          return 'Format email salah (contoh: nama@gmail.com)';
+                                        }
+
+                                        return 'Hanya menerima email valid (gmail, yahoo, outlook, dll)';
+                                      }
+                                    }
+
                                     return null;
                                   },
                                 ),
