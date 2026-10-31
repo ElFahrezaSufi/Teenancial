@@ -1,6 +1,9 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
-import '../data/mock_auth.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../repositories/dompet_repository.dart';
+import '../repositories/transaction_repository.dart';
 import '../data/target_model.dart';
 import '../theme/app_colors.dart';
 
@@ -8,6 +11,7 @@ import 'profile_screen.dart';
 import 'pemasukan_screen.dart';
 import 'pengeluaran_screen.dart';
 import 'pinjaman_screen.dart';
+import 'daftar_pinjaman_screen.dart';
 import 'transfer_screen.dart';
 import 'target_menabung_screen.dart';
 import 'buat_target_screen.dart';
@@ -20,6 +24,7 @@ import '../widgets/home/belajar_card.dart';
 import '../widgets/home/profile_header.dart';
 import '../widgets/home/total_saldo_card.dart';
 import '../widgets/home/target_menabung_home.dart';
+import '../widgets/home/pinjaman_home.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -30,6 +35,8 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   String displayName = 'Pengguna';
+  File? profileImage;
+  String? profileImageUrl;
 
   int currentXP = 0;
   int maxXP = 1000;
@@ -60,12 +67,38 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  void _loadUserData() {
+  void _loadUserData() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
     setState(() {
-      displayName = MockAuth.activeUserName.isNotEmpty
-          ? MockAuth.activeUserName
-          : 'Pengguna';
+      String fetchedName = user.displayName ?? '';
+      if (fetchedName.isEmpty && user.email != null) {
+        fetchedName = user.email!.split('@')[0];
+      }
+      displayName = fetchedName.isNotEmpty ? fetchedName : 'Pengguna';
+      profileImage = ProfileScreen.profileImage;
+      profileImageUrl = user.photoURL;
     });
+
+    try {
+      final doc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .get();
+
+      if (doc.exists && doc.data() != null && mounted) {
+        final data = doc.data() as Map<String, dynamic>;
+        setState(() {
+          String firestoreName = data['name'] ?? '';
+          if (firestoreName.isNotEmpty) displayName = firestoreName;
+
+          String firestoreImage = data['profileImageUrl'] ?? '';
+          if (firestoreImage.isNotEmpty) profileImageUrl = firestoreImage;
+        });
+      }
+    } catch (e) {
+      debugPrint('Gagal narik data profil dari Firestore di Home: $e');
+    }
   }
 
   void _tambahTabunganMock() {
@@ -81,9 +114,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _handleRefresh() async {
     await Future.delayed(const Duration(milliseconds: 800));
-    setState(() {
-      _loadUserData();
-    });
+    _loadUserData();
   }
 
   Future<void> _tambahTargetData() async {
@@ -124,250 +155,283 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
-      listenable: DompetRepository.instance,
-      builder: (context, _) {
-        final double topPadding = MediaQuery.of(context).padding.top;
-        final double xpProgress = maxXP > 0 ? (currentXP / maxXP).clamp(0.0, 1.0) : 0.0;
-        final double totalSaldoReal = DompetRepository.instance.totalSaldo;
-        final double perkiraanMingguanReal = totalSaldoReal + (totalSaldoReal * 0.02);
-        
-        final TargetItem? currentTarget = TargetData.instance.pinnedItem;
+        listenable: Listenable.merge([
+          DompetRepository.instance,
+          TransactionRepository.instance,
+        ]),
+        builder: (context, _) {
+          final double topPadding = MediaQuery.of(context).padding.top;
+          final double xpProgress =
+              maxXP > 0 ? (currentXP / maxXP).clamp(0.0, 1.0) : 0.0;
+          final double totalSaldoReal = DompetRepository.instance.totalSaldo;
+          final double perkiraanMingguanReal =
+              totalSaldoReal + (totalSaldoReal * 0.02);
 
-        return Scaffold(
-      backgroundColor: Colors.transparent,
-      body: Stack(
-        children: [
-          MediaQuery.removePadding(
-            context: context,
-            removeTop: true,
-            child: RefreshIndicator(
-              onRefresh: _handleRefresh,
-              color: primaryGreen,
-              backgroundColor: scaffoldBg,
-              child: SingleChildScrollView(
-                physics: const AlwaysScrollableScrollPhysics(),
-                padding: EdgeInsets.zero,
-                child: Stack(
-                  children: [
-                    Image.asset(
-                      'assets/images/stenga_lingkaran.png',
-                      width: double.infinity,
-                      fit: BoxFit.fitWidth,
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 24, vertical: 20),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
+          final TargetItem? currentTarget = TargetData.instance.pinnedItem;
+
+          return Scaffold(
+            backgroundColor: Colors.transparent,
+            body: Stack(
+              children: [
+                MediaQuery.removePadding(
+                  context: context,
+                  removeTop: true,
+                  child: RefreshIndicator(
+                    onRefresh: _handleRefresh,
+                    color: primaryGreen,
+                    backgroundColor: scaffoldBg,
+                    child: SingleChildScrollView(
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      padding: EdgeInsets.zero,
+                      child: Stack(
                         children: [
-                          SizedBox(height: topPadding + 20),
+                          Image.asset(
+                            'assets/images/stenga_lingkaran.png',
+                            width: double.infinity,
+                            fit: BoxFit.fitWidth,
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 24, vertical: 20),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                SizedBox(height: topPadding + 20),
+                                ProfileHeader(
+                                  displayName: displayName,
+                                  level: level,
+                                  imageFile: profileImage,
+                                  imageUrl: profileImageUrl,
+                                  onProfileTap: () async {
+                                    await Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                          builder: (context) =>
+                                              const ProfileScreen()),
+                                    );
+                                    _loadUserData();
+                                  },
+                                ),
+                                const SizedBox(height: 16),
 
-                          // Header: Profil & Level
-                          ProfileHeader(
-                            displayName: displayName,
-                            level: level,
-                            onProfileTap: () async {
-                              await Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                    builder: (context) => const ProfileScreen()),
-                              );
-                              setState(() {
-                                _loadUserData();
-                              });
-                            },
-                          ),
-                          const SizedBox(height: 16),
+                                // Total Saldo Card
+                                TotalSaldoCard(
+                                  totalSaldoReal: totalSaldoReal,
+                                  perkiraanMingguanReal: perkiraanMingguanReal,
+                                  xpProgress: xpProgress,
+                                  currentXP: currentXP,
+                                  maxXP: maxXP,
+                                  level: level,
+                                  formatRupiah: _formatRupiah,
+                                  onTap: _tambahTabunganMock,
+                                ),
+                                const SizedBox(height: 32),
 
-                          // Total Saldo Card
-                          TotalSaldoCard(
-                            totalSaldoReal: totalSaldoReal,
-                            perkiraanMingguanReal: perkiraanMingguanReal,
-                            xpProgress: xpProgress,
-                            currentXP: currentXP,
-                            maxXP: maxXP,
-                            level: level,
-                            formatRupiah: _formatRupiah,
-                            onTap: _tambahTabunganMock,
-                          ),
-                          const SizedBox(height: 32),
+                                // Menu Action
+                                Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    ActionMenu(
+                                      assetPath: 'assets/images/pemasukan.svg',
+                                      label: 'Pemasukan',
+                                      onTap: () => Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                              builder: (_) =>
+                                                  const PemasukanScreen())),
+                                    ),
+                                    ActionMenu(
+                                      assetPath:
+                                          'assets/images/pengeluaran.svg',
+                                      label: 'Pengeluaran',
+                                      onTap: () => Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                              builder: (_) =>
+                                                  const PengeluaranScreen())),
+                                    ),
+                                    ActionMenu(
+                                      assetPath: 'assets/images/pinjaman.svg',
+                                      label: 'Pinjaman',
+                                      onTap: () => Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                              builder: (_) =>
+                                                  const PinjamanScreen())),
+                                    ),
+                                    ActionMenu(
+                                      assetPath: 'assets/images/transfer.png',
+                                      label: 'Transfer',
+                                      iconPadding:
+                                          const EdgeInsets.only(left: 4.0),
+                                      onTap: () => Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                              builder: (_) =>
+                                                  const TransferScreen())),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 32),
 
-                          // Menu Action
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              ActionMenu(
-                                assetPath: 'assets/images/pemasukan.svg',
-                                label: 'Pemasukan',
-                                onTap: () => Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                        builder: (_) =>
-                                            const PemasukanScreen())),
-                              ),
-                              ActionMenu(
-                                assetPath: 'assets/images/pengeluaran.svg',
-                                label: 'Pengeluaran',
-                                onTap: () => Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                        builder: (_) =>
-                                            const PengeluaranScreen())),
-                              ),
-                              ActionMenu(
-                                assetPath: 'assets/images/pinjaman.svg',
-                                label: 'Pinjaman',
-                                onTap: () => Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                        builder: (_) =>
-                                            const PinjamanScreen())),
-                              ),
-                              ActionMenu(
-                                assetPath: 'assets/images/transfer.png',
-                                label: 'Transfer',
-                                iconPadding: const EdgeInsets.only(left: 4.0),
-                                onTap: () => Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                        builder: (_) =>
-                                            const TransferScreen())),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 32),
+                                // Target Menabung
+                                SectionHeader(
+                                  title: 'Target Menabung',
+                                  actionText: 'Lihat Semua',
+                                  onActionTap: () async {
+                                    await Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                            builder: (_) =>
+                                                const TargetMenabungScreen()));
+                                    setState(() {});
+                                  },
+                                ),
+                                const SizedBox(height: 12),
 
-                          // Target Menabung
-                          SectionHeader(
-                            title: 'Target Menabung',
-                            actionText: 'Lihat Semua',
-                            onActionTap: () async {
-                              await Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                      builder: (_) =>
-                                          const TargetMenabungScreen()));
-                              setState(() {});
-                            },
-                          ),
-                          const SizedBox(height: 12),
+                                TargetMenabungHome(
+                                  currentTarget: currentTarget,
+                                  totalSaldoReal: totalSaldoReal,
+                                  formatRupiah: _formatRupiah,
+                                  onTambahTarget: _tambahTargetData,
+                                ),
+                                const SizedBox(height: 24),
 
-                          TargetMenabungHome(
-                            currentTarget: currentTarget,
-                            totalSaldoReal: totalSaldoReal,
-                            formatRupiah: _formatRupiah,
-                            onTambahTarget: _tambahTargetData,
-                          ),
-                          const SizedBox(height: 24),
+                                // Daftar Pinjaman
+                                SectionHeader(
+                                  title: 'Daftar Pinjaman',
+                                  actionText: 'Lihat Semua',
+                                  onActionTap: () => Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                          builder: (_) =>
+                                              const DaftarPinjamanScreen())),
+                                ),
+                                const SizedBox(height: 12),
+                                PinjamanHome(
+                                  formatRupiah: _formatRupiah,
+                                  onTap: () => Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                          builder: (_) =>
+                                              const DaftarPinjamanScreen())),
+                                ),
+                                const SizedBox(height: 24),
 
-                          // Ruang Belajar
-                          SectionHeader(
-                            title: 'Ruang Belajar',
-                            actionText: 'Lihat Semua',
-                            onActionTap: () => Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                    builder: (_) =>
-                                        const RuangBelajarScreen())),
+                                // Ruang Belajar
+                                SectionHeader(
+                                  title: 'Ruang Belajar',
+                                  actionText: 'Lihat Semua',
+                                  onActionTap: () => Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                          builder: (_) =>
+                                              const RuangBelajarScreen())),
+                                ),
+                                const SizedBox(height: 12),
+                                GestureDetector(
+                                  onTap: () => Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                          builder: (_) =>
+                                              const RuangBelajarScreen())),
+                                  child: BelajarCard(),
+                                ),
+                                const SizedBox(height: 120),
+                              ],
+                            ),
                           ),
-                          const SizedBox(height: 12),
-                          GestureDetector(
-                            onTap: () => Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                    builder: (_) =>
-                                        const RuangBelajarScreen())),
-                            child: BelajarCard(),
-                          ),
-                          const SizedBox(height: 120),
                         ],
                       ),
                     ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-
-          // Floating button Tanya Feen
-          AnimatedPositioned(
-            duration: _isDraggingFeen
-                ? Duration.zero
-                : const Duration(milliseconds: 300),
-            curve: Curves.easeOutBack,
-            left: _feenX,
-            top: _feenY,
-            child: GestureDetector(
-              onPanStart: (details) {
-                setState(() => _isDraggingFeen = true);
-              },
-              onPanUpdate: (details) {
-                setState(() {
-                  _feenX += details.delta.dx;
-                  _feenY += details.delta.dy;
-                  _feenX =
-                      _feenX.clamp(0.0, MediaQuery.of(context).size.width - 80);
-                  _feenY = _feenY.clamp(0.0,
-                      MediaQuery.of(context).size.height - _feenBottomMargin);
-                });
-              },
-              onPanEnd: (details) {
-                setState(() {
-                  _isDraggingFeen = false;
-                  final screenWidth = MediaQuery.of(context).size.width;
-                  final centerScreen = screenWidth / 2;
-
-                  if (_feenX + 30 < centerScreen) {
-                    _feenX = 24.0;
-                  } else {
-                    _feenX = screenWidth - _feenButtonWidth;
-                  }
-                });
-              },
-              onTap: () {
-                Navigator.push(context,
-                    MaterialPageRoute(builder: (_) => const TanyaFeenScreen()));
-              },
-              child: Column(
-                children: [
-                  Container(
-                    width: 60,
-                    height: 60,
-                    decoration: BoxDecoration(
-                        color: feenButtonBg,
-                        shape: BoxShape.circle,
-                        border: Border.all(color: primaryGreen, width: 2)),
-                    child: const Center(
-                        child: Text('?',
-                            style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 32,
-                                fontWeight: FontWeight.w800))),
                   ),
-                  const SizedBox(height: 4),
-                  Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                    decoration: BoxDecoration(
-                        color: inputBg,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: primaryGreen, width: 1)),
-                    child: const Text(
-                      'Tanya Feen',
-                      style: TextStyle(
-                          color: primaryGreen,
-                          fontSize: 10,
-                          fontWeight: FontWeight.w700),
+                ),
+
+                // Floating button Tanya Feen
+                AnimatedPositioned(
+                  duration: _isDraggingFeen
+                      ? Duration.zero
+                      : const Duration(milliseconds: 300),
+                  curve: Curves.easeOutBack,
+                  left: _feenX,
+                  top: _feenY,
+                  child: GestureDetector(
+                    onPanStart: (details) {
+                      setState(() => _isDraggingFeen = true);
+                    },
+                    onPanUpdate: (details) {
+                      setState(() {
+                        _feenX += details.delta.dx;
+                        _feenY += details.delta.dy;
+                        _feenX = _feenX.clamp(
+                            0.0, MediaQuery.of(context).size.width - 80);
+                        _feenY = _feenY.clamp(
+                            0.0,
+                            MediaQuery.of(context).size.height -
+                                _feenBottomMargin);
+                      });
+                    },
+                    onPanEnd: (details) {
+                      setState(() {
+                        _isDraggingFeen = false;
+                        final screenWidth = MediaQuery.of(context).size.width;
+                        final centerScreen = screenWidth / 2;
+
+                        if (_feenX + 30 < centerScreen) {
+                          _feenX = 24.0;
+                        } else {
+                          _feenX = screenWidth - _feenButtonWidth;
+                        }
+                      });
+                    },
+                    onTap: () {
+                      Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (_) => const TanyaFeenScreen()));
+                    },
+                    child: Column(
+                      children: [
+                        Container(
+                          width: 60,
+                          height: 60,
+                          decoration: BoxDecoration(
+                              color: feenButtonBg,
+                              shape: BoxShape.circle,
+                              border:
+                                  Border.all(color: primaryGreen, width: 2)),
+                          child: const Center(
+                              child: Text('?',
+                                  style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 32,
+                                      fontWeight: FontWeight.w800))),
+                        ),
+                        const SizedBox(height: 4),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 2),
+                          decoration: BoxDecoration(
+                              color: inputBg,
+                              borderRadius: BorderRadius.circular(12),
+                              border:
+                                  Border.all(color: primaryGreen, width: 1)),
+                          child: const Text(
+                            'Tanya Feen',
+                            style: TextStyle(
+                                color: primaryGreen,
+                                fontSize: 10,
+                                fontWeight: FontWeight.w700),
+                          ),
+                        )
+                      ],
                     ),
-                  )
-                ],
-              ),
+                  ),
+                ),
+              ],
             ),
-          ),
-        ],
-      ),
-    );
-      }
-    );
+          );
+        });
   }
 }

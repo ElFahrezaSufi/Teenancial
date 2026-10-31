@@ -66,4 +66,7 @@ class DompetRepository extends ChangeNotifier {
   }
 
   double get totalSaldo => _items.fold(0, (sum, item) => sum + item.jumlah);
+
+  // Akses sinkron ke daftar dompet (tanpa simulasi loading)
+  List<DompetItem> get currentDompets => List<DompetItem>.from(_items);
 }

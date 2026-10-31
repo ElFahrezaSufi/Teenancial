@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:go_router/go_router.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'get_started.dart';
 import 'signup_screen.dart';
-import '../data/mock_auth.dart';
+import 'forgot_password_screen.dart';
+import '../repositories/auth_repository.dart';
 import '../widgets/common/custom_text_field.dart';
 import '../widgets/common/custom_card.dart';
-import 'package:go_router/go_router.dart';
 
 const Color _primaryGreen = Color(0xFF637932);
 const Color _darkGreen = Color(0xFF415020);
@@ -23,6 +25,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  final AuthRepository _authRepository = AuthRepository();
 
   bool _obscurePassword = true;
   bool _isLoading = false;
@@ -64,16 +67,18 @@ class _LoginScreenState extends State<LoginScreen> {
       setState(() {
         _isLoading = true;
       });
-      final status = await MockAuth.login(
-        _emailController.text.trim(),
-        _passwordController.text,
-      );
-      if (!mounted) return;
-      setState(() {
-        _isLoading = false;
-      });
 
-      if (status == 'success') {
+      try {
+        await FirebaseAuth.instance.signInWithEmailAndPassword(
+          email: _emailController.text.trim(),
+          password: _passwordController.text,
+        );
+
+        if (!mounted) return;
+        setState(() {
+          _isLoading = false;
+        });
+
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Berhasil Masuk!'),
@@ -81,22 +86,75 @@ class _LoginScreenState extends State<LoginScreen> {
           ),
         );
         context.go('/home');
-      } else if (status == 'email_not_found') {
+      } on FirebaseAuthException catch (e) {
+        if (!mounted) return;
+        setState(() {
+          _isLoading = false;
+        });
+
+        String errorMessage = 'Login gagal. Terjadi kesalahan jaringan.';
+        if (e.code == 'user-not-found') {
+          errorMessage =
+              'Email tidak ditemukan. Silakan daftar terlebih dahulu.';
+        } else if (e.code == 'wrong-password') {
+          errorMessage = 'Password yang kamu masukkan salah.';
+        } else if (e.code == 'invalid-credential') {
+          errorMessage = 'Email belum terdaftar atau Password salah.';
+        } else if (e.code == 'invalid-email') {
+          errorMessage = 'Format email tidak valid.';
+        } else if (e.code == 'too-many-requests') {
+          errorMessage = 'Terlalu banyak percobaan. Coba lagi nanti.';
+        }
+
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content:
-                Text('Email tidak terdaftar. Silakan daftar terlebih dahulu!'),
+          SnackBar(
+            content: Text(errorMessage),
             backgroundColor: Colors.redAccent,
           ),
         );
-      } else if (status == 'wrong_password') {
+      } catch (e) {
+        if (!mounted) return;
+        setState(() {
+          _isLoading = false;
+        });
+
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Password salah! Coba lagi.'),
+            content: Text('Terjadi kesalahan sistem, silakan coba lagi.'),
             backgroundColor: Colors.redAccent,
           ),
         );
       }
+    }
+  }
+
+  Future<void> _handleGoogleLogin() async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    final userCredential = await _authRepository.signInWithGoogle();
+
+    if (!mounted) return;
+    setState(() {
+      _isLoading = false;
+    });
+
+    if (userCredential != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Berhasil masuk dengan Google!'),
+          backgroundColor: _primaryGreen,
+        ),
+      );
+      context.go('/home');
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Gagal masuk dengan Google, silakan coba lagi.'),
+          backgroundColor: Colors.redAccent,
+        ),
+      );
     }
   }
 
@@ -263,7 +321,15 @@ class _LoginScreenState extends State<LoginScreen> {
                                       tapTargetSize:
                                           MaterialTapTargetSize.shrinkWrap,
                                     ),
-                                    onPressed: () {},
+                                    onPressed: () {
+                                      Navigator.pushReplacement(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (context) =>
+                                              const ForgotPasswordScreen(),
+                                        ),
+                                      );
+                                    },
                                     child: const Text(
                                       'Lupa Password?',
                                       style: TextStyle(
@@ -334,9 +400,10 @@ class _LoginScreenState extends State<LoginScreen> {
                                   ],
                                 ),
                                 const SizedBox(height: 12),
-                                _GoogleLoginButton(onTap: () {
-                                  // TODO: Tambahkan fungsi login google di sini
-                                }),
+                                _GoogleLoginButton(
+                                  onTap:
+                                      _isLoading ? () {} : _handleGoogleLogin,
+                                ),
                                 const SizedBox(height: 32),
                                 Center(
                                   child: GestureDetector(

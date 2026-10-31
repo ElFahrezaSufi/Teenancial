@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../data/transaction_model.dart';
 import '../../repositories/transaction_repository.dart';
 import '../../theme/app_colors.dart';
+import '../../utils/loan_helper.dart';
 import '../common/custom_card.dart';
 
 class TransactionCard extends StatelessWidget {
@@ -21,7 +22,11 @@ class TransactionCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cat = TransactionRepository.instance.getCategoryById(item.categoryId);
-    final bool isExpense = item.type == TransactionType.expense;
+    // Piutang = uang keluar (dipinjamkan), Hutang = uang masuk (dipinjam)
+    final bool isExpense = item.type == TransactionType.expense ||
+        item.type == TransactionType.receivable;
+    final bool isLoan = LoanHelper.isLoan(item);
+    final LoanDueInfo? dueInfo = LoanHelper.describe(item);
 
     return CustomCard(
       backgroundColor: cardBg,
@@ -66,6 +71,49 @@ class TransactionCard extends StatelessWidget {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
+                if (isLoan) ...[
+                  const SizedBox(height: 4),
+                  Wrap(
+                    spacing: 6,
+                    runSpacing: 4,
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    children: [
+                      if (item.dueDate != null)
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.event,
+                              size: 12,
+                              color: item.isPaid
+                                  ? primaryGreen
+                                  : (dueInfo?.color ?? primaryGreen),
+                            ),
+                            const SizedBox(width: 3),
+                            Text(
+                              LoanHelper.formatDueDate(item.dueDate!),
+                              style: TextStyle(
+                                color: item.isPaid
+                                    ? primaryGreen
+                                    : (dueInfo?.color ?? primaryGreen),
+                                fontSize: 11,
+                                fontFamily: 'Inter',
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      _LoanBadge(
+                        label: item.isPaid ? 'Lunas' : 'Belum Lunas',
+                        color: item.isPaid
+                            ? primaryGreen
+                            : (dueInfo?.isOverdue == true
+                                ? LoanHelper.overdueColor
+                                : orangeText),
+                      ),
+                    ],
+                  ),
+                ],
               ],
             ),
           ),
@@ -111,6 +159,34 @@ class TransactionCard extends StatelessWidget {
             ],
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _LoanBadge extends StatelessWidget {
+  final String label;
+  final Color color;
+
+  const _LoanBadge({required this.label, required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.15),
+        borderRadius: BorderRadius.circular(100),
+        border: Border.all(color: color, width: 1),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          color: color,
+          fontSize: 10,
+          fontFamily: 'Inter',
+          fontWeight: FontWeight.w700,
+        ),
       ),
     );
   }

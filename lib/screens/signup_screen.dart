@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import '../data/mock_auth.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'login_screen.dart';
 import 'get_started.dart';
 import '../widgets/common/custom_text_field.dart';
@@ -69,17 +70,32 @@ class _SignUpScreenState extends State<SignUpScreen> {
     if (_formKey.currentState?.validate() ?? false) {
       setState(() => _isLoading = true);
 
-      final bool success = await MockAuth.register(
-        name: _nameController.text.trim(),
-        age: _ageController.text.trim(),
-        gender: _selectedGender ?? '',
-        email: _emailController.text.trim(),
-        password: _passwordController.text,
-      );
+      try {
+        final credential =
+            await FirebaseAuth.instance.createUserWithEmailAndPassword(
+          email: _emailController.text.trim(),
+          password: _passwordController.text,
+        );
 
-      if (!mounted) return;
-      setState(() => _isLoading = false);
-      if (success) {
+        final user = credential.user;
+        if (user != null) {
+          await user.updateDisplayName(_nameController.text.trim());
+          await FirebaseFirestore.instance
+              .collection('users')
+              .doc(user.uid)
+              .set({
+            'uid': user.uid,
+            'email': user.email,
+            'name': _nameController.text.trim(),
+            'age': _ageController.text.trim(),
+            'gender': _selectedGender ?? '',
+            'createdAt': FieldValue.serverTimestamp(),
+          });
+        }
+
+        if (!mounted) return;
+        setState(() => _isLoading = false);
+
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Akun berhasil dibuat! Silakan masuk.'),
@@ -91,10 +107,31 @@ class _SignUpScreenState extends State<SignUpScreen> {
           context,
           MaterialPageRoute(builder: (context) => const LoginScreen()),
         );
-      } else {
+      } on FirebaseAuthException catch (e) {
+        if (!mounted) return;
+        setState(() => _isLoading = false);
+
+        String errorMessage = 'Gagal mendaftar. Terjadi kesalahan sistem.';
+        if (e.code == 'email-already-in-use') {
+          errorMessage =
+              'Email ini sudah terdaftar! Silakan gunakan email lain atau langsung Masuk.';
+        } else if (e.code == 'invalid-email') {
+          errorMessage = 'Format email tidak valid.';
+        }
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(errorMessage),
+            backgroundColor: Colors.redAccent,
+          ),
+        );
+      } catch (e) {
+        if (!mounted) return;
+        setState(() => _isLoading = false);
+
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Email sudah terdaftar! Gunakan email lain.'),
+            content: Text('Terjadi kesalahan sistem, silakan coba lagi.'),
             backgroundColor: Colors.redAccent,
           ),
         );
@@ -210,10 +247,15 @@ class _SignUpScreenState extends State<SignUpScreen> {
                                             color: _primaryGreen),
                                         keyboardType: TextInputType.number,
                                         controller: _ageController,
-                                        validator: (value) =>
-                                            value == null || value.isEmpty
-                                                ? 'Isi umur'
-                                                : null,
+                                        validator: (value) {
+                                          if (value == null || value.isEmpty) {
+                                            return 'Isi umur';
+                                          }
+                                          if (int.tryParse(value) == null) {
+                                            return 'Harus berupa angka';
+                                          }
+                                          return null;
+                                        },
                                       ),
                                     ),
                                     const SizedBox(width: 16),
@@ -272,10 +314,15 @@ class _SignUpScreenState extends State<SignUpScreen> {
                                     onPressed: () => setState(() =>
                                         _obscurePassword = !_obscurePassword),
                                   ),
-                                  validator: (value) =>
-                                      value == null || value.isEmpty
-                                          ? 'Password wajib diisi'
-                                          : null,
+                                  validator: (value) {
+                                    if (value == null || value.isEmpty) {
+                                      return 'Password wajib diisi';
+                                    }
+                                    if (value.length < 6) {
+                                      return 'Password minimal 6 karakter';
+                                    }
+                                    return null;
+                                  },
                                 ),
                                 CustomTextField(
                                   label: 'Konfirmasi Password',
