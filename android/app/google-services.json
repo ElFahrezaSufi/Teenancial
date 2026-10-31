@@ -1,0 +1,54 @@
+{
+  "project_info": {
+    "project_number": "588500823096",
+    "project_id": "teenancial",
+    "storage_bucket": "teenancial.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:588500823096:android:6752dbf9e2700dd42fcacd",
+        "android_client_info": {
+          "package_name": "com.example.teenancial"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "588500823096-g4iqahso572s2ota7qgfb7b1k1men9ff.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.teenancial",
+            "certificate_hash": "8189daa65fbb90c29ec9de995af337f7cc68f8b7"
+          }
+        },
+        {
+          "client_id": "588500823096-t2vc6m1jgjf6hkab1lh1c637l10qjg56.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD1EzkxQGGGX0E5ouZ-DjIjHDcV9-B-_ho"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "588500823096-t2vc6m1jgjf6hkab1lh1c637l10qjg56.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "588500823096-hcf79mj3bc62f7rm37qeqqn1j7fmt6cf.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.teenancial"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
