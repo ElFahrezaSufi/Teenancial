@@ -28,6 +28,7 @@ class UserModel {
     String? passwordHash,
     String? salt,
     String? avatarPath,
+    bool clearAvatar = false,
   }) {
     return UserModel(
       id: id ?? this.id,
@@ -37,7 +38,7 @@ class UserModel {
       gender: gender ?? this.gender,
       passwordHash: passwordHash ?? this.passwordHash,
       salt: salt ?? this.salt,
-      avatarPath: avatarPath ?? this.avatarPath,
+      avatarPath: clearAvatar ? null : (avatarPath ?? this.avatarPath),
     );
   }
 

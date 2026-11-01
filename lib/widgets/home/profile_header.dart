@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import '../../screens/profile_screen.dart';
+import 'package:provider/provider.dart';
+import '../../providers/auth_provider.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_text_styles.dart';
 
@@ -17,6 +18,8 @@ class ProfileHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final avatar = context.watch<AuthProvider>().avatarFile;
+
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
@@ -41,14 +44,14 @@ class ProfileHeader extends StatelessWidget {
                 color: inputBg,
                 shape: BoxShape.circle,
                 border: Border.all(color: primaryGreen, width: 2),
-                image: ProfileScreen.profileImage != null
+                image: avatar != null
                     ? DecorationImage(
-                        image: FileImage(ProfileScreen.profileImage!),
+                        image: FileImage(avatar),
                         fit: BoxFit.cover,
                       )
                     : null,
               ),
-              child: ProfileScreen.profileImage == null
+              child: avatar == null
                   ? const Icon(Icons.person, color: primaryGreen, size: 30)
                   : null,
             ),

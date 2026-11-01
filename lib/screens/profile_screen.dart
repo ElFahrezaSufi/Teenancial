@@ -8,8 +8,6 @@ import '../theme/app_colors.dart';
 import '../widgets/common/custom_card.dart';
 
 class ProfileScreen extends StatefulWidget {
-  static File? profileImage;
-
   const ProfileScreen({super.key});
 
   @override
@@ -76,9 +74,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       final XFile? image = await picker.pickImage(source: ImageSource.gallery);
       if (!mounted) return;
       if (image != null) {
-        setState(() {
-          ProfileScreen.profileImage = File(image.path);
-        });
+        await context.read<AuthProvider>().setAvatar(File(image.path));
       }
     } catch (e) {
       debugPrint("Gagal mengambil gambar: $e");
@@ -111,6 +107,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final File? avatar = context.watch<AuthProvider>().avatarFile;
+
     return Scaffold(
       backgroundColor: scaffoldBg,
       appBar: PreferredSize(
@@ -202,24 +200,23 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             color: inputBg,
                             shape: BoxShape.circle,
                             border: Border.all(color: primaryGreen, width: 2),
-                            image: ProfileScreen.profileImage != null
+                            image: avatar != null
                                 ? DecorationImage(
-                                    image:
-                                        FileImage(ProfileScreen.profileImage!),
+                                    image: FileImage(avatar),
                                     fit: BoxFit.cover,
                                   )
                                 : null,
                           ),
-                          child: ProfileScreen.profileImage == null
+                          child: avatar == null
                               ? const Icon(Icons.person,
                                   color: primaryGreen, size: 60)
                               : null,
                         ),
                         GestureDetector(
                           onTap: _isEditing
-                              ? (ProfileScreen.profileImage != null
-                                  ? () => setState(
-                                      () => ProfileScreen.profileImage = null)
+                              ? (avatar != null
+                                  ? () =>
+                                      context.read<AuthProvider>().removeAvatar()
                                   : _changeProfilePicture)
                               : _startEditing,
                           child: Container(
@@ -227,7 +224,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             height: 32,
                             decoration: BoxDecoration(
                               color: _isEditing
-                                  ? (ProfileScreen.profileImage != null
+                                  ? (avatar != null
                                       ? Colors.redAccent
                                       : const Color(0xFFDAB62C))
                                   : primaryGreen,
@@ -236,7 +233,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             ),
                             child: Icon(
                               _isEditing
-                                  ? (ProfileScreen.profileImage != null
+                                  ? (avatar != null
                                       ? Icons.delete_outline
                                       : Icons.camera_alt)
                                   : Icons.edit,
