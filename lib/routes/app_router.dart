@@ -8,6 +8,7 @@ import '../models/dompet_model.dart';
 import '../models/transaction_model.dart';
 import '../providers/auth_provider.dart' show registrationInProgress;
 import '../services/local_storage_service.dart';
+import 'app_transitions.dart';
 
 import '../screens/buat_target_screen.dart';
 import '../screens/daftar_pinjaman_screen.dart';
@@ -72,23 +73,38 @@ final GoRouter appRouter = GoRouter(
   routes: <RouteBase>[
     GoRoute(
       path: AppRoutes.splash,
-      builder: (context, state) => const SplashScreen(),
+      pageBuilder: (context, state) => AppTransitions.fade(
+        key: state.pageKey,
+        child: const SplashScreen(),
+      ),
     ),
     GoRoute(
       path: AppRoutes.getStarted,
-      builder: (context, state) => const GetStarted(),
+      pageBuilder: (context, state) => AppTransitions.fade(
+        key: state.pageKey,
+        child: const GetStarted(),
+      ),
     ),
     GoRoute(
       path: AppRoutes.login,
-      builder: (context, state) => const LoginScreen(),
+      pageBuilder: (context, state) => AppTransitions.slideUp(
+        key: state.pageKey,
+        child: const LoginScreen(),
+      ),
     ),
     GoRoute(
       path: AppRoutes.signup,
-      builder: (context, state) => const SignUpScreen(),
+      pageBuilder: (context, state) => AppTransitions.slideUp(
+        key: state.pageKey,
+        child: const SignUpScreen(),
+      ),
     ),
     GoRoute(
       path: AppRoutes.forgotPassword,
-      builder: (context, state) => const ForgotPasswordScreen(),
+      pageBuilder: (context, state) => AppTransitions.slideUp(
+        key: state.pageKey,
+        child: const ForgotPasswordScreen(),
+      ),
     ),
     StatefulShellRoute.indexedStack(
       builder: (context, state, navigationShell) {
@@ -99,7 +115,10 @@ final GoRouter appRouter = GoRouter(
           routes: [
             GoRoute(
               path: AppRoutes.home,
-              builder: (context, state) => const HomeScreen(),
+              pageBuilder: (context, state) => AppTransitions.fade(
+                key: state.pageKey,
+                child: const HomeScreen(),
+              ),
             ),
           ],
         ),
@@ -107,7 +126,10 @@ final GoRouter appRouter = GoRouter(
           routes: [
             GoRoute(
               path: AppRoutes.dompet,
-              builder: (context, state) => const DompetScreen(),
+              pageBuilder: (context, state) => AppTransitions.fade(
+                key: state.pageKey,
+                child: const DompetScreen(),
+              ),
             ),
           ],
         ),
@@ -115,7 +137,10 @@ final GoRouter appRouter = GoRouter(
           routes: [
             GoRoute(
               path: AppRoutes.riwayat,
-              builder: (context, state) => const RiwayatScreen(),
+              pageBuilder: (context, state) => AppTransitions.fade(
+                key: state.pageKey,
+                child: const RiwayatScreen(),
+              ),
             ),
           ],
         ),
@@ -123,7 +148,10 @@ final GoRouter appRouter = GoRouter(
           routes: [
             GoRoute(
               path: AppRoutes.profile,
-              builder: (context, state) => const ProfileScreen(),
+              pageBuilder: (context, state) => AppTransitions.fade(
+                key: state.pageKey,
+                child: const ProfileScreen(),
+              ),
             ),
           ],
         ),
@@ -132,76 +160,109 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       parentNavigatorKey: rootNavigatorKey,
       path: AppRoutes.pemasukan,
-      builder: (context, state) {
+      pageBuilder: (context, state) {
         final tx = state.extra is TransactionModel
             ? state.extra as TransactionModel
             : null;
-        return PemasukanScreen(transactionToEdit: tx);
+        return AppTransitions.slideHorizontal(
+          key: state.pageKey,
+          child: PemasukanScreen(transactionToEdit: tx),
+        );
       },
     ),
     GoRoute(
       parentNavigatorKey: rootNavigatorKey,
       path: AppRoutes.pengeluaran,
-      builder: (context, state) {
+      pageBuilder: (context, state) {
         final tx = state.extra is TransactionModel
             ? state.extra as TransactionModel
             : null;
-        return PengeluaranScreen(transactionToEdit: tx);
+        return AppTransitions.slideHorizontal(
+          key: state.pageKey,
+          child: PengeluaranScreen(transactionToEdit: tx),
+        );
       },
     ),
     GoRoute(
       parentNavigatorKey: rootNavigatorKey,
       path: AppRoutes.pinjaman,
-      builder: (context, state) => const PinjamanScreen(),
+      pageBuilder: (context, state) => AppTransitions.slideHorizontal(
+        key: state.pageKey,
+        child: const PinjamanScreen(),
+      ),
     ),
     GoRoute(
       parentNavigatorKey: rootNavigatorKey,
       path: AppRoutes.daftarPinjaman,
-      builder: (context, state) => const DaftarPinjamanScreen(),
+      pageBuilder: (context, state) => AppTransitions.slideHorizontal(
+        key: state.pageKey,
+        child: const DaftarPinjamanScreen(),
+      ),
     ),
     GoRoute(
       parentNavigatorKey: rootNavigatorKey,
       path: AppRoutes.transfer,
-      builder: (context, state) => const TransferScreen(),
+      pageBuilder: (context, state) => AppTransitions.slideHorizontal(
+        key: state.pageKey,
+        child: const TransferScreen(),
+      ),
     ),
     GoRoute(
       parentNavigatorKey: rootNavigatorKey,
       path: AppRoutes.tambahDompet,
-      builder: (context, state) {
+      pageBuilder: (context, state) {
         final item =
             state.extra is DompetItem ? state.extra as DompetItem : null;
-        return TambahDompetScreen(itemToEdit: item);
+        return AppTransitions.slideHorizontal<bool>(
+          key: state.pageKey,
+          child: TambahDompetScreen(itemToEdit: item),
+        );
       },
     ),
     GoRoute(
       parentNavigatorKey: rootNavigatorKey,
       path: AppRoutes.targetMenabung,
-      builder: (context, state) => const TargetMenabungScreen(),
+      pageBuilder: (context, state) => AppTransitions.slideHorizontal(
+        key: state.pageKey,
+        child: const TargetMenabungScreen(),
+      ),
     ),
     GoRoute(
       parentNavigatorKey: rootNavigatorKey,
       path: AppRoutes.buatTarget,
-      builder: (context, state) => const BuatTargetScreen(),
+      pageBuilder: (context, state) => AppTransitions.slideHorizontal(
+        key: state.pageKey,
+        child: const BuatTargetScreen(),
+      ),
     ),
     GoRoute(
       parentNavigatorKey: rootNavigatorKey,
       path: AppRoutes.ruangBelajar,
-      builder: (context, state) => const RuangBelajarScreen(),
+      pageBuilder: (context, state) => AppTransitions.slideHorizontal(
+        key: state.pageKey,
+        child: const RuangBelajarScreen(),
+      ),
     ),
     GoRoute(
       parentNavigatorKey: rootNavigatorKey,
       path: AppRoutes.semuaAktivitas,
-      builder: (context, state) {
+      pageBuilder: (context, state) {
         final filterIndex = state.extra is int
             ? state.extra as int
             : LocalStorageService.instance.riwayatFilterIndex;
-        return SemuaAktivitasScreen(filterIndex: filterIndex);
+        return AppTransitions.slideHorizontal(
+          key: state.pageKey,
+          child: SemuaAktivitasScreen(filterIndex: filterIndex),
+        );
       },
     ),
     GoRoute(
       parentNavigatorKey: rootNavigatorKey,
       path: AppRoutes.tanyaFeen,
-      builder: (context, state) => const TanyaFeenScreen(),
+      pageBuilder: (context, state) => AppTransitions.slideHorizontal(
+        key: state.pageKey,
+        child: const TanyaFeenScreen(),
+      ),
     ),
   ],
 );
