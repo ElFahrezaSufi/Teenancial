@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
+import '../config/app_routes.dart';
 import '../models/dompet_model.dart';
 import '../providers/dompet_provider.dart';
 import '../theme/app_colors.dart';
 import '../widgets/common/custom_card.dart';
 import '../widgets/common/skeleton.dart';
-import 'tambah_dompet_screen.dart';
 
 class DompetScreen extends StatelessWidget {
   const DompetScreen({super.key});
@@ -14,10 +15,7 @@ class DompetScreen extends StatelessWidget {
     BuildContext context, [
     DompetItem? item,
   ]) async {
-    await Navigator.push<bool>(
-      context,
-      MaterialPageRoute(builder: (_) => TambahDompetScreen(itemToEdit: item)),
-    );
+    await context.push<bool>(AppRoutes.tambahDompet, extra: item);
   }
 
   Widget _buildLoading() {

@@ -3,9 +3,11 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
+import '../config/app_routes.dart';
 import '../models/user_model.dart';
 import '../providers/auth_provider.dart';
 import '../providers/user_provider.dart';
+import '../services/local_storage_service.dart';
 import '../theme/app_colors.dart';
 import '../widgets/common/custom_card.dart';
 
@@ -161,9 +163,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
     setState(() => _isSaving = true);
     _pendingImageFile = null;
     _removeExistingImage = false;
+    await LocalStorageService.instance.setHasSeenGetStarted(true);
+    if (!mounted) return;
     await context.read<AuthProvider>().logout();
     if (!mounted) return;
-    context.go('/get_started');
+    context.go(AppRoutes.login);
   }
 
   void _handleBackButton() {
@@ -176,7 +180,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if (context.canPop()) {
       context.pop();
     } else {
-      context.go('/home');
+      context.go(AppRoutes.home);
     }
   }
 

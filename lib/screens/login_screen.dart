@@ -1,11 +1,13 @@
+import 'package:firebase_auth/firebase_auth.dart' hide AuthProvider;
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
-import 'package:firebase_auth/firebase_auth.dart' hide AuthProvider;
 import 'package:provider/provider.dart';
+import '../config/app_routes.dart';
 import '../providers/auth_provider.dart';
-import '../widgets/common/custom_text_field.dart';
+import '../services/local_storage_service.dart';
 import '../widgets/common/custom_card.dart';
+import '../widgets/common/custom_text_field.dart';
 
 const Color _primaryGreen = Color(0xFF637932);
 const Color _darkGreen = Color(0xFF415020);
@@ -43,6 +45,7 @@ class _LoginScreenState extends State<LoginScreen> {
               _emailController.text.trim(),
               _passwordController.text,
             );
+        await LocalStorageService.instance.setHasSeenGetStarted(true);
 
         if (!mounted) return;
         setState(() => _isLoading = false);
@@ -53,7 +56,7 @@ class _LoginScreenState extends State<LoginScreen> {
             backgroundColor: _primaryGreen,
           ),
         );
-        context.go('/home');
+        context.go(AppRoutes.home);
       } on FirebaseAuthException catch (e) {
         if (!mounted) return;
         setState(() => _isLoading = false);
@@ -99,6 +102,10 @@ class _LoginScreenState extends State<LoginScreen> {
       final bool signedIn =
           await context.read<AuthProvider>().signInWithGoogle();
 
+      if (signedIn) {
+        await LocalStorageService.instance.setHasSeenGetStarted(true);
+      }
+
       if (!mounted) return;
       setState(() => _isLoading = false);
 
@@ -109,7 +116,7 @@ class _LoginScreenState extends State<LoginScreen> {
             backgroundColor: _primaryGreen,
           ),
         );
-        context.go('/home');
+        context.go(AppRoutes.home);
       }
     } catch (e) {
       if (!mounted) return;
@@ -149,7 +156,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 child: GestureDetector(
                   onVerticalDragEnd: (details) {
                     if ((details.primaryVelocity ?? 0) > 100) {
-                      context.go('/get_started');
+                      context.go(AppRoutes.getStarted);
                     }
                   },
                   child: Container(
@@ -162,7 +169,11 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                     ),
                     padding: const EdgeInsets.only(
-                        left: 2, top: 6, right: 2, bottom: 0),
+                      left: 2,
+                      top: 6,
+                      right: 2,
+                      bottom: 0,
+                    ),
                     child: Container(
                       decoration: const BoxDecoration(
                         color: _fieldBg,
@@ -182,14 +193,16 @@ class _LoginScreenState extends State<LoginScreen> {
                               children: [
                                 Center(
                                   child: GestureDetector(
-                                    onTap: () => context.go('/get_started'),
+                                    onTap: () =>
+                                        context.go(AppRoutes.getStarted),
                                     child: Container(
                                       width: 80,
                                       height: 5,
                                       margin: const EdgeInsets.only(bottom: 24),
                                       decoration: BoxDecoration(
                                         color: _primaryGreen.withValues(
-                                            alpha: 0.5),
+                                          alpha: 0.5,
+                                        ),
                                         borderRadius:
                                             BorderRadius.circular(100),
                                       ),
@@ -205,7 +218,8 @@ class _LoginScreenState extends State<LoginScreen> {
                                       height: 120,
                                       child: Center(
                                         child: CircularProgressIndicator(
-                                            color: _primaryGreen),
+                                          color: _primaryGreen,
+                                        ),
                                       ),
                                     ),
                                   ),
@@ -236,8 +250,10 @@ class _LoginScreenState extends State<LoginScreen> {
                                 CustomTextField(
                                   label: 'Email',
                                   hint: 'eg.nama@gmail.com',
-                                  prefixIcon: const Icon(Icons.email_outlined,
-                                      color: _primaryGreen),
+                                  prefixIcon: const Icon(
+                                    Icons.email_outlined,
+                                    color: _primaryGreen,
+                                  ),
                                   keyboardType: TextInputType.emailAddress,
                                   controller: _emailController,
                                   validator: (value) {
@@ -253,8 +269,10 @@ class _LoginScreenState extends State<LoginScreen> {
                                 CustomTextField(
                                   label: 'Password',
                                   hint: '********',
-                                  prefixIcon: const Icon(Icons.lock_outline,
-                                      color: _primaryGreen),
+                                  prefixIcon: const Icon(
+                                    Icons.lock_outline,
+                                    color: _primaryGreen,
+                                  ),
                                   obscureText: _obscurePassword,
                                   controller: _passwordController,
                                   suffixIcon: IconButton(
@@ -266,8 +284,10 @@ class _LoginScreenState extends State<LoginScreen> {
                                       size: 20,
                                     ),
                                     onPressed: () {
-                                      setState(() =>
-                                          _obscurePassword = !_obscurePassword);
+                                      setState(
+                                        () => _obscurePassword =
+                                            !_obscurePassword,
+                                      );
                                     },
                                   ),
                                   validator: (value) {
@@ -282,20 +302,23 @@ class _LoginScreenState extends State<LoginScreen> {
                                   child: TextButton(
                                     style: TextButton.styleFrom(
                                       padding: const EdgeInsets.only(
-                                          top: 0, bottom: 16),
+                                        top: 0,
+                                        bottom: 16,
+                                      ),
                                       minimumSize: const Size(0, 0),
                                       tapTargetSize:
                                           MaterialTapTargetSize.shrinkWrap,
                                     ),
                                     onPressed: () =>
-                                        context.go('/forgot_password'),
+                                        context.go(AppRoutes.forgotPassword),
                                     child: const Text(
                                       'Lupa Password?',
                                       style: TextStyle(
-                                          color: _primaryGreen,
-                                          fontSize: 13,
-                                          fontFamily: 'Inter',
-                                          fontWeight: FontWeight.w600),
+                                        color: _primaryGreen,
+                                        fontSize: 13,
+                                        fontFamily: 'Inter',
+                                        fontWeight: FontWeight.w600,
+                                      ),
                                     ),
                                   ),
                                 ),
@@ -306,8 +329,8 @@ class _LoginScreenState extends State<LoginScreen> {
                                     style: ElevatedButton.styleFrom(
                                       backgroundColor: _primaryGreen,
                                       shape: RoundedRectangleBorder(
-                                          borderRadius:
-                                              BorderRadius.circular(12)),
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
                                       elevation: 0,
                                     ),
                                     child: _isLoading
@@ -322,10 +345,11 @@ class _LoginScreenState extends State<LoginScreen> {
                                         : const Text(
                                             'Masuk',
                                             style: TextStyle(
-                                                color: _fieldBg,
-                                                fontSize: 16,
-                                                fontFamily: 'Inter',
-                                                fontWeight: FontWeight.w700),
+                                              color: _fieldBg,
+                                              fontSize: 16,
+                                              fontFamily: 'Inter',
+                                              fontWeight: FontWeight.w700,
+                                            ),
                                           ),
                                   ),
                                 ),
@@ -335,7 +359,8 @@ class _LoginScreenState extends State<LoginScreen> {
                                     Expanded(
                                       child: Divider(
                                         color: _primaryGreen.withValues(
-                                            alpha: 0.3),
+                                          alpha: 0.3,
+                                        ),
                                         thickness: 1.5,
                                         endIndent: 12,
                                       ),
@@ -343,15 +368,17 @@ class _LoginScreenState extends State<LoginScreen> {
                                     const Text(
                                       'Atau masuk dengan',
                                       style: TextStyle(
-                                          color: _primaryGreen,
-                                          fontSize: 13,
-                                          fontFamily: 'Inter',
-                                          fontWeight: FontWeight.w600),
+                                        color: _primaryGreen,
+                                        fontSize: 13,
+                                        fontFamily: 'Inter',
+                                        fontWeight: FontWeight.w600,
+                                      ),
                                     ),
                                     Expanded(
                                       child: Divider(
                                         color: _primaryGreen.withValues(
-                                            alpha: 0.3),
+                                          alpha: 0.3,
+                                        ),
                                         thickness: 1.5,
                                         indent: 12,
                                       ),
@@ -366,24 +393,28 @@ class _LoginScreenState extends State<LoginScreen> {
                                 const SizedBox(height: 32),
                                 Center(
                                   child: GestureDetector(
-                                    onTap: () => context.go('/signup'),
+                                    onTap: () => context.go(AppRoutes.signup),
                                     child: const Text.rich(
                                       TextSpan(
                                         children: [
                                           TextSpan(
-                                              text: 'Belum punya akun? ',
-                                              style: TextStyle(
-                                                  color: _primaryGreen,
-                                                  fontSize: 14,
-                                                  fontFamily: 'Inter',
-                                                  fontWeight: FontWeight.w600)),
+                                            text: 'Belum punya akun? ',
+                                            style: TextStyle(
+                                              color: _primaryGreen,
+                                              fontSize: 14,
+                                              fontFamily: 'Inter',
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                          ),
                                           TextSpan(
-                                              text: 'Daftar',
-                                              style: TextStyle(
-                                                  color: _darkGreen,
-                                                  fontSize: 14,
-                                                  fontFamily: 'Inter',
-                                                  fontWeight: FontWeight.w800)),
+                                            text: 'Daftar',
+                                            style: TextStyle(
+                                              color: _darkGreen,
+                                              fontSize: 14,
+                                              fontFamily: 'Inter',
+                                              fontWeight: FontWeight.w800,
+                                            ),
+                                          ),
                                         ],
                                       ),
                                       textAlign: TextAlign.center,
@@ -433,10 +464,11 @@ class _GoogleLoginButton extends StatelessWidget {
               const Text(
                 'Google',
                 style: TextStyle(
-                    color: Color(0xFF637932),
-                    fontSize: 16,
-                    fontFamily: 'Inter',
-                    fontWeight: FontWeight.w700),
+                  color: Color(0xFF637932),
+                  fontSize: 16,
+                  fontFamily: 'Inter',
+                  fontWeight: FontWeight.w700,
+                ),
               ),
             ],
           ),

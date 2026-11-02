@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
+import '../config/app_routes.dart';
 import '../models/transaction_model.dart';
 import '../providers/transaction_provider.dart';
 import '../theme/app_colors.dart';
 import '../widgets/transaction/transaction_group.dart';
-import 'pemasukan_screen.dart';
-import 'pengeluaran_screen.dart';
 import 'riwayat_screen.dart';
 
 class SemuaAktivitasScreen extends StatelessWidget {
@@ -74,14 +74,10 @@ class SemuaAktivitasScreen extends StatelessWidget {
         item.type != TransactionType.expense) {
       return;
     }
-    await Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => item.type == TransactionType.income
-            ? PemasukanScreen(transactionToEdit: item)
-            : PengeluaranScreen(transactionToEdit: item),
-      ),
-    );
+    final route = item.type == TransactionType.income
+        ? AppRoutes.pemasukan
+        : AppRoutes.pengeluaran;
+    await context.push(route, extra: item);
   }
 
   @override
@@ -126,7 +122,7 @@ class SemuaAktivitasScreen extends StatelessWidget {
                       color: primaryGreen,
                       size: 20,
                     ),
-                    onPressed: () => Navigator.pop(context, true),
+                    onPressed: () => context.pop(true),
                   ),
                 ),
               ],

@@ -1,17 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+import '../config/app_routes.dart';
 import '../models/transaction_model.dart';
 import '../providers/transaction_provider.dart';
+import '../services/local_storage_service.dart';
 import '../theme/app_colors.dart';
 import '../widgets/common/custom_card.dart';
 import '../widgets/common/custom_filter_chip.dart';
 import '../widgets/common/skeleton.dart';
 import '../widgets/transaction/transaction_group.dart';
 import '../widgets/transaction/trend_chart_painter.dart';
-import 'pemasukan_screen.dart';
-import 'pengeluaran_screen.dart';
-import 'semua_aktivitas_screen.dart';
 
 class RiwayatScreen extends StatefulWidget {
   const RiwayatScreen({super.key});
@@ -68,6 +68,18 @@ class RiwayatScreen extends StatefulWidget {
 class _RiwayatScreenState extends State<RiwayatScreen> {
   int _selectedFilter = 0; // 0: Mingguan, 1: Bulanan, 2: Tahunan
 
+  @override
+  void initState() {
+    super.initState();
+    _selectedFilter = LocalStorageService.instance.riwayatFilterIndex;
+  }
+
+  void _setFilter(int index) {
+    if (_selectedFilter == index) return;
+    setState(() => _selectedFilter = index);
+    LocalStorageService.instance.setRiwayatFilterIndex(index);
+  }
+
   Future<void> _deleteTransaction(String id) async {
     final bool? confirm = await showDialog<bool>(
       context: context,
@@ -123,14 +135,10 @@ class _RiwayatScreenState extends State<RiwayatScreen> {
         item.type != TransactionType.expense) {
       return;
     }
-    await Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => item.type == TransactionType.income
-            ? PemasukanScreen(transactionToEdit: item)
-            : PengeluaranScreen(transactionToEdit: item),
-      ),
-    );
+    final route = item.type == TransactionType.income
+        ? AppRoutes.pemasukan
+        : AppRoutes.pengeluaran;
+    await context.push(route, extra: item);
   }
 
   PreferredSizeWidget _buildAppBar() {
@@ -344,19 +352,19 @@ class _RiwayatScreenState extends State<RiwayatScreen> {
                           CustomFilterChip(
                             label: 'Mingguan',
                             selected: _selectedFilter == 0,
-                            onTap: () => setState(() => _selectedFilter = 0),
+                            onTap: () => _setFilter(0),
                           ),
                           const SizedBox(width: 8),
                           CustomFilterChip(
                             label: 'Bulanan',
                             selected: _selectedFilter == 1,
-                            onTap: () => setState(() => _selectedFilter = 1),
+                            onTap: () => _setFilter(1),
                           ),
                           const SizedBox(width: 8),
                           CustomFilterChip(
                             label: 'Tahunan',
                             selected: _selectedFilter == 2,
-                            onTap: () => setState(() => _selectedFilter = 2),
+                            onTap: () => _setFilter(2),
                           ),
                         ],
                       ),
@@ -418,16 +426,10 @@ class _RiwayatScreenState extends State<RiwayatScreen> {
                               ),
                             ),
                             GestureDetector(
-                              onTap: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (_) => SemuaAktivitasScreen(
-                                      filterIndex: _selectedFilter,
-                                    ),
-                                  ),
-                                );
-                              },
+                              onTap: () => context.push(
+                                AppRoutes.semuaAktivitas,
+                                extra: _selectedFilter,
+                              ),
                               child: const Text(
                                 'Lihat semua',
                                 style: TextStyle(

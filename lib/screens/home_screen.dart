@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
+import '../config/app_routes.dart';
 import '../models/target_model.dart';
 import '../providers/belajar_provider.dart';
 import '../providers/dompet_provider.dart';
@@ -7,17 +9,6 @@ import '../providers/target_provider.dart';
 import '../providers/transaction_provider.dart';
 import '../providers/user_provider.dart';
 import '../theme/app_colors.dart';
-
-import 'buat_target_screen.dart';
-import 'daftar_pinjaman_screen.dart';
-import 'pemasukan_screen.dart';
-import 'pengeluaran_screen.dart';
-import 'pinjaman_screen.dart';
-import 'profile_screen.dart';
-import 'ruang_belajar_screen.dart';
-import 'tanya_feen_screen.dart';
-import 'target_menabung_screen.dart';
-import 'transfer_screen.dart';
 
 import '../widgets/home/action_menu.dart';
 import '../widgets/home/belajar_card.dart';
@@ -81,12 +72,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _tambahTargetData() async {
-    await Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => const BuatTargetScreen(),
-      ),
-    );
+    await context.push(AppRoutes.buatTarget);
   }
 
   String _formatRupiah(double value) {
@@ -149,14 +135,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             displayName: userProvider.displayName,
                             level: level,
                             imageUrl: userProvider.profileImageUrl,
-                            onProfileTap: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => const ProfileScreen(),
-                                ),
-                              );
-                            },
+                            onProfileTap: () => context.go(AppRoutes.profile),
                           ),
                           const SizedBox(height: 16),
 
@@ -180,43 +159,24 @@ class _HomeScreenState extends State<HomeScreen> {
                               ActionMenu(
                                 assetPath: 'assets/images/pemasukan.svg',
                                 label: 'Pemasukan',
-                                onTap: () => Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (_) => const PemasukanScreen(),
-                                  ),
-                                ),
+                                onTap: () => context.push(AppRoutes.pemasukan),
                               ),
                               ActionMenu(
                                 assetPath: 'assets/images/pengeluaran.svg',
                                 label: 'Pengeluaran',
-                                onTap: () => Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (_) => const PengeluaranScreen(),
-                                  ),
-                                ),
+                                onTap: () =>
+                                    context.push(AppRoutes.pengeluaran),
                               ),
                               ActionMenu(
                                 assetPath: 'assets/images/pinjaman.svg',
                                 label: 'Pinjaman',
-                                onTap: () => Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (_) => const PinjamanScreen(),
-                                  ),
-                                ),
+                                onTap: () => context.push(AppRoutes.pinjaman),
                               ),
                               ActionMenu(
                                 assetPath: 'assets/images/transfer.png',
                                 label: 'Transfer',
                                 iconPadding: const EdgeInsets.only(left: 4.0),
-                                onTap: () => Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (_) => const TransferScreen(),
-                                  ),
-                                ),
+                                onTap: () => context.push(AppRoutes.transfer),
                               ),
                             ],
                           ),
@@ -226,12 +186,8 @@ class _HomeScreenState extends State<HomeScreen> {
                           SectionHeader(
                             title: 'Target Menabung',
                             actionText: 'Lihat Semua',
-                            onActionTap: () => Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => const TargetMenabungScreen(),
-                              ),
-                            ),
+                            onActionTap: () =>
+                                context.push(AppRoutes.targetMenabung),
                           ),
                           const SizedBox(height: 12),
 
@@ -247,22 +203,13 @@ class _HomeScreenState extends State<HomeScreen> {
                           SectionHeader(
                             title: 'Daftar Pinjaman',
                             actionText: 'Lihat Semua',
-                            onActionTap: () => Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => const DaftarPinjamanScreen(),
-                              ),
-                            ),
+                            onActionTap: () =>
+                                context.push(AppRoutes.daftarPinjaman),
                           ),
                           const SizedBox(height: 12),
                           PinjamanHome(
                             formatRupiah: _formatRupiah,
-                            onTap: () => Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => const DaftarPinjamanScreen(),
-                              ),
-                            ),
+                            onTap: () => context.push(AppRoutes.daftarPinjaman),
                           ),
                           const SizedBox(height: 24),
 
@@ -270,21 +217,12 @@ class _HomeScreenState extends State<HomeScreen> {
                           SectionHeader(
                             title: 'Ruang Belajar',
                             actionText: 'Lihat Semua',
-                            onActionTap: () => Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => const RuangBelajarScreen(),
-                              ),
-                            ),
+                            onActionTap: () =>
+                                context.push(AppRoutes.ruangBelajar),
                           ),
                           const SizedBox(height: 12),
                           GestureDetector(
-                            onTap: () => Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => const RuangBelajarScreen(),
-                              ),
-                            ),
+                            onTap: () => context.push(AppRoutes.ruangBelajar),
                             child: const BelajarCard(),
                           ),
                           const SizedBox(height: 120),
@@ -334,12 +272,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   }
                 });
               },
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const TanyaFeenScreen()),
-                );
-              },
+              onTap: () => context.push(AppRoutes.tanyaFeen),
               child: Column(
                 children: [
                   Container(

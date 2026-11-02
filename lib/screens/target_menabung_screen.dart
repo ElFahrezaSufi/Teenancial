@@ -1,23 +1,19 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
+import '../config/app_routes.dart';
 import '../models/target_model.dart';
 import '../providers/dompet_provider.dart';
 import '../providers/target_provider.dart';
 import '../theme/app_colors.dart';
 import '../widgets/common/custom_card.dart';
-import 'buat_target_screen.dart';
 
 class TargetMenabungScreen extends StatelessWidget {
   const TargetMenabungScreen({super.key});
 
   Future<void> _navigasiDanTambahData(BuildContext context) async {
-    await Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => const BuatTargetScreen(),
-      ),
-    );
+    await context.push(AppRoutes.buatTarget);
   }
 
   String _formatRupiah(double value) {
@@ -96,7 +92,7 @@ class TargetMenabungScreen extends StatelessWidget {
                         color: primaryGreen,
                         size: 20,
                       ),
-                      onPressed: () => Navigator.pop(context),
+                      onPressed: () => context.pop(),
                     ),
                   ),
                 ),
