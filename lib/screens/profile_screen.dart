@@ -531,7 +531,7 @@ class _EditableDropdownField extends StatelessWidget {
             backgroundColor: isEditing ? Colors.white : inputBg,
             child: isEditing
                 ? DropdownButtonFormField<String>(
-                    value:
+                    initialValue:
                         (value != null && items.contains(value)) ? value : null,
                     items: items.map((String item) {
                       return DropdownMenuItem<String>(

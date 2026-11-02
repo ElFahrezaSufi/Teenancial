@@ -67,45 +67,89 @@ class AuthRepository {
 
   Future<UserCredential?> signInWithGoogle() async {
     try {
-      await _ensureGoogleInitialized();
-      final GoogleSignInAccount googleUser =
-          await GoogleSignIn.instance.authenticate();
+      final UserCredential userCredential;
 
-      final googleAuth = googleUser.authentication;
-      final credential = GoogleAuthProvider.credential(
-        idToken: googleAuth.idToken,
-      );
+      if (kIsWeb) {
+        userCredential = await _auth.signInWithPopup(GoogleAuthProvider());
+      } else {
+        await _ensureGoogleInitialized();
+        final GoogleSignInAccount googleUser =
+            await GoogleSignIn.instance.authenticate();
 
-      final userCredential = await _auth.signInWithCredential(credential);
+        final googleAuth = googleUser.authentication;
+        if (googleAuth.idToken == null) {
+          throw Exception(
+            'Token autentikasi Google (idToken) tidak ditemukan.',
+          );
+        }
+
+        final credential = GoogleAuthProvider.credential(
+          idToken: googleAuth.idToken,
+        );
+        userCredential = await _auth.signInWithCredential(credential);
+      }
+
       final user = userCredential.user;
+      if (user != null) {
+        final userDocRef = _firestore.collection('users').doc(user.uid);
+        final isNewUser =
+            userCredential.additionalUserInfo?.isNewUser == true;
 
-      if (user != null &&
-          userCredential.additionalUserInfo?.isNewUser == true) {
-        await _firestore.collection('users').doc(user.uid).set({
-          'uid': user.uid,
-          'email': user.email,
-          'name': user.displayName ?? 'Pengguna Baru',
-          'age': '',
-          'gender': '',
-          'createdAt': FieldValue.serverTimestamp(),
-        });
+        if (isNewUser || !(await userDocRef.get()).exists) {
+          await userDocRef.set({
+            'uid': user.uid,
+            'email': user.email,
+            'name': user.displayName ?? 'Pengguna Baru',
+            'age': '',
+            'gender': '',
+            if (user.photoURL != null && user.photoURL!.isNotEmpty)
+              'profileImageUrl': user.photoURL,
+            'createdAt': FieldValue.serverTimestamp(),
+          });
+        }
       }
 
       return userCredential;
     } on GoogleSignInException catch (e) {
-      if (e.code == GoogleSignInExceptionCode.canceled) return null;
-      debugPrint("Error Login Google: $e");
-      throw Exception('Gagal masuk dengan Google: $e');
+      if (e.code == GoogleSignInExceptionCode.canceled) {
+        debugPrint(
+          'Login Google dibatalkan / ditolak Credential Manager: '
+          '${e.description ?? e.code.name}',
+        );
+        return null;
+      }
+      debugPrint('Error Login Google (${e.code.name}): ${e.description}');
+      throw Exception('Gagal masuk dengan Google: ${e.description ?? e}');
+    } on FirebaseAuthException catch (e) {
+      if (kIsWeb &&
+          (e.code == 'popup-closed-by-user' ||
+              e.code == 'cancelled-popup-request')) {
+        debugPrint('Popup Login Google ditutup oleh pengguna.');
+        return null;
+      }
+      debugPrint('Error Firebase Login Google (${e.code}): ${e.message}');
+      throw Exception('Gagal masuk dengan Google: ${e.message ?? e.code}');
     } catch (e) {
-      debugPrint("Error Login Google: $e");
+      debugPrint('Error Login Google: $e');
       throw Exception('Gagal masuk dengan Google: $e');
     }
   }
 
   Future<void> logout() async {
-    try {
-      await GoogleSignIn.instance.signOut();
-    } catch (_) {}
+    final bool isGoogleUser = _auth.currentUser?.providerData.any(
+          (info) => info.providerId == GoogleAuthProvider.PROVIDER_ID,
+        ) ??
+        false;
+
+    if (!kIsWeb && (isGoogleUser || _googleInit != null)) {
+      try {
+        await _ensureGoogleInitialized();
+        await GoogleSignIn.instance.signOut();
+      } catch (e) {
+        debugPrint('Gagal membersihkan sesi Google Sign-In: $e');
+      }
+    }
+
     await _auth.signOut();
   }
 }
