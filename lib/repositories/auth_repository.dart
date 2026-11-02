@@ -46,6 +46,7 @@ class AuthRepository {
           'age': age.trim(),
           'gender': gender.trim(),
           'walletSeeded': true,
+          'legacyFinanceSeeded': true,
           'completedModules': <String>[],
           'completedQuizzes': <String>[],
           'createdAt': FieldValue.serverTimestamp(),
@@ -127,6 +128,7 @@ class AuthRepository {
             if (user.photoURL != null && user.photoURL!.isNotEmpty)
               'profileImageUrl': user.photoURL,
             'walletSeeded': true,
+            'legacyFinanceSeeded': true,
             'completedModules': <String>[],
             'completedQuizzes': <String>[],
             'createdAt': FieldValue.serverTimestamp(),
