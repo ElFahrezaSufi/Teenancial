@@ -1,7 +1,8 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../data/target_model.dart';
-import '../repositories/dompet_repository.dart';
+import '../providers/dompet_provider.dart';
 import '../theme/app_colors.dart';
 import '../widgets/common/custom_card.dart';
 import 'buat_target_screen.dart';
@@ -27,7 +28,8 @@ class _TargetMenabungScreenState extends State<TargetMenabungScreen> {
     if (result != null) {
       setState(() {
         double harga = double.tryParse(
-                result['harga'].toString().replaceAll(RegExp(r'[^0-9]'), '')) ??
+              result['harga'].toString().replaceAll(RegExp(r'[^0-9]'), ''),
+            ) ??
             0.0;
 
         _data.items.add(
@@ -54,6 +56,8 @@ class _TargetMenabungScreenState extends State<TargetMenabungScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final saldoSekarang = context.watch<DompetProvider>().totalSaldo;
+
     return Scaffold(
       backgroundColor: scaffoldBg,
       appBar: PreferredSize(
@@ -73,8 +77,11 @@ class _TargetMenabungScreenState extends State<TargetMenabungScreen> {
                   child: Padding(
                     padding: const EdgeInsets.only(left: 8.0),
                     child: IconButton(
-                      icon: const Icon(Icons.arrow_back_ios,
-                          color: primaryGreen, size: 20),
+                      icon: const Icon(
+                        Icons.arrow_back_ios,
+                        color: primaryGreen,
+                        size: 20,
+                      ),
                       onPressed: () => Navigator.pop(context),
                     ),
                   ),
@@ -117,10 +124,12 @@ class _TargetMenabungScreenState extends State<TargetMenabungScreen> {
                   if (_data.items.isEmpty)
                     _buildEmptyState()
                   else
-                    ..._data.items.map((item) => Padding(
-                          padding: const EdgeInsets.only(bottom: 24.0),
-                          child: _buildTargetCard(item),
-                        )),
+                    ..._data.items.map(
+                      (item) => Padding(
+                        padding: const EdgeInsets.only(bottom: 24.0),
+                        child: _buildTargetCard(item, saldoSekarang),
+                      ),
+                    ),
                 ],
               ),
             ),
@@ -135,7 +144,8 @@ class _TargetMenabungScreenState extends State<TargetMenabungScreen> {
                 backgroundColor: primaryGreen,
                 elevation: 4,
                 shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(100)),
+                  borderRadius: BorderRadius.circular(100),
+                ),
                 child: const Icon(Icons.add, color: Colors.white, size: 30),
               ),
             )
@@ -208,8 +218,7 @@ class _TargetMenabungScreenState extends State<TargetMenabungScreen> {
     );
   }
 
-  Widget _buildTargetCard(TargetItem item) {
-    final double saldoSekarang = DompetRepository.instance.totalSaldo;
+  Widget _buildTargetCard(TargetItem item, double saldoSekarang) {
     final double progress = item.targetAmount > 0
         ? (saldoSekarang / item.targetAmount).clamp(0.0, 1.0)
         : 0.0;
@@ -237,10 +246,10 @@ class _TargetMenabungScreenState extends State<TargetMenabungScreen> {
                   width: double.infinity,
                   fit: BoxFit.cover,
                   errorBuilder: (context, error, stackTrace) => Container(
-                      height: 160,
-                      color: Colors.grey[300],
-                      child:
-                          const Icon(Icons.broken_image, color: Colors.grey)),
+                    height: 160,
+                    color: Colors.grey[300],
+                    child: const Icon(Icons.broken_image, color: Colors.grey),
+                  ),
                 ),
               ),
               Positioned(
@@ -250,36 +259,53 @@ class _TargetMenabungScreenState extends State<TargetMenabungScreen> {
                   width: 36,
                   height: 36,
                   decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.9),
-                      shape: BoxShape.circle,
-                      boxShadow: const [
-                        BoxShadow(
-                            color: Colors.black12,
-                            blurRadius: 4,
-                            offset: Offset(0, 2))
-                      ]),
+                    color: Colors.white.withValues(alpha: 0.9),
+                    shape: BoxShape.circle,
+                    boxShadow: const [
+                      BoxShadow(
+                        color: Colors.black12,
+                        blurRadius: 4,
+                        offset: Offset(0, 2),
+                      ),
+                    ],
+                  ),
                   child: PopupMenuButton<String>(
                     padding: EdgeInsets.zero,
-                    icon: const Icon(Icons.more_vert,
-                        color: primaryGreen, size: 20),
+                    icon: const Icon(
+                      Icons.more_vert,
+                      color: primaryGreen,
+                      size: 20,
+                    ),
                     color: appBarBg,
                     shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12)),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                     onSelected: (value) async {
                       if (value == 'delete') {
                         final bool? confirm = await showDialog<bool>(
                           context: context,
                           builder: (ctx) => AlertDialog(
-                            title: const Text('Hapus Target', style: TextStyle(color: primaryGreen)),
-                            content: const Text('Apakah Anda yakin ingin menghapus target ini?'),
+                            title: const Text(
+                              'Hapus Target',
+                              style: TextStyle(color: primaryGreen),
+                            ),
+                            content: const Text(
+                              'Apakah Anda yakin ingin menghapus target ini?',
+                            ),
                             actions: [
                               TextButton(
                                 onPressed: () => Navigator.pop(ctx, false),
-                                child: const Text('Batal', style: TextStyle(color: Colors.grey)),
+                                child: const Text(
+                                  'Batal',
+                                  style: TextStyle(color: Colors.grey),
+                                ),
                               ),
                               TextButton(
                                 onPressed: () => Navigator.pop(ctx, true),
-                                child: const Text('Hapus', style: TextStyle(color: Colors.red)),
+                                child: const Text(
+                                  'Hapus',
+                                  style: TextStyle(color: Colors.red),
+                                ),
                               ),
                             ],
                           ),
@@ -299,10 +325,13 @@ class _TargetMenabungScreenState extends State<TargetMenabungScreen> {
                           children: [
                             Icon(Icons.delete_outline, color: Colors.red),
                             SizedBox(width: 8),
-                            Text('Hapus Target',
-                                style: TextStyle(
-                                    color: Colors.red,
-                                    fontWeight: FontWeight.w600)),
+                            Text(
+                              'Hapus Target',
+                              style: TextStyle(
+                                color: Colors.red,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
                           ],
                         ),
                       ),

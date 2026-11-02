@@ -1,15 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../data/category_catalog.dart';
+import '../models/dompet_model.dart';
+import '../models/transaction_model.dart';
+import '../providers/dompet_provider.dart';
+import '../providers/transaction_provider.dart';
 import '../theme/app_colors.dart';
 import '../utils/currency_formatter.dart';
-import '../widgets/common/custom_text_field.dart';
 import '../widgets/common/custom_dropdown_field.dart';
+import '../widgets/common/custom_text_field.dart';
 import '../widgets/common/primary_button.dart';
 import '../widgets/transaction/dompet_selection_dropdown.dart';
 import '../widgets/transaction/transaction_scaffold.dart';
-import '../data/transaction_model.dart';
-import '../data/dompet_model.dart';
-import '../repositories/transaction_repository.dart';
-import '../repositories/dompet_repository.dart';
 
 class PemasukanScreen extends StatefulWidget {
   final TransactionModel? transactionToEdit;
@@ -27,41 +29,31 @@ class _PemasukanScreenState extends State<PemasukanScreen> {
 
   String? _selectedDompetId;
   String? _selectedCategoryId;
-
   bool _isLoading = false;
-  bool _isFetchingDompets = true;
-  late List<CategoryModel> _incomeCategories;
-  List<DompetItem> _dompets = [];
+
+  late final List<CategoryModel> _incomeCategories;
 
   @override
   void initState() {
     super.initState();
-    _incomeCategories = TransactionRepository.instance
-        .getCategoriesByType(TransactionType.income);
-    _fetchDompets();
-  }
+    _incomeCategories = CategoryCatalog.getByType(TransactionType.income);
 
-  Future<void> _fetchDompets() async {
-    try {
-      final dompets = await DompetRepository.instance.getDompets();
-      setState(() {
-        _dompets = dompets;
-        _isFetchingDompets = false;
-        
-        if (widget.transactionToEdit != null) {
-          final t = widget.transactionToEdit!;
-          _jumlahController.text =
-              CurrencyInputFormatter.formatValue(t.amount.toStringAsFixed(0));
-          _catatanController.text = t.notes;
-          _selectedCategoryId = t.categoryId;
-          _selectedDompetId = t.dompetId;
-        } else if (dompets.isNotEmpty) {
-           _selectedDompetId = dompets.first.id;
-        }
-      });
-    } catch (e) {
-      setState(() => _isFetchingDompets = false);
+    if (widget.transactionToEdit != null) {
+      final t = widget.transactionToEdit!;
+      _jumlahController.text =
+          CurrencyInputFormatter.formatValue(t.amount.toStringAsFixed(0));
+      _catatanController.text = t.notes;
+      _selectedCategoryId = t.categoryId;
+      _selectedDompetId = t.dompetId;
     }
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final dompetProvider = context.read<DompetProvider>();
+      if (dompetProvider.items.isEmpty && !dompetProvider.isLoading) {
+        dompetProvider.loadDompets();
+      }
+    });
   }
 
   @override
@@ -71,13 +63,22 @@ class _PemasukanScreenState extends State<PemasukanScreen> {
     super.dispose();
   }
 
+  void _ensureDefaultDompetSelected(List<DompetItem> dompets) {
+    if (dompets.isEmpty) return;
+    if (_selectedDompetId == null ||
+        !dompets.any((d) => d.id == _selectedDompetId)) {
+      _selectedDompetId = dompets.first.id;
+    }
+  }
+
   Future<void> _submitData() async {
     if (!_formKey.currentState!.validate()) return;
     if (_selectedDompetId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-            content: Text('Pilih sumber dana terlebih dahulu'),
-            backgroundColor: Colors.red),
+          content: Text('Pilih sumber dana terlebih dahulu'),
+          backgroundColor: Colors.red,
+        ),
       );
       return;
     }
@@ -89,7 +90,7 @@ class _PemasukanScreenState extends State<PemasukanScreen> {
           _jumlahController.text.replaceAll(RegExp(r'[^0-9]'), '');
       final amount = double.tryParse(amountStr) ?? 0.0;
       final categoryId = _selectedCategoryId ?? _incomeCategories.first.id;
-      final cat = TransactionRepository.instance.getCategoryById(categoryId);
+      final cat = CategoryCatalog.getById(categoryId);
 
       final transaction = TransactionModel(
         id: widget.transactionToEdit?.id ??
@@ -105,10 +106,11 @@ class _PemasukanScreenState extends State<PemasukanScreen> {
         dompetId: _selectedDompetId!,
       );
 
+      final txProvider = context.read<TransactionProvider>();
       if (widget.transactionToEdit != null) {
-        await TransactionRepository.instance.updateTransaction(transaction);
+        await txProvider.updateTransaction(transaction);
       } else {
-        await TransactionRepository.instance.addTransaction(transaction);
+        await txProvider.addTransaction(transaction);
       }
 
       if (mounted) {
@@ -118,14 +120,15 @@ class _PemasukanScreenState extends State<PemasukanScreen> {
             backgroundColor: primaryGreen,
           ),
         );
-        Navigator.pop(context, true); // return true to indicate change
+        Navigator.pop(context, true);
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-              content: Text(e.toString().replaceAll('Exception: ', '')),
-              backgroundColor: Colors.red),
+            content: Text(e.toString().replaceAll('Exception: ', '')),
+            backgroundColor: Colors.red,
+          ),
         );
       }
     } finally {
@@ -135,22 +138,30 @@ class _PemasukanScreenState extends State<PemasukanScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final dompetProvider = context.watch<DompetProvider>();
+    final dompets = dompetProvider.items;
+    _ensureDefaultDompetSelected(dompets);
+
     final title =
         widget.transactionToEdit != null ? 'Edit Pemasukan' : 'Pemasukan';
 
     final dropdownItems = _incomeCategories.map((c) => c.name).toList();
     final selectedCatName = _selectedCategoryId != null
         ? _incomeCategories
-            .firstWhere((c) => c.id == _selectedCategoryId,
-                orElse: () => _incomeCategories.first)
+            .firstWhere(
+              (c) => c.id == _selectedCategoryId,
+              orElse: () => _incomeCategories.first,
+            )
             .name
         : null;
 
     return TransactionScaffold(
       title: title,
       child: SafeArea(
-        child: _isFetchingDompets
-            ? const Center(child: CircularProgressIndicator(color: primaryGreen))
+        child: dompetProvider.isLoading && dompets.isEmpty
+            ? const Center(
+                child: CircularProgressIndicator(color: primaryGreen),
+              )
             : SingleChildScrollView(
                 padding: const EdgeInsets.all(24.0),
                 child: Form(
@@ -161,9 +172,10 @@ class _PemasukanScreenState extends State<PemasukanScreen> {
                       DompetSelectionDropdown(
                         label: 'Sumber Uang',
                         hint: 'Pilih Sumber Uang',
-                        dompets: _dompets,
+                        dompets: dompets,
                         selectedDompetId: _selectedDompetId,
-                        onChanged: (val) => setState(() => _selectedDompetId = val),
+                        onChanged: (val) =>
+                            setState(() => _selectedDompetId = val),
                       ),
                       CustomTextField(
                         label: 'Jumlah Uang',
@@ -224,4 +236,3 @@ class _PemasukanScreenState extends State<PemasukanScreen> {
     );
   }
 }
-

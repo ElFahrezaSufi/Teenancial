@@ -1,93 +1,48 @@
 import 'package:flutter/material.dart';
-import '../data/dompet_model.dart';
-import '../repositories/dompet_repository.dart';
+import 'package:provider/provider.dart';
+import '../models/dompet_model.dart';
+import '../providers/dompet_provider.dart';
 import '../theme/app_colors.dart';
 import '../widgets/common/custom_card.dart';
 import '../widgets/common/skeleton.dart';
 import 'tambah_dompet_screen.dart';
 
-enum _LoadState { loading, success, error, empty }
-
-class DompetScreen extends StatefulWidget {
+class DompetScreen extends StatelessWidget {
   const DompetScreen({super.key});
 
-  @override
-  State<DompetScreen> createState() => _DompetScreenState();
-}
-
-class _DompetScreenState extends State<DompetScreen> {
-  _LoadState _loadState = _LoadState.loading;
-  String _errorMessage = '';
-  List<DompetItem> _dompets = [];
-
-  @override
-  void initState() {
-    super.initState();
-    _loadData();
-    DompetRepository.instance.addListener(_onDompetChanged);
-  }
-
-  @override
-  void dispose() {
-    DompetRepository.instance.removeListener(_onDompetChanged);
-    super.dispose();
-  }
-
-  void _onDompetChanged() {
-    _loadData();
-  }
-
-  Future<void> _loadData({bool simulateError = false}) async {
-    setState(() => _loadState = _LoadState.loading);
-    try {
-      final data = await DompetRepository.instance.getDompets(simulateError: simulateError);
-      if (mounted) {
-        setState(() {
-          _dompets = data;
-          _loadState = data.isEmpty ? _LoadState.empty : _LoadState.success;
-        });
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() {
-          _errorMessage = e.toString();
-          _loadState = _LoadState.error;
-        });
-      }
-    }
-  }
-
-  void _openTambahDompet([DompetItem? item]) async {
-    final result = await Navigator.push<bool>(
+  Future<void> _openTambahDompet(
+    BuildContext context, [
+    DompetItem? item,
+  ]) async {
+    await Navigator.push<bool>(
       context,
       MaterialPageRoute(builder: (_) => TambahDompetScreen(itemToEdit: item)),
     );
-    if (result == true) _loadData();
   }
 
   Widget _buildLoading() {
-    return SafeArea(
+    return const SafeArea(
       child: Padding(
-        padding: const EdgeInsets.all(24.0),
+        padding: EdgeInsets.all(24.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Skeleton(width: 100, height: 16),
-            const SizedBox(height: 10),
-            const Skeleton(width: double.infinity, height: 70),
-            const SizedBox(height: 10),
-            const Skeleton(width: double.infinity, height: 70),
-            const SizedBox(height: 24),
-            const Skeleton(width: 100, height: 16),
-            const SizedBox(height: 10),
-            const Skeleton(width: double.infinity, height: 70),
+            Skeleton(width: 100, height: 16),
+            SizedBox(height: 10),
+            Skeleton(width: double.infinity, height: 70),
+            SizedBox(height: 10),
+            Skeleton(width: double.infinity, height: 70),
+            SizedBox(height: 24),
+            Skeleton(width: 100, height: 16),
+            SizedBox(height: 10),
+            Skeleton(width: double.infinity, height: 70),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildError() {
+  Widget _buildError(BuildContext context, String errorMessage) {
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(24.0),
@@ -98,11 +53,15 @@ class _DompetScreenState extends State<DompetScreen> {
             const SizedBox(height: 16),
             const Text(
               'Oops, terjadi kesalahan!',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: primaryGreen),
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: primaryGreen,
+              ),
             ),
             const SizedBox(height: 8),
             Text(
-              _errorMessage,
+              errorMessage,
               textAlign: TextAlign.center,
               style: const TextStyle(color: Colors.grey),
             ),
@@ -110,11 +69,17 @@ class _DompetScreenState extends State<DompetScreen> {
             ElevatedButton(
               style: ElevatedButton.styleFrom(
                 backgroundColor: primaryGreen,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12)
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
               ),
-              onPressed: () => _loadData(),
-              child: const Text('Coba Lagi', style: TextStyle(color: Colors.white)),
+              onPressed: () => context.read<DompetProvider>().loadDompets(),
+              child: const Text(
+                'Coba Lagi',
+                style: TextStyle(color: Colors.white),
+              ),
             ),
           ],
         ),
@@ -122,18 +87,26 @@ class _DompetScreenState extends State<DompetScreen> {
     );
   }
 
-  Widget _buildEmpty() {
+  Widget _buildEmpty(BuildContext context) {
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(24.0),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.account_balance_wallet_outlined, size: 80, color: primaryGreen.withValues(alpha: 0.5)),
+            Icon(
+              Icons.account_balance_wallet_outlined,
+              size: 80,
+              color: primaryGreen.withValues(alpha: 0.5),
+            ),
             const SizedBox(height: 16),
             const Text(
               'Dompet masih kosong',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: primaryGreen),
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: primaryGreen,
+              ),
             ),
             const SizedBox(height: 8),
             const Text(
@@ -145,11 +118,17 @@ class _DompetScreenState extends State<DompetScreen> {
             ElevatedButton(
               style: ElevatedButton.styleFrom(
                 backgroundColor: primaryGreen,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12)
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
               ),
-              onPressed: () => _openTambahDompet(),
-              child: const Text('Tambah Dompet', style: TextStyle(color: Colors.white)),
+              onPressed: () => _openTambahDompet(context),
+              child: const Text(
+                'Tambah Dompet',
+                style: TextStyle(color: Colors.white),
+              ),
             ),
           ],
         ),
@@ -159,7 +138,10 @@ class _DompetScreenState extends State<DompetScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final groupedJenis = [
+    final dompetProvider = context.watch<DompetProvider>();
+    final dompets = dompetProvider.items;
+
+    const groupedJenis = [
       JenisDompet.cash,
       JenisDompet.accounts,
       JenisDompet.card,
@@ -201,46 +183,58 @@ class _DompetScreenState extends State<DompetScreen> {
               fit: BoxFit.cover,
             ),
           ),
-          if (_loadState == _LoadState.loading) _buildLoading(),
-          if (_loadState == _LoadState.error) _buildError(),
-          if (_loadState == _LoadState.empty) _buildEmpty(),
-          if (_loadState == _LoadState.success)
+          if (dompetProvider.isLoading && dompets.isEmpty)
+            _buildLoading()
+          else if (dompetProvider.errorMessage != null && dompets.isEmpty)
+            _buildError(context, dompetProvider.errorMessage!)
+          else if (dompets.isEmpty)
+            _buildEmpty(context)
+          else
             SafeArea(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(24, 24, 24, 120),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    ...groupedJenis.map((jenis) {
-                      final list = _dompets.where((e) => e.jenis == jenis).toList();
-                      if (list.isEmpty) return const SizedBox.shrink();
-                      return _DompetGroup(
-                        jenis: jenis,
-                        items: list,
-                        onItemTap: _openTambahDompet,
-                      );
-                    }),
-                    const SizedBox(height: 16),
-                    GestureDetector(
-                      onTap: () => _openTambahDompet(),
-                      child: CustomCard(
-                        borderRadius: 100,
-                        backgroundColor: primaryGreen,
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        child: const Center(
-                          child: Text(
-                            '+ Tambah dompet digital',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 15,
-                              fontFamily: 'Inter',
-                              fontWeight: FontWeight.w700,
+              child: RefreshIndicator(
+                color: primaryGreen,
+                backgroundColor: scaffoldBg,
+                onRefresh: () =>
+                    context.read<DompetProvider>().loadDompets(silent: true),
+                child: SingleChildScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  padding: const EdgeInsets.fromLTRB(24, 24, 24, 120),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      ...groupedJenis.map((jenis) {
+                        final list =
+                            dompets.where((e) => e.jenis == jenis).toList();
+                        if (list.isEmpty) return const SizedBox.shrink();
+                        return _DompetGroup(
+                          jenis: jenis,
+                          items: list,
+                          onItemTap: (item) =>
+                              _openTambahDompet(context, item),
+                        );
+                      }),
+                      const SizedBox(height: 16),
+                      GestureDetector(
+                        onTap: () => _openTambahDompet(context),
+                        child: CustomCard(
+                          borderRadius: 100,
+                          backgroundColor: primaryGreen,
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          child: const Center(
+                            child: Text(
+                              '+ Tambah dompet digital',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 15,
+                                fontFamily: 'Inter',
+                                fontWeight: FontWeight.w700,
+                              ),
                             ),
                           ),
                         ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -255,7 +249,11 @@ class _DompetGroup extends StatelessWidget {
   final List<DompetItem> items;
   final Function(DompetItem) onItemTap;
 
-  const _DompetGroup({required this.jenis, required this.items, required this.onItemTap});
+  const _DompetGroup({
+    required this.jenis,
+    required this.items,
+    required this.onItemTap,
+  });
 
   String _formatRupiah(double value) {
     final parts = value.toStringAsFixed(0).split('');
@@ -289,7 +287,8 @@ class _DompetGroup extends StatelessWidget {
               onTap: () => onItemTap(item),
               child: CustomCard(
                 backgroundColor: cardBg,
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -305,9 +304,7 @@ class _DompetGroup extends StatelessWidget {
                     Row(
                       children: [
                         Text(
-                          item.jumlah == 0
-                              ? 'Rp xx.xxx,xx'
-                              : _formatRupiah(item.jumlah),
+                          _formatRupiah(item.jumlah),
                           style: const TextStyle(
                             color: primaryGreen,
                             fontSize: 14,
@@ -316,7 +313,11 @@ class _DompetGroup extends StatelessWidget {
                           ),
                         ),
                         const SizedBox(width: 8),
-                        const Icon(Icons.edit_outlined, size: 16, color: primaryGreen),
+                        const Icon(
+                          Icons.edit_outlined,
+                          size: 16,
+                          color: primaryGreen,
+                        ),
                       ],
                     ),
                   ],

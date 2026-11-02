@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
-import '../../data/transaction_model.dart';
-import '../../repositories/contact_repository.dart';
-import '../../repositories/transaction_repository.dart';
+import 'package:provider/provider.dart';
+import '../../data/category_catalog.dart';
+import '../../models/transaction_model.dart';
+import '../../providers/contact_provider.dart';
 import '../../theme/app_colors.dart';
 import '../../utils/loan_helper.dart';
 import '../common/custom_card.dart';
@@ -21,9 +22,10 @@ class LoanCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cat = TransactionRepository.instance.getCategoryById(item.categoryId);
+    final cat = CategoryCatalog.getById(item.categoryId);
     final bool isDebt = item.type == TransactionType.debt;
-    final contact = ContactRepository.instance.getContactById(item.contactId);
+    final contact =
+        context.watch<ContactProvider>().getContactById(item.contactId);
     final String name = contact?.name ?? LoanHelper.nameFromTitle(item.title);
     final LoanDueInfo? dueInfo = LoanHelper.describe(item);
     final Color statusColor = dueInfo?.color ?? primaryGreen;

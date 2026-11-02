@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../data/dompet_model.dart';
+import '../../models/dompet_model.dart';
 import '../common/custom_dropdown_field.dart';
 
 class DompetSelectionDropdown extends StatelessWidget {
@@ -22,15 +22,24 @@ class DompetSelectionDropdown extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Generate unique display names in case of duplicate names
-    final Map<String, String> displayMap = {}; // ID -> Display Name
-    for (var dompet in dompets) {
-      String display = '${dompet.nama} (${dompet.jenis.label})';
+    final Map<String, String> displayMap = {};
+    final Set<String> usedLabels = {};
+
+    for (final dompet in dompets) {
+      String baseDisplay = '${dompet.nama} (${dompet.jenis.label})';
+      String display = baseDisplay;
+      int suffix = 2;
+      while (usedLabels.contains(display)) {
+        display = '$baseDisplay #$suffix';
+        suffix++;
+      }
+      usedLabels.add(display);
       displayMap[dompet.id] = display;
     }
 
     final items = displayMap.values.toList();
-    final value = selectedDompetId != null ? displayMap[selectedDompetId] : null;
+    final value =
+        selectedDompetId != null ? displayMap[selectedDompetId] : null;
 
     return CustomDropdownField(
       label: label,
@@ -39,8 +48,8 @@ class DompetSelectionDropdown extends StatelessWidget {
       items: items,
       onChanged: (String? newValue) {
         if (newValue != null) {
-          // Find corresponding ID
-          final entry = displayMap.entries.firstWhere((e) => e.value == newValue);
+          final entry =
+              displayMap.entries.firstWhere((e) => e.value == newValue);
           onChanged(entry.key);
         } else {
           onChanged(null);

@@ -1,11 +1,14 @@
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/date_symbol_data_local.dart';
-import 'package:firebase_core/firebase_core.dart';
 import 'package:provider/provider.dart';
 import 'firebase_options.dart';
-import 'theme/app_colors.dart';
-import 'routes/app_router.dart';
 import 'providers/auth_provider.dart';
+import 'providers/contact_provider.dart';
+import 'providers/dompet_provider.dart';
+import 'providers/transaction_provider.dart';
+import 'routes/app_router.dart';
+import 'theme/app_colors.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -18,6 +21,23 @@ void main() async {
     MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => AuthProvider(), lazy: false),
+        ChangeNotifierProxyProvider<AuthProvider, DompetProvider>(
+          create: (_) => DompetProvider(),
+          update: (_, auth, provider) =>
+              (provider ?? DompetProvider())..updateUser(auth.activeUid),
+        ),
+        ChangeNotifierProxyProvider<AuthProvider, ContactProvider>(
+          create: (_) => ContactProvider(),
+          update: (_, auth, provider) =>
+              (provider ?? ContactProvider())..updateUser(auth.activeUid),
+        ),
+        ChangeNotifierProxyProvider2<AuthProvider, DompetProvider,
+            TransactionProvider>(
+          create: (_) => TransactionProvider(),
+          update: (_, auth, dompetProvider, provider) =>
+              (provider ?? TransactionProvider())
+                ..bindDependencies(auth.activeUid, dompetProvider),
+        ),
       ],
       child: const MyApp(),
     ),

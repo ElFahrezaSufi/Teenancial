@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import '../data/dompet_model.dart';
-import '../data/transaction_model.dart';
-import '../repositories/dompet_repository.dart';
-import '../repositories/transaction_repository.dart';
+import 'package:provider/provider.dart';
+import '../models/dompet_model.dart';
+import '../models/transaction_model.dart';
+import '../providers/dompet_provider.dart';
+import '../providers/transaction_provider.dart';
 import '../theme/app_colors.dart';
 import '../widgets/common/custom_filter_chip.dart';
 import '../widgets/transaction/dompet_selection_dropdown.dart';
@@ -32,9 +33,9 @@ class _DaftarPinjamanScreenState extends State<DaftarPinjamanScreen> {
     ).format(value);
   }
 
-  List<TransactionModel> _visibleLoans() {
-    final repo = TransactionRepository.instance;
-    final source = _selectedTab == 0 ? repo.debts : repo.receivables;
+  List<TransactionModel> _visibleLoans(TransactionProvider txProvider) {
+    final source =
+        _selectedTab == 0 ? txProvider.debts : txProvider.receivables;
 
     final filtered = source.where((t) {
       switch (_filter) {
@@ -47,7 +48,6 @@ class _DaftarPinjamanScreenState extends State<DaftarPinjamanScreen> {
       }
     }).toList();
 
-    // Belum lunas dulu (tenggat terdekat di atas), lalu yang sudah lunas.
     filtered.sort((a, b) {
       if (a.isPaid != b.isPaid) return a.isPaid ? 1 : -1;
       if (!a.isPaid) {
@@ -63,10 +63,12 @@ class _DaftarPinjamanScreenState extends State<DaftarPinjamanScreen> {
     return filtered;
   }
 
-  double _totalOutstanding() {
-    final repo = TransactionRepository.instance;
-    final source = _selectedTab == 0 ? repo.debts : repo.receivables;
-    return source.where((t) => !t.isPaid).fold(0.0, (sum, t) => sum + t.amount);
+  double _totalOutstanding(TransactionProvider txProvider) {
+    final source =
+        _selectedTab == 0 ? txProvider.debts : txProvider.receivables;
+    return source
+        .where((t) => !t.isPaid)
+        .fold(0.0, (sum, t) => sum + t.amount);
   }
 
   Future<void> _markAsPaid(TransactionModel item) async {
@@ -83,13 +85,15 @@ class _DaftarPinjamanScreenState extends State<DaftarPinjamanScreen> {
 
     setState(() => _isProcessing = true);
     try {
-      await TransactionRepository.instance.markAsPaid(item.id, dompetId);
+      await context.read<TransactionProvider>().markAsPaid(item.id, dompetId);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(item.type == TransactionType.debt
-                ? '✅ Hutang berhasil dilunasi!'
-                : '✅ Piutang berhasil dilunasi!'),
+            content: Text(
+              item.type == TransactionType.debt
+                  ? '✅ Hutang berhasil dilunasi!'
+                  : '✅ Piutang berhasil dilunasi!',
+            ),
             backgroundColor: primaryGreen,
           ),
         );
@@ -119,18 +123,21 @@ class _DaftarPinjamanScreenState extends State<DaftarPinjamanScreen> {
           duration: const Duration(milliseconds: 150),
           margin: EdgeInsets.only(top: isSelected ? 0.0 : 4.0),
           decoration: BoxDecoration(
-            color: isSelected ? activeColor : activeColor.withValues(alpha: 0.3),
+            color:
+                isSelected ? activeColor : activeColor.withValues(alpha: 0.3),
             borderRadius: BorderRadius.circular(50),
           ),
           padding: EdgeInsets.only(bottom: isSelected ? 6.0 : 2.0),
           child: Container(
             padding: const EdgeInsets.symmetric(vertical: 12),
             decoration: BoxDecoration(
-              color: isSelected ? const Color(0xFFF8FFE8) : Colors.transparent,
+              color:
+                  isSelected ? const Color(0xFFF8FFE8) : Colors.transparent,
               borderRadius: BorderRadius.circular(50),
               border: Border.all(
-                color:
-                    isSelected ? activeColor : activeColor.withValues(alpha: 0.3),
+                color: isSelected
+                    ? activeColor
+                    : activeColor.withValues(alpha: 0.3),
                 width: 2,
               ),
             ),
@@ -149,7 +156,7 @@ class _DaftarPinjamanScreenState extends State<DaftarPinjamanScreen> {
     );
   }
 
-  Widget _buildSummary() {
+  Widget _buildSummary(TransactionProvider txProvider) {
     final isDebt = _selectedTab == 0;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
@@ -171,7 +178,7 @@ class _DaftarPinjamanScreenState extends State<DaftarPinjamanScreen> {
             ),
           ),
           Text(
-            _formatCurrency(_totalOutstanding()),
+            _formatCurrency(_totalOutstanding(txProvider)),
             style: const TextStyle(
               color: primaryGreen,
               fontSize: 16,
@@ -237,69 +244,68 @@ class _DaftarPinjamanScreenState extends State<DaftarPinjamanScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final txProvider = context.watch<TransactionProvider>();
+    // Watch DompetProvider too so settlement balances stay reactive
+    context.watch<DompetProvider>();
+    final loans = _visibleLoans(txProvider);
+
     return TransactionScaffold(
       title: 'Daftar Pinjaman',
       child: SafeArea(
-        child: ListenableBuilder(
-          listenable: Listenable.merge([
-            TransactionRepository.instance,
-            DompetRepository.instance,
-          ]),
-          builder: (context, _) {
-            final loans = _visibleLoans();
-
-            return Padding(
-              padding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(4),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFD4DFBA),
-                      borderRadius: BorderRadius.circular(100),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(4),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFD4DFBA),
+                  borderRadius: BorderRadius.circular(100),
+                ),
+                child: Row(
+                  children: [
+                    _buildTabButton(0, 'Hutang Saya'),
+                    const SizedBox(width: 6),
+                    _buildTabButton(1, 'Piutang Saya'),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+              _buildSummary(txProvider),
+              const SizedBox(height: 16),
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: [
+                    CustomFilterChip(
+                      label: 'Belum Lunas',
+                      selected: _filter == _LoanFilter.unpaid,
+                      onTap: () =>
+                          setState(() => _filter = _LoanFilter.unpaid),
                     ),
-                    child: Row(
-                      children: [
-                        _buildTabButton(0, 'Hutang Saya'),
-                        const SizedBox(width: 6),
-                        _buildTabButton(1, 'Piutang Saya'),
-                      ],
+                    const SizedBox(width: 8),
+                    CustomFilterChip(
+                      label: 'Sudah Lunas',
+                      selected: _filter == _LoanFilter.paid,
+                      onTap: () => setState(() => _filter = _LoanFilter.paid),
                     ),
-                  ),
-                  const SizedBox(height: 16),
-                  _buildSummary(),
-                  const SizedBox(height: 16),
-                  SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: Row(
-                      children: [
-                        CustomFilterChip(
-                          label: 'Belum Lunas',
-                          selected: _filter == _LoanFilter.unpaid,
-                          onTap: () =>
-                              setState(() => _filter = _LoanFilter.unpaid),
-                        ),
-                        const SizedBox(width: 8),
-                        CustomFilterChip(
-                          label: 'Sudah Lunas',
-                          selected: _filter == _LoanFilter.paid,
-                          onTap: () =>
-                              setState(() => _filter = _LoanFilter.paid),
-                        ),
-                        const SizedBox(width: 8),
-                        CustomFilterChip(
-                          label: 'Semua',
-                          selected: _filter == _LoanFilter.all,
-                          onTap: () =>
-                              setState(() => _filter = _LoanFilter.all),
-                        ),
-                      ],
+                    const SizedBox(width: 8),
+                    CustomFilterChip(
+                      label: 'Semua',
+                      selected: _filter == _LoanFilter.all,
+                      onTap: () => setState(() => _filter = _LoanFilter.all),
                     ),
-                  ),
-                  const SizedBox(height: 16),
-                  Expanded(
-                    child: loans.isEmpty
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+              Expanded(
+                child: txProvider.isLoading && txProvider.transactions.isEmpty
+                    ? const Center(
+                        child: CircularProgressIndicator(color: primaryGreen),
+                      )
+                    : loans.isEmpty
                         ? _buildEmpty()
                         : ListView.separated(
                             padding: const EdgeInsets.only(bottom: 32),
@@ -316,19 +322,15 @@ class _DaftarPinjamanScreenState extends State<DaftarPinjamanScreen> {
                               );
                             },
                           ),
-                  ),
-                ],
               ),
-            );
-          },
+            ],
+          ),
         ),
       ),
     );
   }
 }
 
-/// Dialog konfirmasi pelunasan: pengguna memilih dompet yang dipakai
-/// (uang keluar untuk hutang, uang masuk untuk piutang).
 class _SettleDialog extends StatefulWidget {
   final TransactionModel item;
   final String Function(double) formatCurrency;
@@ -340,25 +342,25 @@ class _SettleDialog extends StatefulWidget {
 }
 
 class _SettleDialogState extends State<_SettleDialog> {
-  late final List<DompetItem> _dompets;
   String? _selectedDompetId;
 
   @override
   void initState() {
     super.initState();
-    _dompets = DompetRepository.instance.currentDompets;
-    // Default: dompet asal saat pinjaman dibuat (jika masih ada), bisa diganti.
-    final hasOriginal = _dompets.any((d) => d.id == widget.item.dompetId);
+    final dompets = context.read<DompetProvider>().items;
+    final hasOriginal = dompets.any((d) => d.id == widget.item.dompetId);
     _selectedDompetId = hasOriginal
         ? widget.item.dompetId
-        : (_dompets.isNotEmpty ? _dompets.first.id : null);
+        : (dompets.isNotEmpty ? dompets.first.id : null);
   }
 
   @override
   Widget build(BuildContext context) {
+    final dompets = context.watch<DompetProvider>().items;
     final isDebt = widget.item.type == TransactionType.debt;
-    final selected = _dompets.where((d) => d.id == _selectedDompetId);
-    final DompetItem? selectedDompet = selected.isNotEmpty ? selected.first : null;
+    final selected = dompets.where((d) => d.id == _selectedDompetId);
+    final DompetItem? selectedDompet =
+        selected.isNotEmpty ? selected.first : null;
     final bool insufficient = isDebt &&
         selectedDompet != null &&
         selectedDompet.jumlah < widget.item.amount;
@@ -389,7 +391,7 @@ class _SettleDialogState extends State<_SettleDialog> {
             DompetSelectionDropdown(
               label: isDebt ? 'Bayar dari' : 'Masuk ke',
               hint: 'Pilih dompet',
-              dompets: _dompets,
+              dompets: dompets,
               selectedDompetId: _selectedDompetId,
               onChanged: (val) => setState(() => _selectedDompetId = val),
             ),

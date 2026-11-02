@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import '../../data/transaction_model.dart';
-import '../../repositories/transaction_repository.dart';
+import '../../data/category_catalog.dart';
+import '../../models/transaction_model.dart';
 import '../../theme/app_colors.dart';
 import '../../utils/loan_helper.dart';
 import '../common/custom_card.dart';
@@ -21,12 +21,26 @@ class TransactionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cat = TransactionRepository.instance.getCategoryById(item.categoryId);
-    // Piutang = uang keluar (dipinjamkan), Hutang = uang masuk (dipinjam)
+    final cat = CategoryCatalog.getById(item.categoryId);
+    // Piutang & Transfer keluar = uang keluar, Hutang & Pemasukan = uang masuk
     final bool isExpense = item.type == TransactionType.expense ||
-        item.type == TransactionType.receivable;
+        item.type == TransactionType.receivable ||
+        (item.type == TransactionType.transfer &&
+            item.destinationDompetId == null);
+    final bool isInternalTransfer = item.type == TransactionType.transfer &&
+        item.destinationDompetId != null;
     final bool isLoan = LoanHelper.isLoan(item);
     final LoanDueInfo? dueInfo = LoanHelper.describe(item);
+
+    final String prefix = isInternalTransfer
+        ? ''
+        : (isExpense ? '- ' : '+ ');
+    final Color amountColor = isInternalTransfer
+        ? primaryGreen
+        : (isExpense ? Colors.red : primaryGreen);
+
+    final bool canEdit = item.type == TransactionType.income ||
+        item.type == TransactionType.expense;
 
     return CustomCard(
       backgroundColor: cardBg,
@@ -118,9 +132,9 @@ class TransactionCard extends StatelessWidget {
             ),
           ),
           Text(
-            (isExpense ? '- ' : '+ ') + formatCurrency(item.amount),
+            prefix + formatCurrency(item.amount),
             style: TextStyle(
-              color: isExpense ? Colors.red : primaryGreen,
+              color: amountColor,
               fontSize: 14,
               fontFamily: 'Inter',
               fontWeight: FontWeight.w700,
@@ -136,16 +150,17 @@ class TransactionCard extends StatelessWidget {
               }
             },
             itemBuilder: (context) => [
-              const PopupMenuItem(
-                value: 'edit',
-                child: Row(
-                  children: [
-                    Icon(Icons.edit_outlined, color: primaryGreen),
-                    SizedBox(width: 8),
-                    Text('Edit', style: TextStyle(color: primaryGreen)),
-                  ],
+              if (canEdit)
+                const PopupMenuItem(
+                  value: 'edit',
+                  child: Row(
+                    children: [
+                      Icon(Icons.edit_outlined, color: primaryGreen),
+                      SizedBox(width: 8),
+                      Text('Edit', style: TextStyle(color: primaryGreen)),
+                    ],
+                  ),
                 ),
-              ),
               const PopupMenuItem(
                 value: 'delete',
                 child: Row(
