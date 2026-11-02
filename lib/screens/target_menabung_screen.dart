@@ -1,47 +1,23 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../data/target_model.dart';
+import '../models/target_model.dart';
 import '../providers/dompet_provider.dart';
+import '../providers/target_provider.dart';
 import '../theme/app_colors.dart';
 import '../widgets/common/custom_card.dart';
 import 'buat_target_screen.dart';
 
-class TargetMenabungScreen extends StatefulWidget {
+class TargetMenabungScreen extends StatelessWidget {
   const TargetMenabungScreen({super.key});
 
-  @override
-  State<TargetMenabungScreen> createState() => _TargetMenabungScreenState();
-}
-
-class _TargetMenabungScreenState extends State<TargetMenabungScreen> {
-  final _data = TargetData.instance;
-
   Future<void> _navigasiDanTambahData(BuildContext context) async {
-    final result = await Navigator.push(
+    await Navigator.push(
       context,
       MaterialPageRoute(
         builder: (context) => const BuatTargetScreen(),
       ),
     );
-
-    if (result != null) {
-      setState(() {
-        double harga = double.tryParse(
-              result['harga'].toString().replaceAll(RegExp(r'[^0-9]'), ''),
-            ) ??
-            0.0;
-
-        _data.items.add(
-          TargetItem(
-            nama: result['nama'],
-            targetAmount: harga,
-            imageUrl: result['imagePath'],
-            isPinned: false,
-          ),
-        );
-      });
-    }
   }
 
   String _formatRupiah(double value) {
@@ -54,8 +30,46 @@ class _TargetMenabungScreenState extends State<TargetMenabungScreen> {
     return 'Rp ${buffer.toString()}';
   }
 
+  Widget _buildTargetImage(String imageUrl) {
+    final fallback = Container(
+      height: 160,
+      color: Colors.grey[300],
+      child: const Icon(Icons.broken_image, color: Colors.grey),
+    );
+
+    if (imageUrl.startsWith('http')) {
+      return Image.network(
+        imageUrl,
+        height: 160,
+        width: double.infinity,
+        fit: BoxFit.cover,
+        loadingBuilder: (context, child, loadingProgress) {
+          if (loadingProgress == null) return child;
+          return Container(
+            height: 160,
+            color: lightGreen.withValues(alpha: 0.35),
+            child: const Center(
+              child: CircularProgressIndicator(color: primaryGreen),
+            ),
+          );
+        },
+        errorBuilder: (context, error, stackTrace) => fallback,
+      );
+    }
+
+    return Image.file(
+      File(imageUrl),
+      height: 160,
+      width: double.infinity,
+      fit: BoxFit.cover,
+      errorBuilder: (context, error, stackTrace) => fallback,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final targetProvider = context.watch<TargetProvider>();
+    final items = targetProvider.items;
     final saldoSekarang = context.watch<DompetProvider>().totalSaldo;
 
     return Scaffold(
@@ -115,28 +129,41 @@ class _TargetMenabungScreenState extends State<TargetMenabungScreen> {
               ),
             ),
           ),
-          SafeArea(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(24, 24, 24, 160),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  if (_data.items.isEmpty)
-                    _buildEmptyState()
-                  else
-                    ..._data.items.map(
-                      (item) => Padding(
-                        padding: const EdgeInsets.only(bottom: 24.0),
-                        child: _buildTargetCard(item, saldoSekarang),
-                      ),
-                    ),
-                ],
+          if (targetProvider.isLoading && items.isEmpty)
+            const Center(
+              child: CircularProgressIndicator(color: primaryGreen),
+            )
+          else
+            SafeArea(
+              child: RefreshIndicator(
+                color: primaryGreen,
+                backgroundColor: scaffoldBg,
+                onRefresh: () =>
+                    context.read<TargetProvider>().loadTargets(silent: true),
+                child: SingleChildScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  padding: const EdgeInsets.fromLTRB(24, 24, 24, 160),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      if (items.isEmpty)
+                        _buildEmptyState(context)
+                      else
+                        ...items.map(
+                          (item) => Padding(
+                            padding: const EdgeInsets.only(bottom: 24.0),
+                            child:
+                                _buildTargetCard(context, item, saldoSekarang),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
               ),
             ),
-          ),
         ],
       ),
-      floatingActionButton: _data.items.isNotEmpty
+      floatingActionButton: items.isNotEmpty
           ? Padding(
               padding: const EdgeInsets.only(bottom: 140.0),
               child: FloatingActionButton(
@@ -153,7 +180,7 @@ class _TargetMenabungScreenState extends State<TargetMenabungScreen> {
     );
   }
 
-  Widget _buildEmptyState() {
+  Widget _buildEmptyState(BuildContext context) {
     return CustomCard(
       backgroundColor: appBarBg,
       borderRadius: 16,
@@ -193,7 +220,8 @@ class _TargetMenabungScreenState extends State<TargetMenabungScreen> {
             child: CustomCard(
               borderRadius: 100,
               backgroundColor: primaryGreen,
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
               child: const Row(
                 mainAxisSize: MainAxisSize.min,
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -218,7 +246,11 @@ class _TargetMenabungScreenState extends State<TargetMenabungScreen> {
     );
   }
 
-  Widget _buildTargetCard(TargetItem item, double saldoSekarang) {
+  Widget _buildTargetCard(
+    BuildContext context,
+    TargetItem item,
+    double saldoSekarang,
+  ) {
     final double progress = item.targetAmount > 0
         ? (saldoSekarang / item.targetAmount).clamp(0.0, 1.0)
         : 0.0;
@@ -240,17 +272,7 @@ class _TargetMenabungScreenState extends State<TargetMenabungScreen> {
                   topLeft: Radius.circular(18),
                   topRight: Radius.circular(18),
                 ),
-                child: Image.file(
-                  File(item.imageUrl),
-                  height: 160,
-                  width: double.infinity,
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) => Container(
-                    height: 160,
-                    color: Colors.grey[300],
-                    child: const Icon(Icons.broken_image, color: Colors.grey),
-                  ),
-                ),
+                child: _buildTargetImage(item.imageUrl),
               ),
               Positioned(
                 top: 12,
@@ -311,10 +333,21 @@ class _TargetMenabungScreenState extends State<TargetMenabungScreen> {
                           ),
                         );
 
-                        if (confirm == true) {
-                          setState(() {
-                            _data.items.remove(item);
-                          });
+                        if (confirm == true && context.mounted) {
+                          try {
+                            await context
+                                .read<TargetProvider>()
+                                .deleteTarget(item.id);
+                          } catch (e) {
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text('Gagal menghapus target: $e'),
+                                  backgroundColor: Colors.red,
+                                ),
+                              );
+                            }
+                          }
                         }
                       }
                     },
@@ -347,14 +380,19 @@ class _TargetMenabungScreenState extends State<TargetMenabungScreen> {
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 GestureDetector(
-                  onTap: () {
-                    setState(() {
-                      if (item.isPinned) {
-                        item.isPinned = false;
-                      } else {
-                        _data.pinItem(item);
+                  onTap: () async {
+                    try {
+                      await context.read<TargetProvider>().togglePin(item);
+                    } catch (e) {
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('Gagal mengubah pin target: $e'),
+                            backgroundColor: Colors.red,
+                          ),
+                        );
                       }
-                    });
+                    }
                   },
                   child: Container(
                     padding: const EdgeInsets.all(8),

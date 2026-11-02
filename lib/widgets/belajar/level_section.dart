@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../data/belajar_data.dart';
+import '../../models/belajar_model.dart';
 import '../../theme/app_colors.dart';
 import '../common/custom_card.dart';
 import 'module_card.dart';
@@ -110,10 +110,7 @@ class LevelSection extends StatelessWidget {
               ],
             ),
           ),
-
           const SizedBox(height: 12),
-
-          // ── Module cards ───────────────────────────────────────────────────
           ...level.modules.asMap().entries.map(
                 (e) => ModuleCard(
                   levelIndex: levelIndex,

@@ -1,11 +1,11 @@
-import 'dart:io';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../data/target_model.dart';
+import '../models/target_model.dart';
+import '../providers/belajar_provider.dart';
 import '../providers/dompet_provider.dart';
+import '../providers/target_provider.dart';
 import '../providers/transaction_provider.dart';
+import '../providers/user_provider.dart';
 import '../theme/app_colors.dart';
 
 import 'buat_target_screen.dart';
@@ -35,10 +35,7 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  String displayName = 'Pengguna';
-  File? profileImage;
-  String? profileImageUrl;
-
+  // Visual XP & Level di-hold (tetap dipertahankan secara UI di Beranda)
   int currentXP = 0;
   int maxXP = 1000;
   int level = 1;
@@ -52,12 +49,6 @@ class _HomeScreenState extends State<HomeScreen> {
   static const double _feenBottomMargin = 220.0;
 
   @override
-  void initState() {
-    super.initState();
-    _loadUserData();
-  }
-
-  @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     if (!_isFeenInitialized) {
@@ -65,40 +56,6 @@ class _HomeScreenState extends State<HomeScreen> {
       _feenX = size.width - _feenButtonWidth;
       _feenY = size.height - _feenBottomMargin;
       _isFeenInitialized = true;
-    }
-  }
-
-  void _loadUserData() async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) return;
-    setState(() {
-      String fetchedName = user.displayName ?? '';
-      if (fetchedName.isEmpty && user.email != null) {
-        fetchedName = user.email!.split('@')[0];
-      }
-      displayName = fetchedName.isNotEmpty ? fetchedName : 'Pengguna';
-      profileImage = ProfileScreen.profileImage;
-      profileImageUrl = user.photoURL;
-    });
-
-    try {
-      final doc = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(user.uid)
-          .get();
-
-      if (doc.exists && doc.data() != null && mounted) {
-        final data = doc.data() as Map<String, dynamic>;
-        setState(() {
-          String firestoreName = data['name'] ?? '';
-          if (firestoreName.isNotEmpty) displayName = firestoreName;
-
-          String firestoreImage = data['profileImageUrl'] ?? '';
-          if (firestoreImage.isNotEmpty) profileImageUrl = firestoreImage;
-        });
-      }
-    } catch (e) {
-      debugPrint('Gagal narik data profil dari Firestore di Home: $e');
     }
   }
 
@@ -114,37 +71,22 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _handleRefresh() async {
-    _loadUserData();
     await Future.wait([
+      context.read<UserProvider>().loadProfile(silent: true),
       context.read<DompetProvider>().loadDompets(silent: true),
       context.read<TransactionProvider>().loadTransactions(silent: true),
+      context.read<TargetProvider>().loadTargets(silent: true),
+      context.read<BelajarProvider>().loadProgress(silent: true),
     ]);
   }
 
   Future<void> _tambahTargetData() async {
-    final result = await Navigator.push(
+    await Navigator.push(
       context,
       MaterialPageRoute(
         builder: (context) => const BuatTargetScreen(),
       ),
     );
-
-    if (result != null) {
-      setState(() {
-        double harga = double.tryParse(
-              result['harga'].toString().replaceAll(RegExp(r'[^0-9]'), ''),
-            ) ??
-            0.0;
-        TargetData.instance.items.add(
-          TargetItem(
-            nama: result['nama'],
-            targetAmount: harga,
-            imageUrl: result['imagePath'],
-            isPinned: false,
-          ),
-        );
-      });
-    }
   }
 
   String _formatRupiah(double value) {
@@ -159,7 +101,9 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final userProvider = context.watch<UserProvider>();
     final dompetProvider = context.watch<DompetProvider>();
+    final targetProvider = context.watch<TargetProvider>();
     context.watch<TransactionProvider>();
 
     final double topPadding = MediaQuery.of(context).padding.top;
@@ -169,7 +113,7 @@ class _HomeScreenState extends State<HomeScreen> {
     final double perkiraanMingguanReal =
         totalSaldoReal + (totalSaldoReal * 0.02);
 
-    final TargetItem? currentTarget = TargetData.instance.pinnedItem;
+    final TargetItem? currentTarget = targetProvider.pinnedItem;
 
     return Scaffold(
       backgroundColor: Colors.transparent,
@@ -202,18 +146,16 @@ class _HomeScreenState extends State<HomeScreen> {
                         children: [
                           SizedBox(height: topPadding + 20),
                           ProfileHeader(
-                            displayName: displayName,
+                            displayName: userProvider.displayName,
                             level: level,
-                            imageFile: profileImage,
-                            imageUrl: profileImageUrl,
-                            onProfileTap: () async {
-                              await Navigator.push(
+                            imageUrl: userProvider.profileImageUrl,
+                            onProfileTap: () {
+                              Navigator.push(
                                 context,
                                 MaterialPageRoute(
                                   builder: (context) => const ProfileScreen(),
                                 ),
                               );
-                              _loadUserData();
                             },
                           ),
                           const SizedBox(height: 16),
@@ -284,15 +226,12 @@ class _HomeScreenState extends State<HomeScreen> {
                           SectionHeader(
                             title: 'Target Menabung',
                             actionText: 'Lihat Semua',
-                            onActionTap: () async {
-                              await Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => const TargetMenabungScreen(),
-                                ),
-                              );
-                              setState(() {});
-                            },
+                            onActionTap: () => Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => const TargetMenabungScreen(),
+                              ),
+                            ),
                           ),
                           const SizedBox(height: 12),
 
@@ -346,7 +285,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                 builder: (_) => const RuangBelajarScreen(),
                               ),
                             ),
-                            child: BelajarCard(),
+                            child: const BelajarCard(),
                           ),
                           const SizedBox(height: 120),
                         ],
