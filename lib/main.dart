@@ -1,5 +1,6 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:provider/provider.dart';
 import 'firebase_options.dart';
@@ -74,7 +75,19 @@ class MyApp extends StatelessWidget {
     return MaterialApp.router(
       title: 'Teenancial',
       debugShowCheckedModeBanner: false,
+      locale: const Locale('id', 'ID'),
+      supportedLocales: const [
+        Locale('id', 'ID'),
+        Locale('en', 'US'),
+      ],
+      localizationsDelegates: const [
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
       theme: ThemeData(
+        fontFamily: 'Inter',
+        scaffoldBackgroundColor: scaffoldBg,
         colorScheme: ColorScheme.fromSeed(seedColor: primaryGreen),
         useMaterial3: true,
       ),

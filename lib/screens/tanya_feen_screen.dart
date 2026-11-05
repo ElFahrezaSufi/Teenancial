@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
-const Color _primaryGreen = Color(0xFF637932);
-const Color _scaffoldBg = Color(0xFFEDEFE2);
-const Color _appBarBg = Color(0xFFF8FFE8);
+import '../theme/app_colors.dart';
+
+
 
 class TanyaFeenScreen extends StatefulWidget {
   const TanyaFeenScreen({super.key});
@@ -22,14 +22,14 @@ class _TanyaFeenScreenState extends State<TanyaFeenScreen> {
         return Container(
           margin: const EdgeInsets.only(top: 2),
           decoration: const BoxDecoration(
-            color: _primaryGreen,
+            color: primaryGreen,
             borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
           ),
           child: Padding(
             padding: const EdgeInsets.only(top: 1, left: 1, right: 1),
             child: Container(
               decoration: const BoxDecoration(
-                color: _appBarBg,
+                color: appBarBg,
                 borderRadius: BorderRadius.vertical(top: Radius.circular(19)),
               ),
               child: Material(
@@ -45,7 +45,7 @@ class _TanyaFeenScreenState extends State<TanyaFeenScreen> {
                       onTap: () => Navigator.pop(context),
                     ),
                     const Divider(
-                        color: _primaryGreen, height: 1, thickness: 1),
+                        color: primaryGreen, height: 1, thickness: 1),
                     _buildMenuItem(
                       icon: Icons.account_balance_wallet,
                       title: 'Dompet',
@@ -53,7 +53,7 @@ class _TanyaFeenScreenState extends State<TanyaFeenScreen> {
                       onTap: () => Navigator.pop(context),
                     ),
                     const Divider(
-                        color: _primaryGreen, height: 1, thickness: 1),
+                        color: primaryGreen, height: 1, thickness: 1),
                     _buildMenuItem(
                       icon: Icons.track_changes,
                       title: 'Target menabung',
@@ -84,14 +84,14 @@ class _TanyaFeenScreenState extends State<TanyaFeenScreen> {
         decoration: BoxDecoration(
           color: const Color(0xFFF7FFE7),
           borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: _primaryGreen, width: 1),
+          border: Border.all(color: primaryGreen, width: 1),
         ),
-        child: Icon(icon, color: _primaryGreen),
+        child: Icon(icon, color: primaryGreen),
       ),
       title: Text(
         title,
         style: const TextStyle(
-          color: _primaryGreen,
+          color: primaryGreen,
           fontSize: 16,
           fontFamily: 'Inter',
           fontWeight: FontWeight.w700,
@@ -100,14 +100,14 @@ class _TanyaFeenScreenState extends State<TanyaFeenScreen> {
       subtitle: Text(
         subtitle,
         style: TextStyle(
-          color: _primaryGreen.withValues(alpha: 0.8),
+          color: primaryGreen.withValues(alpha: 0.8),
           fontSize: 13,
           fontFamily: 'Inter',
           fontWeight: FontWeight.w600,
         ),
       ),
       trailing:
-          const Icon(Icons.arrow_forward_ios, color: _primaryGreen, size: 16),
+          const Icon(Icons.arrow_forward_ios, color: primaryGreen, size: 16),
       onTap: onTap,
     );
   }
@@ -115,15 +115,15 @@ class _TanyaFeenScreenState extends State<TanyaFeenScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: _scaffoldBg,
+      backgroundColor: scaffoldBg,
       //header
       appBar: PreferredSize(
         preferredSize: const Size.fromHeight(80),
         child: Container(
           decoration: const BoxDecoration(
-            color: _appBarBg,
+            color: appBarBg,
             border: Border(
-              bottom: BorderSide(color: _primaryGreen, width: 1.5),
+              bottom: BorderSide(color: primaryGreen, width: 1.5),
             ),
           ),
           child: SafeArea(
@@ -135,7 +135,7 @@ class _TanyaFeenScreenState extends State<TanyaFeenScreen> {
                     padding: const EdgeInsets.only(left: 8.0),
                     child: IconButton(
                       icon: const Icon(Icons.arrow_back_ios,
-                          color: _primaryGreen, size: 20),
+                          color: primaryGreen, size: 20),
                       onPressed: () => Navigator.pop(context),
                     ),
                   ),
@@ -144,7 +144,7 @@ class _TanyaFeenScreenState extends State<TanyaFeenScreen> {
                   child: Text(
                     'Tanya Feen',
                     style: TextStyle(
-                      color: _primaryGreen,
+                      color: primaryGreen,
                       fontSize: 25,
                       fontFamily: 'Inter',
                       fontWeight: FontWeight.w700,
@@ -162,7 +162,7 @@ class _TanyaFeenScreenState extends State<TanyaFeenScreen> {
         fit: StackFit.expand,
         children: [
           Container(
-            color: _scaffoldBg,
+            color: scaffoldBg,
             child: Opacity(
               opacity: 0.4,
               child: Image.asset(
@@ -188,9 +188,9 @@ class _TanyaFeenScreenState extends State<TanyaFeenScreen> {
                 padding:
                     const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
                 decoration: const BoxDecoration(
-                  color: _appBarBg,
+                  color: appBarBg,
                   border: Border(
-                    top: BorderSide(color: _primaryGreen, width: 1.5),
+                    top: BorderSide(color: primaryGreen, width: 1.5),
                   ),
                 ),
                 child: SafeArea(
@@ -199,27 +199,27 @@ class _TanyaFeenScreenState extends State<TanyaFeenScreen> {
                     decoration: BoxDecoration(
                       color: const Color(0xFFF7FFE7),
                       borderRadius: BorderRadius.circular(100),
-                      border: Border.all(color: _primaryGreen, width: 1),
+                      border: Border.all(color: primaryGreen, width: 1),
                     ),
                     child: Row(
                       children: [
                         IconButton(
                           icon: const Icon(Icons.grid_view_rounded,
-                              color: _primaryGreen),
+                              color: primaryGreen),
                           onPressed: _showFeenMenu,
                         ),
                         Expanded(
                           child: TextField(
                             controller: _chatController,
                             style: const TextStyle(
-                              color: _primaryGreen,
+                              color: primaryGreen,
                               fontFamily: 'Inter',
                               fontWeight: FontWeight.w600,
                             ),
                             decoration: InputDecoration(
                               hintText: 'Tanya Feen',
                               hintStyle: TextStyle(
-                                color: _primaryGreen.withValues(alpha: 0.5),
+                                color: primaryGreen.withValues(alpha: 0.5),
                               ),
                               border: InputBorder.none,
                             ),
@@ -228,7 +228,7 @@ class _TanyaFeenScreenState extends State<TanyaFeenScreen> {
                         Padding(
                           padding: const EdgeInsets.all(4.0),
                           child: CircleAvatar(
-                            backgroundColor: _primaryGreen,
+                            backgroundColor: primaryGreen,
                             child: IconButton(
                               icon: const Icon(Icons.send,
                                   color: Colors.white, size: 18),
