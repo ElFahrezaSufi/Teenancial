@@ -1,7 +1,9 @@
+import 'dart:async';
 import 'package:flutter/foundation.dart';
 import '../data/category_catalog.dart';
 import '../models/transaction_model.dart';
 import '../repositories/transaction_repository.dart';
+import '../services/notification_service.dart';
 import 'dompet_provider.dart';
 
 class TransactionProvider extends ChangeNotifier {
@@ -45,6 +47,7 @@ class TransactionProvider extends ChangeNotifier {
 
     if (newUid == null) {
       _isLoading = false;
+      unawaited(NotificationService.instance.cancelAll());
       notifyListeners();
       return;
     }
@@ -73,6 +76,7 @@ class TransactionProvider extends ChangeNotifier {
       if (_uid != targetUid) return;
       _transactions = fetched;
       _errorMessage = null;
+      unawaited(NotificationService.instance.syncLoanReminders(fetched));
     } catch (e) {
       if (_uid != targetUid) return;
       _errorMessage = e.toString().replaceAll('Exception: ', '');
@@ -115,6 +119,7 @@ class TransactionProvider extends ChangeNotifier {
       throw Exception('Sesi pengguna tidak ditemukan');
     }
     await _repository.deleteTransaction(targetUid, transactionId);
+    unawaited(NotificationService.instance.cancelLoanReminder(transactionId));
     await _refreshAfterMutation();
   }
 
@@ -124,6 +129,7 @@ class TransactionProvider extends ChangeNotifier {
       throw Exception('Sesi pengguna tidak ditemukan');
     }
     await _repository.markAsPaid(targetUid, transactionId, dompetId);
+    unawaited(NotificationService.instance.cancelLoanReminder(transactionId));
     await _refreshAfterMutation();
   }
 }

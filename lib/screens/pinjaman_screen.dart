@@ -7,6 +7,7 @@ import '../models/transaction_model.dart';
 import '../providers/contact_provider.dart';
 import '../providers/dompet_provider.dart';
 import '../providers/transaction_provider.dart';
+import '../services/notification_service.dart';
 import '../theme/app_colors.dart';
 import '../utils/currency_formatter.dart';
 import '../widgets/common/custom_dropdown_field.dart';
@@ -140,7 +141,7 @@ class _PinjamanScreenState extends State<PinjamanScreen> {
         if (selectedDompets.isNotEmpty &&
             selectedDompets.first.jumlah < amount) {
           throw Exception(
-            'Saldo dompet "${selectedDompets.first.title}" tidak mencukupi untuk memberikan pinjaman ini.',
+            'Saldo dompet "${selectedDompets.first.nama}" tidak mencukupi untuk memberikan pinjaman ini.',
           );
         }
       }
@@ -177,7 +178,11 @@ class _PinjamanScreenState extends State<PinjamanScreen> {
         counterpartyName: friendName,
       );
 
+      await NotificationService.instance.requestPermissionIfNeeded();
       await txProvider.addTransaction(transaction);
+      await NotificationService.instance.showLoanCreatedNotification(
+        transaction,
+      );
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

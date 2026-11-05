@@ -12,12 +12,14 @@ import 'providers/transaction_provider.dart';
 import 'providers/user_provider.dart';
 import 'routes/app_router.dart';
 import 'services/local_storage_service.dart';
+import 'services/notification_service.dart';
 import 'theme/app_colors.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await initializeDateFormatting('id_ID', null);
   await LocalStorageService.instance.init();
+  await NotificationService.instance.init();
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );

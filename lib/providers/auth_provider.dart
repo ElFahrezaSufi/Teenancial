@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import '../repositories/auth_repository.dart';
+import '../services/notification_service.dart';
 
 class AuthProvider extends ChangeNotifier {
   static final ValueNotifier<bool> _bootstrapNotifier =
@@ -56,6 +57,7 @@ class AuthProvider extends ChangeNotifier {
   }
 
   void _clearUserData() {
+    unawaited(NotificationService.instance.cancelAll());
     debugPrint(
       'Sesi berakhir: Membersihkan sisa data lokal di seluruh Provider...',
     );
@@ -103,6 +105,7 @@ class AuthProvider extends ChangeNotifier {
   }
 
   Future<void> logout() async {
+    await NotificationService.instance.cancelAll();
     await _repository.logout();
   }
 }
