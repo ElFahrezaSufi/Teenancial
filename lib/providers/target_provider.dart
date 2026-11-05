@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import '../models/target_model.dart';
 import '../repositories/target_repository.dart';
+import '../utils/error_mapper.dart';
 
 class TargetProvider extends ChangeNotifier {
   final TargetRepository _repository;
@@ -43,11 +44,16 @@ class TargetProvider extends ChangeNotifier {
 
     if (newUid == null) {
       _isLoading = false;
-      notifyListeners();
+      Future.microtask(notifyListeners);
       return;
     }
 
-    loadTargets();
+    _isLoading = true;
+    Future.microtask(() {
+      if (_uid == newUid) {
+        loadTargets();
+      }
+    });
   }
 
   Future<void> loadTargets({bool silent = false}) async {
@@ -73,7 +79,7 @@ class TargetProvider extends ChangeNotifier {
       _errorMessage = null;
     } catch (e) {
       if (_uid != targetUid) return;
-      _errorMessage = e.toString().replaceAll('Exception: ', '');
+      _errorMessage = ErrorMapper.message(e);
     } finally {
       if (_uid == targetUid) {
         _isLoading = false;

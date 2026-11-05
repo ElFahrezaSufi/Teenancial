@@ -52,11 +52,16 @@ class BelajarProvider extends ChangeNotifier {
 
     if (newUid == null) {
       _isLoading = false;
-      notifyListeners();
+      Future.microtask(notifyListeners);
       return;
     }
 
-    loadProgress();
+    _isLoading = true;
+    Future.microtask(() {
+      if (_uid == newUid) {
+        loadProgress();
+      }
+    });
   }
 
   Future<void> loadProgress({bool silent = false}) async {

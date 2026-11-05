@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import '../repositories/auth_repository.dart';
+import '../services/local_storage_service.dart';
 import '../services/notification_service.dart';
 
 class AuthProvider extends ChangeNotifier {
@@ -31,12 +32,18 @@ class AuthProvider extends ChangeNotifier {
 
   AuthProvider() {
     _user = _auth.currentUser;
+    if (_user != null && !LocalStorageService.instance.hasSeenGetStarted) {
+      unawaited(LocalStorageService.instance.setHasSeenGetStarted(true));
+    }
     _authSub = _auth.authStateChanges().listen((User? newUser) {
       final bool sessionEnded = newUser == null;
       final bool accountSwitched =
           _user != null && newUser != null && _user!.uid != newUser.uid;
 
       _user = newUser;
+      if (newUser != null && !LocalStorageService.instance.hasSeenGetStarted) {
+        unawaited(LocalStorageService.instance.setHasSeenGetStarted(true));
+      }
 
       if (sessionEnded || accountSwitched) {
         _clearUserData();

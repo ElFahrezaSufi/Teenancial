@@ -49,10 +49,6 @@ final GoRouter appRouter = GoRouter(
     final user = FirebaseAuth.instance.currentUser;
     final isLoggedIn = user != null;
 
-    if (isLoggedIn && !LocalStorageService.instance.hasSeenGetStarted) {
-      unawaited(LocalStorageService.instance.setHasSeenGetStarted(true));
-    }
-
     if (state.matchedLocation == AppRoutes.splash) {
       return null;
     }

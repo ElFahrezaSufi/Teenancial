@@ -4,6 +4,7 @@ import '../data/category_catalog.dart';
 import '../models/transaction_model.dart';
 import '../repositories/transaction_repository.dart';
 import '../services/notification_service.dart';
+import '../utils/error_mapper.dart';
 import 'dompet_provider.dart';
 
 class TransactionProvider extends ChangeNotifier {
@@ -48,11 +49,16 @@ class TransactionProvider extends ChangeNotifier {
     if (newUid == null) {
       _isLoading = false;
       unawaited(NotificationService.instance.cancelAll());
-      notifyListeners();
+      Future.microtask(notifyListeners);
       return;
     }
 
-    loadTransactions();
+    _isLoading = true;
+    Future.microtask(() {
+      if (_uid == newUid) {
+        loadTransactions();
+      }
+    });
   }
 
   Future<void> loadTransactions({bool silent = false}) async {
@@ -79,7 +85,7 @@ class TransactionProvider extends ChangeNotifier {
       unawaited(NotificationService.instance.syncLoanReminders(fetched));
     } catch (e) {
       if (_uid != targetUid) return;
-      _errorMessage = e.toString().replaceAll('Exception: ', '');
+      _errorMessage = ErrorMapper.message(e);
     } finally {
       if (_uid == targetUid) {
         _isLoading = false;

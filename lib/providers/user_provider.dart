@@ -37,11 +37,16 @@ class UserProvider extends ChangeNotifier {
 
     if (newUid == null) {
       _isLoading = false;
-      notifyListeners();
+      Future.microtask(notifyListeners);
       return;
     }
 
-    loadProfile();
+    _isLoading = true;
+    Future.microtask(() {
+      if (_uid == newUid) {
+        loadProfile();
+      }
+    });
   }
 
   Future<void> loadProfile({bool silent = false}) async {

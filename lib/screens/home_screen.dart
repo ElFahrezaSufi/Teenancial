@@ -43,9 +43,9 @@ class _HomeScreenState extends State<HomeScreen> {
   void didChangeDependencies() {
     super.didChangeDependencies();
     if (!_isFeenInitialized) {
-      final size = MediaQuery.of(context).size;
-      _feenX = size.width - _feenButtonWidth;
-      _feenY = size.height - _feenBottomMargin;
+      final size = MediaQuery.sizeOf(context);
+      _feenX = (size.width - _feenButtonWidth).clamp(0.0, double.infinity);
+      _feenY = (size.height - _feenBottomMargin).clamp(0.0, double.infinity);
       _isFeenInitialized = true;
     }
   }
@@ -90,9 +90,16 @@ class _HomeScreenState extends State<HomeScreen> {
     final userProvider = context.watch<UserProvider>();
     final dompetProvider = context.watch<DompetProvider>();
     final targetProvider = context.watch<TargetProvider>();
-    context.watch<TransactionProvider>();
 
-    final double topPadding = MediaQuery.of(context).padding.top;
+    final screenSize = MediaQuery.sizeOf(context);
+    final double maxFeenX =
+        (screenSize.width - _feenButtonWidth).clamp(0.0, double.infinity);
+    final double maxFeenY =
+        (screenSize.height - _feenBottomMargin).clamp(0.0, double.infinity);
+    final double clampedFeenX = _feenX.clamp(0.0, maxFeenX);
+    final double clampedFeenY = _feenY.clamp(0.0, maxFeenY);
+
+    final double topPadding = MediaQuery.paddingOf(context).top;
     final double xpProgress =
         maxXP > 0 ? (currentXP / maxXP).clamp(0.0, 1.0) : 0.0;
     final double totalSaldoReal = dompetProvider.totalSaldo;
@@ -241,34 +248,35 @@ class _HomeScreenState extends State<HomeScreen> {
                 ? Duration.zero
                 : const Duration(milliseconds: 300),
             curve: Curves.easeOutBack,
-            left: _feenX,
-            top: _feenY,
+            left: clampedFeenX,
+            top: clampedFeenY,
             child: GestureDetector(
               onPanStart: (details) {
                 setState(() => _isDraggingFeen = true);
               },
               onPanUpdate: (details) {
+                final size = MediaQuery.sizeOf(context);
                 setState(() {
-                  _feenX += details.delta.dx;
-                  _feenY += details.delta.dy;
-                  _feenX =
-                      _feenX.clamp(0.0, MediaQuery.of(context).size.width - 80);
-                  _feenY = _feenY.clamp(
+                  _feenX = (_feenX + details.delta.dx)
+                      .clamp(0.0, (size.width - 80).clamp(0.0, double.infinity));
+                  _feenY = (_feenY + details.delta.dy).clamp(
                     0.0,
-                    MediaQuery.of(context).size.height - _feenBottomMargin,
+                    (size.height - _feenBottomMargin)
+                        .clamp(0.0, double.infinity),
                   );
                 });
               },
               onPanEnd: (details) {
+                final screenWidth = MediaQuery.sizeOf(context).width;
                 setState(() {
                   _isDraggingFeen = false;
-                  final screenWidth = MediaQuery.of(context).size.width;
                   final centerScreen = screenWidth / 2;
 
                   if (_feenX + 30 < centerScreen) {
                     _feenX = 24.0;
                   } else {
-                    _feenX = screenWidth - _feenButtonWidth;
+                    _feenX = (screenWidth - _feenButtonWidth)
+                        .clamp(0.0, double.infinity);
                   }
                 });
               },
