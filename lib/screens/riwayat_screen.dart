@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../config/app_routes.dart';
 import '../models/transaction_model.dart';
+import '../providers/dompet_provider.dart';
 import '../providers/transaction_provider.dart';
 import '../services/local_storage_service.dart';
 import '../theme/app_colors.dart';
@@ -59,6 +60,10 @@ class RiwayatScreen extends StatefulWidget {
     }
     final reversed = buffer.toString().split('').reversed.join();
     return 'Rp $reversed,00';
+  }
+
+  static double _netWalletDelta(TransactionModel t) {
+    return t.walletEffects().values.fold(0.0, (sum, delta) => sum + delta);
   }
 
   @override
@@ -284,37 +289,34 @@ class _RiwayatScreenState extends State<RiwayatScreen> {
   @override
   Widget build(BuildContext context) {
     final txProvider = context.watch<TransactionProvider>();
+    final dompetProvider = context.watch<DompetProvider>();
     final allTransactions = txProvider.transactions;
     final filteredGroups =
         RiwayatScreen.buildFilteredGroups(allTransactions, _selectedFilter);
-    final visibleGroups = filteredGroups.take(2).toList();
+    final visibleGroups = filteredGroups.take(5).toList();
 
     final cutoff = RiwayatScreen.cutoffForFilter(_selectedFilter);
     final filteredAsc =
         allTransactions.where((t) => t.date.isAfter(cutoff)).toList()
           ..sort((a, b) => a.date.compareTo(b.date));
 
-    double balance = 0.0;
-    final List<double> trendData = [];
+    final double currentTotalSaldo = dompetProvider.totalSaldo;
+    final double periodNetDelta = filteredAsc.fold(
+      0.0,
+      (sum, t) => sum + RiwayatScreen._netWalletDelta(t),
+    );
+    final double openingBalance = currentTotalSaldo - periodNetDelta;
+
+    double runningBalance = openingBalance;
+    final List<double> trendData = [openingBalance];
     for (final t in filteredAsc) {
-      if (t.type == TransactionType.income || t.type == TransactionType.debt) {
-        balance += t.amount;
-      } else if (t.type == TransactionType.transfer &&
-          t.destinationDompetId != null) {
-        // Transfer internal antar dompet tidak mengubah total saldo
-      } else {
-        balance -= t.amount;
-      }
-      trendData.add(balance);
+      runningBalance += RiwayatScreen._netWalletDelta(t);
+      trendData.add(runningBalance);
     }
-    if (trendData.isEmpty) trendData.add(0.0);
 
-    final double totalIncome = filteredAsc
-        .where((t) => t.type == TransactionType.income)
-        .fold(0.0, (sum, t) => sum + t.amount);
-    final String maxLabel = '+ ${RiwayatScreen.formatCurrency(totalIncome)}';
-
-    const Color orangeText = Color(0xFFE18151);
+    final bool isNetPositive = periodNetDelta >= 0;
+    final String netDeltaLabel =
+        '${isNetPositive ? '+' : '-'} ${RiwayatScreen.formatCurrency(periodNetDelta.abs())}';
 
     return Scaffold(
       backgroundColor: scaffoldBg,
@@ -390,16 +392,33 @@ class _RiwayatScreenState extends State<RiwayatScreen> {
                           borderRadius: 16,
                           padding: const EdgeInsets.all(12),
                           child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.end,
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
                             children: [
-                              Text(
-                                maxLabel,
-                                style: const TextStyle(
-                                  color: primaryGreen,
-                                  fontSize: 12,
-                                  fontFamily: 'Inter',
-                                  fontWeight: FontWeight.w500,
-                                ),
+                              Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text(
+                                    'Saldo: ${RiwayatScreen.formatCurrency(currentTotalSaldo)}',
+                                    style: const TextStyle(
+                                      color: primaryGreen,
+                                      fontSize: 12,
+                                      fontFamily: 'Inter',
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                  Text(
+                                    netDeltaLabel,
+                                    style: TextStyle(
+                                      color: isNetPositive
+                                          ? primaryGreen
+                                          : Colors.redAccent,
+                                      fontSize: 12,
+                                      fontFamily: 'Inter',
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ],
                               ),
                               const SizedBox(height: 6),
                               SizedBox(
