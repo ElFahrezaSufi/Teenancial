@@ -2,7 +2,6 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/dompet_model.dart';
 import '../models/transaction_model.dart';
 import '../services/firestore_service.dart';
-import '../services/legacy_seed_service.dart';
 
 class TransactionRepository {
   final FirestoreService _firestoreService;
@@ -11,7 +10,6 @@ class TransactionRepository {
       : _firestoreService = firestoreService ?? FirestoreService.instance;
 
   Future<List<TransactionModel>> getTransactions(String uid) async {
-    await LegacySeedService.instance.ensureFinanceSeeded(uid);
     final snapshot = await _firestoreService.transactionsCol(uid).get();
     final items = snapshot.docs
         .map((doc) => TransactionModel.fromMap(doc.data(), docId: doc.id))

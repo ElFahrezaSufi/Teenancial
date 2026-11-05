@@ -1,3 +1,5 @@
+import '../config/app_constants.dart';
+
 enum JenisDompet { cash, accounts, card }
 
 extension JenisDompetLabel on JenisDompet {
@@ -27,6 +29,16 @@ class DompetItem {
     required this.jumlah,
     this.catatan,
   });
+
+  /// Dompet awal default (Rp 0) untuk pengguna baru.
+  factory DompetItem.initialWallet() {
+    return DompetItem(
+      id: AppConstants.defaultNewWalletId,
+      jenis: JenisDompet.cash,
+      nama: AppConstants.defaultNewWalletName,
+      jumlah: AppConstants.defaultNewWalletBalance,
+    );
+  }
 
   Map<String, dynamic> toMap() {
     return {

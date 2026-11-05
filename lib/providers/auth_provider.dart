@@ -10,12 +10,19 @@ class AuthProvider extends ChangeNotifier {
   final AuthRepository _repository = AuthRepository();
 
   User? _user;
-  User? get user => _user;
-  bool get isAuthenticated => _user != null && !registrationInProgress.value;
+  bool _bootstrapInProgress = false;
 
-  /// UID aktif untuk seluruh feature provider. Bernilai null saat belum login
-  /// atau saat proses registrasi email sedang berlangsung sebelum auto-logout.
-  String? get activeUid => registrationInProgress.value ? null : _user?.uid;
+  User? get user => _user;
+  bool get isAuthenticated =>
+      _user != null && !registrationInProgress.value && !_bootstrapInProgress;
+
+  /// UID aktif untuk seluruh feature provider. Bernilai null saat belum login,
+  /// saat proses registrasi email berlangsung, atau saat bootstrap akun Google
+  /// belum selesai menulis dompet awal.
+  String? get activeUid =>
+      (registrationInProgress.value || _bootstrapInProgress)
+          ? null
+          : _user?.uid;
 
   late final StreamSubscription<User?> _authSub;
 
@@ -85,8 +92,14 @@ class AuthProvider extends ChangeNotifier {
   }
 
   Future<bool> signInWithGoogle() async {
-    final credential = await _repository.signInWithGoogle();
-    return credential != null;
+    _bootstrapInProgress = true;
+    try {
+      final credential = await _repository.signInWithGoogle();
+      return credential != null;
+    } finally {
+      _bootstrapInProgress = false;
+      notifyListeners();
+    }
   }
 
   Future<void> sendPasswordResetEmail(String email) async {

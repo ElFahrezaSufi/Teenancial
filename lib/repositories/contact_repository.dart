@@ -1,6 +1,5 @@
 import '../models/contact_model.dart';
 import '../services/firestore_service.dart';
-import '../services/legacy_seed_service.dart';
 
 class ContactRepository {
   final FirestoreService _firestoreService;
@@ -9,7 +8,6 @@ class ContactRepository {
       : _firestoreService = firestoreService ?? FirestoreService.instance;
 
   Future<List<ContactModel>> getContacts(String uid) async {
-    await LegacySeedService.instance.ensureFinanceSeeded(uid);
     final snapshot = await _firestoreService.contactsCol(uid).get();
     final items = snapshot.docs
         .map((doc) => ContactModel.fromMap(doc.data(), docId: doc.id))

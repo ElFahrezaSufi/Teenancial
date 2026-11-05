@@ -7,7 +7,6 @@ class UserModel {
   final String age;
   final String gender;
   final String? profileImageUrl;
-  final bool walletSeeded;
   final List<String> completedModules;
   final List<String> completedQuizzes;
 
@@ -18,7 +17,6 @@ class UserModel {
     this.age = '',
     this.gender = '',
     this.profileImageUrl,
-    this.walletSeeded = false,
     this.completedModules = const [],
     this.completedQuizzes = const [],
   });
@@ -31,7 +29,6 @@ class UserModel {
       'age': age,
       'gender': gender,
       'profileImageUrl': profileImageUrl,
-      'walletSeeded': walletSeeded,
       'completedModules': completedModules,
       'completedQuizzes': completedQuizzes,
       if (includeCreatedAt) 'createdAt': FieldValue.serverTimestamp(),
@@ -52,7 +49,6 @@ class UserModel {
       age: (map['age'] ?? '').toString(),
       gender: (map['gender'] ?? '').toString().trim(),
       profileImageUrl: map['profileImageUrl'] as String?,
-      walletSeeded: map['walletSeeded'] == true,
       completedModules: rawModules is Iterable
           ? rawModules.map((e) => e.toString()).toList()
           : const [],
@@ -70,7 +66,6 @@ class UserModel {
     String? gender,
     String? profileImageUrl,
     bool clearProfileImage = false,
-    bool? walletSeeded,
     List<String>? completedModules,
     List<String>? completedQuizzes,
   }) {
@@ -83,7 +78,6 @@ class UserModel {
       profileImageUrl: clearProfileImage
           ? null
           : (profileImageUrl ?? this.profileImageUrl),
-      walletSeeded: walletSeeded ?? this.walletSeeded,
       completedModules: completedModules ?? this.completedModules,
       completedQuizzes: completedQuizzes ?? this.completedQuizzes,
     );

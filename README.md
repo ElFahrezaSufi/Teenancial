@@ -15,7 +15,7 @@ Teenancial adalah aplikasi yang dirancang khusus untuk membantu remaja mencatat 
 Untuk menjalankan proyek ini, pastikan Anda telah menginstal dan mengkonfigurasi lingkungan berikut:
 - **Flutter SDK:** Versi `3.47.2` atau yang lebih baru.
 - **Dart SDK:** Versi `3.13.2` atau yang kompatibel dengan Flutter 3.47.2.
-- **IDE:** Android Studio dengan Emulator atau perangkat fisik (Android/iOS).
+- **IDE:** Android Studio dengan Emulator atau perangkat fisik (Android).
 
 ## Cara Menjalankan Aplikasi (Setup & Run)
 
@@ -25,19 +25,8 @@ Untuk menjalankan proyek ini, pastikan Anda telah menginstal dan mengkonfigurasi
    ```bash
    flutter pub get
    ```
-4. Jalankan aplikasi di emulator atau perangkat fisik (Android/iOS):
+4. Jalankan aplikasi di emulator atau perangkat fisik (Android):
    ```bash
    flutter run
    ```
    *(Pastikan tidak ada folder `build` atau `.dart_tool` yang tertinggal saat mengekstrak zip untuk menghindari konflik cache).*
-
----
-
-## Data Dummy (Skenario Simulasi UTS)
-
-**Kredensial Login Dummy**
-Jika tidak ingin membuat akun baru melalui halaman Registrasi (Sign Up), Anda dapat langsung Login menggunakan akun default berikut:
-- **Email:** `dummy@teenancial.com`
-- **Password:** `password123`
-
----
