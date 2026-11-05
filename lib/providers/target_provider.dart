@@ -25,6 +25,16 @@ class TargetProvider extends ChangeNotifier {
     return null;
   }
 
+  /// Total dana yang sudah dialokasikan ke seluruh target menabung.
+  double get totalAllocated =>
+      _items.fold(0.0, (sum, item) => sum + item.savedAmount);
+
+  /// Sisa saldo dompet yang belum dialokasikan ke target mana pun.
+  double availableToAllocate(double totalWalletBalance) {
+    final remaining = totalWalletBalance - totalAllocated;
+    return remaining > 0 ? remaining : 0.0;
+  }
+
   void updateUser(String? newUid) {
     if (_uid == newUid) return;
     _uid = newUid;
@@ -89,6 +99,54 @@ class TargetProvider extends ChangeNotifier {
     );
     await loadTargets(silent: true);
     return created;
+  }
+
+  Future<void> allocateTargetFunds({
+    required String targetId,
+    required double amountDelta,
+    required double totalWalletBalance,
+  }) async {
+    final targetUid = _uid;
+    if (targetUid == null) {
+      throw Exception('Sesi pengguna tidak ditemukan');
+    }
+    if (amountDelta == 0) return;
+
+    final index = _items.indexWhere((t) => t.id == targetId);
+    if (index == -1) {
+      throw Exception('Target menabung tidak ditemukan');
+    }
+    final target = _items[index];
+
+    if (amountDelta > 0) {
+      final available = availableToAllocate(totalWalletBalance);
+      if (amountDelta > available + 0.0001) {
+        throw Exception(
+          'Nominal melebihi saldo bebas yang tersedia untuk dialokasikan.',
+        );
+      }
+      final remainingNeeded =
+          (target.targetAmount - target.savedAmount).clamp(0.0, double.infinity);
+      if (amountDelta > remainingNeeded + 0.0001) {
+        throw Exception('Nominal melebihi sisa target yang dibutuhkan.');
+      }
+    } else {
+      if (amountDelta.abs() > target.savedAmount + 0.0001) {
+        throw Exception(
+          'Nominal penarikan melebihi dana yang tersimpan pada target ini.',
+        );
+      }
+    }
+
+    final double newSavedAmount =
+        (target.savedAmount + amountDelta).clamp(0.0, target.targetAmount);
+
+    await _repository.updateSavedAmount(
+      uid: targetUid,
+      targetId: targetId,
+      savedAmount: newSavedAmount,
+    );
+    await loadTargets(silent: true);
   }
 
   Future<void> togglePin(TargetItem item) async {

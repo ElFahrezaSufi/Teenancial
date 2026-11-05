@@ -58,9 +58,7 @@ class TargetMenabungHome extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (currentTarget != null) {
-      final double progress = currentTarget!.targetAmount > 0
-          ? (totalSaldoReal / currentTarget!.targetAmount).clamp(0.0, 1.0)
-          : 0.0;
+      final double progress = currentTarget!.progress;
 
       return Column(
         children: [
@@ -98,7 +96,7 @@ class TargetMenabungHome extends StatelessWidget {
                       ),
                       const SizedBox(width: 8),
                       Text(
-                        '${formatRupiah(totalSaldoReal)}/ ${formatRupiah(currentTarget!.targetAmount)}',
+                        '${formatRupiah(currentTarget!.savedAmount)} / ${formatRupiah(currentTarget!.targetAmount)}',
                         style: const TextStyle(
                           color: primaryGreen,
                           fontSize: 12,

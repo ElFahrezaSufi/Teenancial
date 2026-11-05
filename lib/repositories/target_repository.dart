@@ -37,6 +37,7 @@ class TargetRepository {
       id: docRef.id,
       nama: nama.trim(),
       targetAmount: targetAmount,
+      savedAmount: 0.0,
       imageUrl: secureUrl,
       isPinned: false,
     );
@@ -44,6 +45,17 @@ class TargetRepository {
     await docRef.set(item.toMap());
 
     return item;
+  }
+
+  Future<void> updateSavedAmount({
+    required String uid,
+    required String targetId,
+    required double savedAmount,
+  }) async {
+    await _firestoreService
+        .targetsCol(uid)
+        .doc(targetId)
+        .update({'savedAmount': savedAmount});
   }
 
   Future<void> togglePinTarget({

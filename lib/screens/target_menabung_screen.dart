@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
@@ -7,6 +8,7 @@ import '../models/target_model.dart';
 import '../providers/dompet_provider.dart';
 import '../providers/target_provider.dart';
 import '../theme/app_colors.dart';
+import '../utils/currency_formatter.dart';
 import '../widgets/common/custom_card.dart';
 
 class TargetMenabungScreen extends StatelessWidget {
@@ -67,6 +69,8 @@ class TargetMenabungScreen extends StatelessWidget {
     final targetProvider = context.watch<TargetProvider>();
     final items = targetProvider.items;
     final saldoSekarang = context.watch<DompetProvider>().totalSaldo;
+    final totalAllocated = targetProvider.totalAllocated;
+    final availableSaldo = targetProvider.availableToAllocate(saldoSekarang);
 
     return Scaffold(
       backgroundColor: scaffoldBg,
@@ -144,14 +148,25 @@ class TargetMenabungScreen extends StatelessWidget {
                     children: [
                       if (items.isEmpty)
                         _buildEmptyState(context)
-                      else
+                      else ...[
+                        _buildAllocationSummaryCard(
+                          saldoSekarang: saldoSekarang,
+                          totalAllocated: totalAllocated,
+                          availableSaldo: availableSaldo,
+                        ),
+                        const SizedBox(height: 20),
                         ...items.map(
                           (item) => Padding(
                             padding: const EdgeInsets.only(bottom: 24.0),
-                            child:
-                                _buildTargetCard(context, item, saldoSekarang),
+                            child: _buildTargetCard(
+                              context,
+                              item: item,
+                              saldoSekarang: saldoSekarang,
+                              availableSaldo: availableSaldo,
+                            ),
                           ),
                         ),
+                      ],
                     ],
                   ),
                 ),
@@ -173,6 +188,119 @@ class TargetMenabungScreen extends StatelessWidget {
               ),
             )
           : null,
+    );
+  }
+
+  Widget _buildAllocationSummaryCard({
+    required double saldoSekarang,
+    required double totalAllocated,
+    required double availableSaldo,
+  }) {
+    final bool isOverAllocated = totalAllocated > saldoSekarang + 0.0001;
+
+    return CustomCard(
+      backgroundColor: appBarBg,
+      borderRadius: 16,
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Saldo Bebas Tersedia',
+                      style: TextStyle(
+                        color: primaryGreen.withValues(alpha: 0.75),
+                        fontSize: 12,
+                        fontFamily: 'Inter',
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      _formatRupiah(availableSaldo),
+                      style: const TextStyle(
+                        color: primaryGreen,
+                        fontSize: 18,
+                        fontFamily: 'Inter',
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Container(
+                width: 1.5,
+                height: 36,
+                color: primaryGreen.withValues(alpha: 0.2),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Total Dialokasikan',
+                      style: TextStyle(
+                        color: primaryGreen.withValues(alpha: 0.75),
+                        fontSize: 12,
+                        fontFamily: 'Inter',
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      _formatRupiah(totalAllocated),
+                      style: const TextStyle(
+                        color: Color(0xFFDAB62C),
+                        fontSize: 18,
+                        fontFamily: 'Inter',
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          if (isOverAllocated) ...[
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: Colors.red.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: Colors.redAccent),
+              ),
+              child: const Row(
+                children: [
+                  Icon(
+                    Icons.warning_amber_rounded,
+                    color: Colors.redAccent,
+                    size: 18,
+                  ),
+                  SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Total alokasi melebihi saldo dompet saat ini karena pengeluaran. Tarik sebagian alokasi atau tambah saldo dompet.',
+                      style: TextStyle(
+                        color: Colors.redAccent,
+                        fontSize: 11,
+                        fontFamily: 'Inter',
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ],
+      ),
     );
   }
 
@@ -243,16 +371,16 @@ class TargetMenabungScreen extends StatelessWidget {
   }
 
   Widget _buildTargetCard(
-    BuildContext context,
-    TargetItem item,
-    double saldoSekarang,
-  ) {
-    final double progress = item.targetAmount > 0
-        ? (saldoSekarang / item.targetAmount).clamp(0.0, 1.0)
-        : 0.0;
-
-    final String terkumpulStr = _formatRupiah(saldoSekarang);
+    BuildContext context, {
+    required TargetItem item,
+    required double saldoSekarang,
+    required double availableSaldo,
+  }) {
+    final double progress = item.progress;
+    final String terkumpulStr = _formatRupiah(item.savedAmount);
     final String targetStr = _formatRupiah(item.targetAmount);
+    final bool canDeposit = !item.isAchieved && availableSaldo > 0;
+    final bool canWithdraw = item.savedAmount > 0;
 
     return CustomCard(
       backgroundColor: cardBg,
@@ -270,6 +398,37 @@ class TargetMenabungScreen extends StatelessWidget {
                 ),
                 child: _buildTargetImage(item.imageUrl),
               ),
+              if (item.isAchieved)
+                Positioned(
+                  top: 12,
+                  left: 12,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      color: primaryGreen,
+                      borderRadius: BorderRadius.circular(100),
+                      boxShadow: const [
+                        BoxShadow(
+                          color: Colors.black12,
+                          blurRadius: 4,
+                          offset: Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: const Text(
+                      'Tercapai 🎉',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 12,
+                        fontFamily: 'Inter',
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                ),
               Positioned(
                 top: 12,
                 right: 12,
@@ -433,11 +592,20 @@ class TargetMenabungScreen extends StatelessWidget {
                     ],
                   ),
                 ),
+                Text(
+                  '${(progress * 100).toStringAsFixed(0)}%',
+                  style: const TextStyle(
+                    color: primaryGreen,
+                    fontSize: 14,
+                    fontFamily: 'Inter',
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
               ],
             ),
           ),
           Padding(
-            padding: const EdgeInsets.only(left: 16, right: 16, bottom: 20),
+            padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Stack(
               children: [
                 Container(
@@ -460,8 +628,308 @@ class TargetMenabungScreen extends StatelessWidget {
               ],
             ),
           ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
+            child: Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: canWithdraw
+                        ? () => _showAllocationDialog(
+                              context,
+                              item: item,
+                              isDeposit: false,
+                              saldoSekarang: saldoSekarang,
+                              availableSaldo: availableSaldo,
+                            )
+                        : null,
+                    icon: const Icon(Icons.remove_circle_outline, size: 18),
+                    label: const Text(
+                      'Tarik',
+                      style: TextStyle(
+                        fontFamily: 'Inter',
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: primaryGreen,
+                      side: BorderSide(
+                        color: canWithdraw
+                            ? primaryGreen
+                            : Colors.grey.withValues(alpha: 0.4),
+                        width: 1.5,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(100),
+                      ),
+                      padding: const EdgeInsets.symmetric(vertical: 10),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: canDeposit
+                        ? () => _showAllocationDialog(
+                              context,
+                              item: item,
+                              isDeposit: true,
+                              saldoSekarang: saldoSekarang,
+                              availableSaldo: availableSaldo,
+                            )
+                        : null,
+                    icon: const Icon(Icons.savings_outlined, size: 18),
+                    label: Text(
+                      item.isAchieved ? 'Tercapai' : 'Tabung',
+                      style: const TextStyle(
+                        fontFamily: 'Inter',
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: primaryGreen,
+                      foregroundColor: Colors.white,
+                      disabledBackgroundColor:
+                          Colors.grey.withValues(alpha: 0.3),
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(100),
+                      ),
+                      padding: const EdgeInsets.symmetric(vertical: 10),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
         ],
       ),
+    );
+  }
+
+  Future<void> _showAllocationDialog(
+    BuildContext context, {
+    required TargetItem item,
+    required bool isDeposit,
+    required double saldoSekarang,
+    required double availableSaldo,
+  }) async {
+    final remainingTarget =
+        (item.targetAmount - item.savedAmount).clamp(0.0, double.infinity);
+    final double maxAmount =
+        isDeposit ? math.min(availableSaldo, remainingTarget) : item.savedAmount;
+
+    final double? submittedAmount = await showDialog<double>(
+      context: context,
+      builder: (_) => _TargetAllocationDialog(
+        targetName: item.nama,
+        isDeposit: isDeposit,
+        maxAmount: maxAmount,
+        formatRupiah: _formatRupiah,
+      ),
+    );
+
+    if (submittedAmount == null || !context.mounted) return;
+
+    try {
+      await context.read<TargetProvider>().allocateTargetFunds(
+            targetId: item.id,
+            amountDelta: isDeposit ? submittedAmount : -submittedAmount,
+            totalWalletBalance: saldoSekarang,
+          );
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              isDeposit
+                  ? '✅ Berhasil menabung ${_formatRupiah(submittedAmount)} ke ${item.nama}!'
+                  : '✅ Berhasil menarik ${_formatRupiah(submittedAmount)} dari ${item.nama}!',
+            ),
+            backgroundColor: primaryGreen,
+          ),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        final message = e.toString().replaceAll('Exception: ', '');
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('❌ $message'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+}
+
+class _TargetAllocationDialog extends StatefulWidget {
+  final String targetName;
+  final bool isDeposit;
+  final double maxAmount;
+  final String Function(double) formatRupiah;
+
+  const _TargetAllocationDialog({
+    required this.targetName,
+    required this.isDeposit,
+    required this.maxAmount,
+    required this.formatRupiah,
+  });
+
+  @override
+  State<_TargetAllocationDialog> createState() =>
+      _TargetAllocationDialogState();
+}
+
+class _TargetAllocationDialogState extends State<_TargetAllocationDialog> {
+  final TextEditingController _controller = TextEditingController();
+  String? _errorText;
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _submit() {
+    FocusScope.of(context).unfocus();
+    final raw = _controller.text.replaceAll(RegExp(r'[^0-9]'), '');
+    final amount = double.tryParse(raw) ?? 0.0;
+    if (amount <= 0) {
+      setState(() => _errorText = 'Masukkan nominal lebih dari Rp 0');
+      return;
+    }
+    if (amount > widget.maxAmount + 0.0001) {
+      setState(
+        () => _errorText = widget.isDeposit
+            ? 'Melebihi batas maksimal (${widget.formatRupiah(widget.maxAmount)})'
+            : 'Melebihi saldo tersimpan (${widget.formatRupiah(widget.maxAmount)})',
+      );
+      return;
+    }
+    Navigator.of(context).pop(amount);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      backgroundColor: appBarBg,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(20),
+      ),
+      title: Text(
+        widget.isDeposit ? 'Tabung ke Target' : 'Tarik Alokasi Target',
+        style: const TextStyle(
+          color: primaryGreen,
+          fontFamily: 'Inter',
+          fontWeight: FontWeight.w700,
+          fontSize: 18,
+        ),
+      ),
+      content: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              widget.targetName,
+              style: const TextStyle(
+                color: primaryGreen,
+                fontFamily: 'Inter',
+                fontWeight: FontWeight.w600,
+                fontSize: 14,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              widget.isDeposit
+                  ? 'Maksimal dapat ditabung: ${widget.formatRupiah(widget.maxAmount)}'
+                  : 'Tersimpan di target ini: ${widget.formatRupiah(widget.maxAmount)}',
+              style: TextStyle(
+                color: primaryGreen.withValues(alpha: 0.75),
+                fontFamily: 'Inter',
+                fontSize: 12,
+              ),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: _controller,
+              keyboardType: TextInputType.number,
+              inputFormatters: [CurrencyInputFormatter()],
+              autofocus: true,
+              style: const TextStyle(
+                color: primaryGreen,
+                fontFamily: 'Inter',
+                fontWeight: FontWeight.w600,
+              ),
+              decoration: InputDecoration(
+                hintText: 'Rp 0',
+                errorText: _errorText,
+                filled: true,
+                fillColor: inputBg,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: primaryGreen, width: 1.5),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: primaryGreen, width: 1.5),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: primaryGreen, width: 2),
+                ),
+              ),
+            ),
+            if (widget.maxAmount > 0) ...[
+              const SizedBox(height: 8),
+              Align(
+                alignment: Alignment.centerRight,
+                child: TextButton(
+                  onPressed: () {
+                    _controller.text = CurrencyInputFormatter.formatValue(
+                      widget.maxAmount.toStringAsFixed(0),
+                    );
+                    setState(() => _errorText = null);
+                  },
+                  child: Text(
+                    widget.isDeposit ? 'Isi Maksimal' : 'Tarik Semua',
+                    style: const TextStyle(
+                      color: primaryGreen,
+                      fontFamily: 'Inter',
+                      fontWeight: FontWeight.w700,
+                      fontSize: 12,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () {
+            FocusScope.of(context).unfocus();
+            Navigator.of(context).pop();
+          },
+          child: const Text(
+            'Batal',
+            style: TextStyle(color: Colors.grey),
+          ),
+        ),
+        ElevatedButton(
+          style: ElevatedButton.styleFrom(
+            backgroundColor: primaryGreen,
+            foregroundColor: Colors.white,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(100),
+            ),
+          ),
+          onPressed: _submit,
+          child: Text(widget.isDeposit ? 'Tabung' : 'Tarik'),
+        ),
+      ],
     );
   }
 }
