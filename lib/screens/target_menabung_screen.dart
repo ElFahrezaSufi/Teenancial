@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'dart:math' as math;
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
@@ -37,22 +38,19 @@ class TargetMenabungScreen extends StatelessWidget {
     );
 
     if (imageUrl.startsWith('http')) {
-      return Image.network(
-        imageUrl,
+      return CachedNetworkImage(
+        imageUrl: imageUrl,
         height: 160,
         width: double.infinity,
         fit: BoxFit.cover,
-        loadingBuilder: (context, child, loadingProgress) {
-          if (loadingProgress == null) return child;
-          return Container(
-            height: 160,
-            color: lightGreen.withValues(alpha: 0.35),
-            child: const Center(
-              child: CircularProgressIndicator(color: primaryGreen),
-            ),
-          );
-        },
-        errorBuilder: (context, error, stackTrace) => fallback,
+        placeholder: (context, url) => Container(
+          height: 160,
+          color: lightGreen.withValues(alpha: 0.35),
+          child: const Center(
+            child: CircularProgressIndicator(color: primaryGreen),
+          ),
+        ),
+        errorWidget: (context, url, error) => fallback,
       );
     }
 

@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
@@ -307,7 +308,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       return FileImage(_pendingImageFile!);
     }
     if (!_removeExistingImage && remoteUrl != null && remoteUrl.isNotEmpty) {
-      return NetworkImage(remoteUrl);
+      return CachedNetworkImageProvider(remoteUrl);
     }
     return null;
   }

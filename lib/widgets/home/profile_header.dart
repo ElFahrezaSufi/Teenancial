@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_text_styles.dart';
@@ -23,7 +24,7 @@ class ProfileHeader extends StatelessWidget {
     if (imageFile != null) {
       return FileImage(imageFile!);
     } else if (imageUrl != null && imageUrl!.isNotEmpty) {
-      return NetworkImage(imageUrl!);
+      return CachedNetworkImageProvider(imageUrl!);
     }
     return null;
   }
