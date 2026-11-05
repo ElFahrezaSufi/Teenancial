@@ -19,9 +19,12 @@ class TransactionRepository {
   }
 
   Future<void> addTransaction(String uid, TransactionModel transaction) async {
-    final deltas = transaction.walletEffects();
     final walletsRef = _firestoreService.walletsCol(uid);
-    final txRef = _firestoreService.transactionsCol(uid).doc(transaction.id);
+    final txCol = _firestoreService.transactionsCol(uid);
+    final txRef =
+        transaction.id.isEmpty ? txCol.doc() : txCol.doc(transaction.id);
+    final txToSave = transaction.copyWith(id: txRef.id);
+    final deltas = txToSave.walletEffects();
 
     await _firestoreService.runTransaction((fsTx) async {
       // Phase 1: Read all affected wallets
@@ -50,7 +53,7 @@ class TransactionRepository {
       for (final entry in newBalances.entries) {
         fsTx.update(walletsRef.doc(entry.key), {'jumlah': entry.value});
       }
-      fsTx.set(txRef, transaction.toMap());
+      fsTx.set(txRef, txToSave.toMap());
     });
   }
 

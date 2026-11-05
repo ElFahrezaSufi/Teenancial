@@ -93,8 +93,7 @@ class _PengeluaranScreenState extends State<PengeluaranScreen> {
       final cat = CategoryCatalog.getById(categoryId);
 
       final transaction = TransactionModel(
-        id: widget.transactionToEdit?.id ??
-            DateTime.now().millisecondsSinceEpoch.toString(),
+        id: widget.transactionToEdit?.id ?? '',
         title: _catatanController.text.isNotEmpty
             ? _catatanController.text
             : cat.name,

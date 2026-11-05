@@ -148,7 +148,7 @@ class _PinjamanScreenState extends State<PinjamanScreen> {
       }
 
       final transaction = TransactionModel(
-        id: DateTime.now().millisecondsSinceEpoch.toString(),
+        id: '',
         title: '${isDebt ? 'Hutang dari' : 'Piutang ke'} $friendName',
         amount: amount,
         date: DateTime.now(),

@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../config/app_constants.dart';
 
 enum JenisDompet { cash, accounts, card }
@@ -21,6 +22,7 @@ class DompetItem {
   final String nama;
   double jumlah;
   final String? catatan;
+  final DateTime? createdAt;
 
   DompetItem({
     required this.id,
@@ -28,6 +30,7 @@ class DompetItem {
     required this.nama,
     required this.jumlah,
     this.catatan,
+    this.createdAt,
   });
 
   /// Dompet awal default (Rp 0) untuk pengguna baru.
@@ -37,6 +40,7 @@ class DompetItem {
       jenis: JenisDompet.cash,
       nama: AppConstants.defaultNewWalletName,
       jumlah: AppConstants.defaultNewWalletBalance,
+      createdAt: DateTime.now(),
     );
   }
 
@@ -47,6 +51,7 @@ class DompetItem {
       'nama': nama,
       'jumlah': jumlah,
       'catatan': catatan,
+      if (createdAt != null) 'createdAt': Timestamp.fromDate(createdAt!),
     };
   }
 
@@ -60,12 +65,21 @@ class DompetItem {
       orElse: () => JenisDompet.cash,
     );
 
+    final rawCreatedAt = map['createdAt'];
+    DateTime? parsedCreatedAt;
+    if (rawCreatedAt is Timestamp) {
+      parsedCreatedAt = rawCreatedAt.toDate();
+    } else if (rawCreatedAt is String) {
+      parsedCreatedAt = DateTime.tryParse(rawCreatedAt);
+    }
+
     return DompetItem(
       id: docId ?? (map['id'] as String?) ?? '',
       jenis: parsedJenis,
       nama: (map['nama'] as String?) ?? 'Dompet',
       jumlah: (map['jumlah'] as num?)?.toDouble() ?? 0.0,
       catatan: map['catatan'] as String?,
+      createdAt: parsedCreatedAt,
     );
   }
 
@@ -76,6 +90,7 @@ class DompetItem {
     double? jumlah,
     String? catatan,
     bool clearCatatan = false,
+    DateTime? createdAt,
   }) {
     return DompetItem(
       id: id ?? this.id,
@@ -83,6 +98,7 @@ class DompetItem {
       nama: nama ?? this.nama,
       jumlah: jumlah ?? this.jumlah,
       catatan: clearCatatan ? null : (catatan ?? this.catatan),
+      createdAt: createdAt ?? this.createdAt,
     );
   }
 }

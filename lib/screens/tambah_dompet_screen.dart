@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../models/dompet_model.dart';
 import '../providers/dompet_provider.dart';
+import '../providers/transaction_provider.dart';
 import '../theme/app_colors.dart';
 import '../widgets/common/custom_card.dart';
 
@@ -90,18 +91,20 @@ class _TambahDompetScreenState extends State<TambahDompetScreen> {
 
     try {
       final item = DompetItem(
-        id: widget.itemToEdit?.id ??
-            DateTime.now().millisecondsSinceEpoch.toString(),
+        id: widget.itemToEdit?.id ?? '',
         jenis: jenis,
         nama: nama,
         jumlah: jumlah,
         catatan:
             _catatanCtrl.text.trim().isEmpty ? null : _catatanCtrl.text.trim(),
+        createdAt: widget.itemToEdit?.createdAt,
       );
 
       final dompetProvider = context.read<DompetProvider>();
+      final txProvider = context.read<TransactionProvider>();
       if (widget.itemToEdit != null) {
         await dompetProvider.updateDompet(item);
+        await txProvider.loadTransactions(silent: true);
       } else {
         await dompetProvider.addDompet(item);
       }
@@ -117,9 +120,10 @@ class _TambahDompetScreenState extends State<TambahDompetScreen> {
       }
     } catch (e) {
       if (mounted) {
+        final message = e.toString().replaceAll('Exception: ', '');
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('❌ Gagal menyimpan: $e'),
+            content: Text('❌ Gagal menyimpan: $message'),
             backgroundColor: Colors.red,
           ),
         );
@@ -171,9 +175,10 @@ class _TambahDompetScreenState extends State<TambahDompetScreen> {
       }
     } catch (e) {
       if (mounted) {
+        final message = e.toString().replaceAll('Exception: ', '');
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('❌ Gagal menghapus: $e'),
+            content: Text('❌ Gagal menghapus: $message'),
             backgroundColor: Colors.red,
           ),
         );

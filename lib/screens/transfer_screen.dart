@@ -132,7 +132,7 @@ class _TransferScreenState extends State<TransferScreen> {
       }
 
       final transaction = TransactionModel(
-        id: DateTime.now().millisecondsSinceEpoch.toString(),
+        id: '',
         title: _isSelfTransfer
             ? 'Transfer Internal'
             : (recipientName.isNotEmpty

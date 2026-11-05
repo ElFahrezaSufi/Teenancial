@@ -32,15 +32,13 @@ class ContactRepository {
       return existing[matchIndex];
     }
 
+    final docRef = _firestoreService.contactsCol(uid).doc();
     final newContact = ContactModel(
-      id: DateTime.now().millisecondsSinceEpoch.toString(),
+      id: docRef.id,
       name: trimmedName,
     );
 
-    await _firestoreService
-        .contactsCol(uid)
-        .doc(newContact.id)
-        .set(newContact.toMap());
+    await docRef.set(newContact.toMap());
 
     return newContact;
   }

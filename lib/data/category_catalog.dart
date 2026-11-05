@@ -18,6 +18,12 @@ class CategoryCatalog {
       type: TransactionType.income,
       icon: Icons.card_giftcard,
     ),
+    CategoryModel(
+      id: 'c19',
+      name: 'Lainnya',
+      type: TransactionType.income,
+      icon: Icons.category,
+    ),
     // Expense
     CategoryModel(
       id: 'c3',
