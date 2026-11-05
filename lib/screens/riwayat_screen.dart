@@ -8,6 +8,7 @@ import '../providers/dompet_provider.dart';
 import '../providers/transaction_provider.dart';
 import '../services/local_storage_service.dart';
 import '../theme/app_colors.dart';
+import '../utils/error_mapper.dart';
 import '../widgets/common/custom_card.dart';
 import '../widgets/common/custom_filter_chip.dart';
 import '../widgets/common/skeleton.dart';
@@ -126,7 +127,7 @@ class _RiwayatScreenState extends State<RiwayatScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              '❌ Gagal menghapus: ${e.toString().replaceAll('Exception: ', '')}',
+              '❌ Gagal menghapus: ${ErrorMapper.message(e)}',
             ),
             backgroundColor: Colors.red,
           ),

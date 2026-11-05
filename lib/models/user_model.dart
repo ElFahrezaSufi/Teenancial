@@ -5,6 +5,7 @@ class UserModel {
   final String email;
   final String name;
   final String age;
+  final DateTime? birthDate;
   final String gender;
   final String? profileImageUrl;
   final List<String> completedModules;
@@ -15,18 +16,33 @@ class UserModel {
     required this.email,
     required this.name,
     this.age = '',
+    this.birthDate,
     this.gender = '',
     this.profileImageUrl,
     this.completedModules = const [],
     this.completedQuizzes = const [],
   });
 
+  /// Menghitung umur (dalam tahun) dari [birthDate] terhadap [now].
+  static int calculateAge(DateTime birthDate, {DateTime? now}) {
+    final today = now ?? DateTime.now();
+    int years = today.year - birthDate.year;
+    if (today.month < birthDate.month ||
+        (today.month == birthDate.month && today.day < birthDate.day)) {
+      years--;
+    }
+    return years < 0 ? 0 : years;
+  }
+
   Map<String, dynamic> toMap({bool includeCreatedAt = false}) {
+    final effectiveAge =
+        birthDate != null ? calculateAge(birthDate!).toString() : age;
     return {
       'uid': uid,
       'email': email,
       'name': name,
-      'age': age,
+      'age': effectiveAge,
+      'birthDate': birthDate != null ? Timestamp.fromDate(birthDate!) : null,
       'gender': gender,
       'profileImageUrl': profileImageUrl,
       'completedModules': completedModules,
@@ -41,12 +57,25 @@ class UserModel {
   }) {
     final rawModules = map['completedModules'];
     final rawQuizzes = map['completedQuizzes'];
+    final rawBirthDate = map['birthDate'];
+
+    DateTime? parsedBirthDate;
+    if (rawBirthDate is Timestamp) {
+      parsedBirthDate = rawBirthDate.toDate();
+    } else if (rawBirthDate is String && rawBirthDate.isNotEmpty) {
+      parsedBirthDate = DateTime.tryParse(rawBirthDate);
+    }
+
+    final resolvedAge = parsedBirthDate != null
+        ? calculateAge(parsedBirthDate).toString()
+        : (map['age'] ?? '').toString();
 
     return UserModel(
       uid: (map['uid'] as String?) ?? uidFallback ?? '',
       email: (map['email'] as String?) ?? '',
       name: (map['name'] as String?) ?? 'Pengguna',
-      age: (map['age'] ?? '').toString(),
+      age: resolvedAge,
+      birthDate: parsedBirthDate,
       gender: (map['gender'] ?? '').toString().trim(),
       profileImageUrl: map['profileImageUrl'] as String?,
       completedModules: rawModules is Iterable
@@ -63,6 +92,8 @@ class UserModel {
     String? email,
     String? name,
     String? age,
+    DateTime? birthDate,
+    bool clearBirthDate = false,
     String? gender,
     String? profileImageUrl,
     bool clearProfileImage = false,
@@ -74,6 +105,7 @@ class UserModel {
       email: email ?? this.email,
       name: name ?? this.name,
       age: age ?? this.age,
+      birthDate: clearBirthDate ? null : (birthDate ?? this.birthDate),
       gender: gender ?? this.gender,
       profileImageUrl: clearProfileImage
           ? null

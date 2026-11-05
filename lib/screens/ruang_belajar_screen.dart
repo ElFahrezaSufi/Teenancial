@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../models/belajar_model.dart';
 import '../providers/belajar_provider.dart';
@@ -49,7 +50,7 @@ class RuangBelajarScreen extends StatelessWidget {
                       color: primaryGreen,
                       size: 20,
                     ),
-                    onPressed: () => Navigator.pop(context),
+                    onPressed: () => context.pop(),
                   ),
                 ),
               ],

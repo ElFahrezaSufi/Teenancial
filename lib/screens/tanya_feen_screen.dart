@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'package:go_router/go_router.dart';
 import '../theme/app_colors.dart';
 
 
@@ -136,7 +137,7 @@ class _TanyaFeenScreenState extends State<TanyaFeenScreen> {
                     child: IconButton(
                       icon: const Icon(Icons.arrow_back_ios,
                           color: primaryGreen, size: 20),
-                      onPressed: () => Navigator.pop(context),
+                      onPressed: () => context.pop(),
                     ),
                   ),
                 ),

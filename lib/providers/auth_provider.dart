@@ -72,6 +72,7 @@ class AuthProvider extends ChangeNotifier {
     required String password,
     required String name,
     required String age,
+    DateTime? birthDate,
     required String gender,
   }) async {
     _setBootstrapping(true);
@@ -81,6 +82,7 @@ class AuthProvider extends ChangeNotifier {
         password: password,
         name: name.trim(),
         age: age.trim(),
+        birthDate: birthDate,
         gender: gender.trim(),
       );
     } finally {

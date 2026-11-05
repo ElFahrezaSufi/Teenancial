@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import '../models/user_model.dart';
 import '../repositories/user_repository.dart';
+import '../utils/error_mapper.dart';
 
 class UserProvider extends ChangeNotifier {
   final UserRepository _repository;
@@ -66,7 +67,7 @@ class UserProvider extends ChangeNotifier {
       _errorMessage = null;
     } catch (e) {
       if (_uid != targetUid) return;
-      _errorMessage = e.toString().replaceAll('Exception: ', '');
+      _errorMessage = ErrorMapper.message(e);
     } finally {
       if (_uid == targetUid) {
         _isLoading = false;
@@ -78,6 +79,7 @@ class UserProvider extends ChangeNotifier {
   Future<void> saveProfile({
     required String name,
     required String age,
+    DateTime? birthDate,
     required String gender,
     File? newImageFile,
     bool removeImage = false,
@@ -96,6 +98,7 @@ class UserProvider extends ChangeNotifier {
         uid: targetUid,
         name: name,
         age: age,
+        birthDate: birthDate,
         gender: gender,
         newImageFile: newImageFile,
         currentImageUrl: _profile?.profileImageUrl,
@@ -105,7 +108,7 @@ class UserProvider extends ChangeNotifier {
       _profile = updated;
     } catch (e) {
       if (_uid == targetUid) {
-        _errorMessage = e.toString().replaceAll('Exception: ', '');
+        _errorMessage = ErrorMapper.message(e);
       }
       rethrow;
     } finally {

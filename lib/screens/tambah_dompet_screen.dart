@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../models/dompet_model.dart';
 import '../providers/dompet_provider.dart';
 import '../providers/transaction_provider.dart';
 import '../theme/app_colors.dart';
+import '../utils/error_mapper.dart';
 import '../widgets/common/custom_card.dart';
 
 class TambahDompetScreen extends StatefulWidget {
@@ -26,9 +28,9 @@ class _TambahDompetScreenState extends State<TambahDompetScreen> {
   bool _isLoading = false;
 
   final Map<String, JenisDompet> _jenisMap = {
-    'Cash': JenisDompet.cash,
-    'Accounts': JenisDompet.accounts,
-    'Card': JenisDompet.card,
+    JenisDompet.cash.label: JenisDompet.cash,
+    JenisDompet.accounts.label: JenisDompet.accounts,
+    JenisDompet.card.label: JenisDompet.card,
   };
 
   @override
@@ -116,11 +118,11 @@ class _TambahDompetScreenState extends State<TambahDompetScreen> {
             backgroundColor: primaryGreen,
           ),
         );
-        Navigator.pop(context, true);
+        context.pop(true);
       }
     } catch (e) {
       if (mounted) {
-        final message = e.toString().replaceAll('Exception: ', '');
+        final message = ErrorMapper.message(e);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('❌ Gagal menyimpan: $message'),
@@ -171,11 +173,11 @@ class _TambahDompetScreenState extends State<TambahDompetScreen> {
             backgroundColor: primaryGreen,
           ),
         );
-        Navigator.pop(context, true);
+        context.pop(true);
       }
     } catch (e) {
       if (mounted) {
-        final message = e.toString().replaceAll('Exception: ', '');
+        final message = ErrorMapper.message(e);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('❌ Gagal menghapus: $message'),
@@ -210,7 +212,7 @@ class _TambahDompetScreenState extends State<TambahDompetScreen> {
                 Align(
                   alignment: Alignment.centerLeft,
                   child: IconButton(
-                    onPressed: () => Navigator.pop(context),
+                    onPressed: () => context.pop(),
                     icon: const Icon(
                       Icons.chevron_left,
                       color: primaryGreen,
@@ -263,7 +265,7 @@ class _TambahDompetScreenState extends State<TambahDompetScreen> {
                     child: AbsorbPointer(
                       child: _InputField(
                         controller: _jenisDompetCtrl,
-                        hint: 'Cash, card, accounts, etc',
+                        hint: 'Pilih jenis dompet',
                         suffixIcon: const Icon(
                           Icons.keyboard_arrow_down_rounded,
                           color: primaryGreen,

@@ -220,7 +220,7 @@ class DompetScreen extends StatelessWidget {
                           padding: const EdgeInsets.symmetric(vertical: 16),
                           child: const Center(
                             child: Text(
-                              '+ Tambah dompet digital',
+                              '+ Tambah Dompet',
                               style: TextStyle(
                                 color: Colors.white,
                                 fontSize: 15,

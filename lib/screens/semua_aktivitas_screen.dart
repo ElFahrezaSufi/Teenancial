@@ -5,6 +5,7 @@ import '../config/app_routes.dart';
 import '../models/transaction_model.dart';
 import '../providers/transaction_provider.dart';
 import '../theme/app_colors.dart';
+import '../utils/error_mapper.dart';
 import '../widgets/transaction/transaction_group.dart';
 import 'riwayat_screen.dart';
 
@@ -57,7 +58,7 @@ class SemuaAktivitasScreen extends StatelessWidget {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              '❌ Gagal menghapus: ${e.toString().replaceAll('Exception: ', '')}',
+              '❌ Gagal menghapus: ${ErrorMapper.message(e)}',
             ),
             backgroundColor: Colors.red,
           ),

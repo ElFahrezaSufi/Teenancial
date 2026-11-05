@@ -7,11 +7,11 @@ extension JenisDompetLabel on JenisDompet {
   String get label {
     switch (this) {
       case JenisDompet.cash:
-        return 'Cash';
+        return 'Tunai';
       case JenisDompet.accounts:
-        return 'Accounts';
+        return 'Rekening & E-Wallet';
       case JenisDompet.card:
-        return 'Card';
+        return 'Kartu';
     }
   }
 }

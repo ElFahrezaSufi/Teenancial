@@ -6,6 +6,7 @@ import '../models/transaction_model.dart';
 import '../providers/dompet_provider.dart';
 import '../providers/transaction_provider.dart';
 import '../theme/app_colors.dart';
+import '../utils/error_mapper.dart';
 import '../widgets/common/custom_filter_chip.dart';
 import '../widgets/transaction/dompet_selection_dropdown.dart';
 import '../widgets/transaction/loan_card.dart';
@@ -102,7 +103,7 @@ class _DaftarPinjamanScreenState extends State<DaftarPinjamanScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(e.toString().replaceAll('Exception: ', '')),
+            content: Text(ErrorMapper.message(e)),
             backgroundColor: Colors.red,
           ),
         );
@@ -166,7 +167,7 @@ class _DaftarPinjamanScreenState extends State<DaftarPinjamanScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(e.toString().replaceAll('Exception: ', '')),
+            content: Text(ErrorMapper.message(e)),
             backgroundColor: Colors.red,
           ),
         );

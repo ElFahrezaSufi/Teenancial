@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../data/category_catalog.dart';
 import '../models/dompet_model.dart';
@@ -8,6 +9,7 @@ import '../providers/dompet_provider.dart';
 import '../providers/transaction_provider.dart';
 import '../theme/app_colors.dart';
 import '../utils/currency_formatter.dart';
+import '../utils/error_mapper.dart';
 import '../widgets/common/custom_dropdown_field.dart';
 import '../widgets/common/custom_text_field.dart';
 import '../widgets/common/primary_button.dart';
@@ -157,13 +159,13 @@ class _TransferScreenState extends State<TransferScreen> {
             backgroundColor: primaryGreen,
           ),
         );
-        Navigator.pop(context, true);
+        context.pop(true);
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(e.toString().replaceAll('Exception: ', '')),
+            content: Text(ErrorMapper.message(e)),
             backgroundColor: Colors.red,
           ),
         );

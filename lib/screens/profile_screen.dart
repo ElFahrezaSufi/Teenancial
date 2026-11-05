@@ -9,6 +9,7 @@ import '../providers/auth_provider.dart';
 import '../providers/user_provider.dart';
 import '../services/local_storage_service.dart';
 import '../theme/app_colors.dart';
+import '../utils/error_mapper.dart';
 import '../widgets/common/custom_card.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -31,6 +32,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   late final TextEditingController _emailController;
 
   String? _selectedGender;
+  DateTime? _selectedBirthDate;
 
   @override
   void initState() {
@@ -76,6 +78,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         _setControllerTextIfChanged(_emailController, 'Memuat...');
         _setControllerTextIfChanged(_ageController, '');
         _selectedGender = null;
+        _selectedBirthDate = null;
       }
       return;
     }
@@ -85,6 +88,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     _setControllerTextIfChanged(_fullNameController, nextName);
     _setControllerTextIfChanged(_emailController, profile.email);
     _setControllerTextIfChanged(_ageController, profile.age);
+    _selectedBirthDate = profile.birthDate;
 
     final fetchedGender = profile.gender.trim();
     if (fetchedGender == 'Laki-Laki' || fetchedGender == 'Perempuan') {
@@ -112,12 +116,41 @@ class _ProfileScreenState extends State<ProfileScreen> {
         _setControllerTextIfChanged(_fullNameController, profile.name);
         _setControllerTextIfChanged(_emailController, profile.email);
         _setControllerTextIfChanged(_ageController, profile.age);
+        _selectedBirthDate = profile.birthDate;
       } else if (_fullNameController.text == 'Memuat...') {
         _setControllerTextIfChanged(_fullNameController, '');
       }
       _isEditing = true;
       _pendingImageFile = null;
       _removeExistingImage = false;
+    });
+  }
+
+  Future<void> _pickBirthDate() async {
+    final now = DateTime.now();
+    final defaultDate = DateTime(now.year - 17, now.month, now.day);
+    final firstDate = DateTime(now.year - 100, 1, 1);
+    final lastDate = DateTime(now.year - 10, now.month, now.day);
+
+    final initialDate = _selectedBirthDate != null &&
+            !_selectedBirthDate!.isBefore(firstDate) &&
+            !_selectedBirthDate!.isAfter(lastDate)
+        ? _selectedBirthDate!
+        : defaultDate;
+
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: initialDate,
+      firstDate: firstDate,
+      lastDate: lastDate,
+      helpText: 'Pilih Tanggal Lahir',
+    );
+    if (picked == null || !mounted) return;
+
+    final calculatedAge = UserModel.calculateAge(picked);
+    setState(() {
+      _selectedBirthDate = picked;
+      _setControllerTextIfChanged(_ageController, calculatedAge.toString());
     });
   }
 
@@ -153,9 +186,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
     setState(() => _isSaving = true);
 
     try {
+      final effectiveBirthDate = (_selectedBirthDate != null &&
+              UserModel.calculateAge(_selectedBirthDate!).toString() ==
+                  trimmedAge)
+          ? _selectedBirthDate
+          : null;
+
       await context.read<UserProvider>().saveProfile(
             name: trimmedName,
             age: trimmedAge,
+            birthDate: effectiveBirthDate,
             gender: _selectedGender ?? '',
             newImageFile: _pendingImageFile,
             removeImage: _removeExistingImage && _pendingImageFile == null,
@@ -180,7 +220,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            'Gagal memperbarui profil: ${e.toString().replaceAll('Exception: ', '')}',
+            'Gagal memperbarui profil: ${ErrorMapper.message(e)}',
           ),
           backgroundColor: Colors.redAccent,
         ),
@@ -439,6 +479,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     controller: _ageController,
                     isEditing: _isEditing,
                     keyboardType: TextInputType.number,
+                    suffixIcon: _isEditing
+                        ? IconButton(
+                            tooltip: 'Pilih Tanggal Lahir',
+                            icon: const Icon(
+                              Icons.calendar_month_outlined,
+                              color: primaryGreen,
+                              size: 20,
+                            ),
+                            onPressed: _pickBirthDate,
+                          )
+                        : null,
                   ),
                   _EditableDropdownField(
                     label: 'Jenis Kelamin',
@@ -502,12 +553,14 @@ class _EditableProfileField extends StatelessWidget {
   final TextEditingController controller;
   final bool isEditing;
   final TextInputType? keyboardType;
+  final Widget? suffixIcon;
 
   const _EditableProfileField({
     required this.label,
     required this.controller,
     required this.isEditing,
     this.keyboardType,
+    this.suffixIcon,
   });
 
   @override
@@ -542,10 +595,11 @@ class _EditableProfileField extends StatelessWidget {
                 fontFamily: 'Inter',
                 fontWeight: FontWeight.w600,
               ),
-              decoration: const InputDecoration(
+              decoration: InputDecoration(
                 border: InputBorder.none,
+                suffixIcon: suffixIcon,
                 contentPadding:
-                    EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               ),
             ),
           ),

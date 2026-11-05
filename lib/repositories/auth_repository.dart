@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import '../models/dompet_model.dart';
+import '../models/user_model.dart';
 import '../services/firestore_service.dart';
 
 class AuthRepository {
@@ -18,6 +19,7 @@ class AuthRepository {
     User user, {
     String? name,
     String? age,
+    DateTime? birthDate,
     String? gender,
   }) async {
     final userDocRef = _firestoreService.userDoc(user.uid);
@@ -35,12 +37,16 @@ class AuthRepository {
           : (user.displayName?.trim().isNotEmpty == true
               ? user.displayName!.trim()
               : 'Pengguna Baru');
+      final resolvedAge = birthDate != null
+          ? UserModel.calculateAge(birthDate).toString()
+          : (age ?? '').trim();
 
       fsTx.set(userDocRef, {
         'uid': user.uid,
         'email': user.email,
         'name': resolvedName,
-        'age': (age ?? '').trim(),
+        'age': resolvedAge,
+        if (birthDate != null) 'birthDate': Timestamp.fromDate(birthDate),
         'gender': (gender ?? '').trim(),
         if (user.photoURL != null && user.photoURL!.isNotEmpty)
           'profileImageUrl': user.photoURL,
@@ -67,6 +73,7 @@ class AuthRepository {
     required String password,
     required String name,
     required String age,
+    DateTime? birthDate,
     required String gender,
   }) async {
     final credential = await _auth.createUserWithEmailAndPassword(
@@ -82,6 +89,7 @@ class AuthRepository {
           user,
           name: name,
           age: age,
+          birthDate: birthDate,
           gender: gender,
         );
       } catch (_) {

@@ -1,10 +1,12 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import '../providers/target_provider.dart';
 import '../theme/app_colors.dart';
 import '../utils/currency_formatter.dart';
+import '../utils/error_mapper.dart';
 import '../widgets/common/custom_card.dart';
 import '../widgets/common/custom_text_field.dart';
 
@@ -86,13 +88,13 @@ class _BuatTargetScreenState extends State<BuatTargetScreen> {
           backgroundColor: primaryGreen,
         ),
       );
-      Navigator.pop(context, true);
+      context.pop(true);
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            '❌ Gagal menyimpan target: ${e.toString().replaceAll('Exception: ', '')}',
+            '❌ Gagal menyimpan target: ${ErrorMapper.message(e)}',
           ),
           backgroundColor: Colors.redAccent,
         ),
@@ -128,8 +130,7 @@ class _BuatTargetScreenState extends State<BuatTargetScreen> {
                         color: primaryGreen,
                         size: 20,
                       ),
-                      onPressed:
-                          _isSaving ? null : () => Navigator.pop(context),
+                      onPressed: _isSaving ? null : () => context.pop(),
                     ),
                   ),
                 ),

@@ -9,6 +9,7 @@ import '../providers/dompet_provider.dart';
 import '../providers/target_provider.dart';
 import '../theme/app_colors.dart';
 import '../utils/currency_formatter.dart';
+import '../utils/error_mapper.dart';
 import '../widgets/common/custom_card.dart';
 
 class TargetMenabungScreen extends StatelessWidget {
@@ -497,7 +498,9 @@ class TargetMenabungScreen extends StatelessWidget {
                             if (context.mounted) {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
-                                  content: Text('Gagal menghapus target: $e'),
+                                  content: Text(
+                                    'Gagal menghapus target: ${ErrorMapper.message(e)}',
+                                  ),
                                   backgroundColor: Colors.red,
                                 ),
                               );
@@ -542,7 +545,9 @@ class TargetMenabungScreen extends StatelessWidget {
                       if (context.mounted) {
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
-                            content: Text('Gagal mengubah pin target: $e'),
+                            content: Text(
+                              'Gagal mengubah pin target: ${ErrorMapper.message(e)}',
+                            ),
                             backgroundColor: Colors.red,
                           ),
                         );
@@ -751,7 +756,7 @@ class TargetMenabungScreen extends StatelessWidget {
       }
     } catch (e) {
       if (context.mounted) {
-        final message = e.toString().replaceAll('Exception: ', '');
+        final message = ErrorMapper.message(e);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('❌ $message'),
