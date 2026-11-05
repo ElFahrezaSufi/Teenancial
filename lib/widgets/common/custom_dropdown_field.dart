@@ -21,12 +21,22 @@ class CustomDropdownField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final uniqueItems = items.toSet().toList();
+    final effectiveValue =
+        (value != null && uniqueItems.contains(value)) ? value : null;
+
     return Padding(
       padding: const EdgeInsets.only(bottom: 16.0),
       child: FormField<String>(
+        key: ValueKey(effectiveValue),
         validator: validator,
-        initialValue: value,
+        initialValue: effectiveValue,
         builder: (FormFieldState<String> state) {
+          final currentValue =
+              (state.value != null && uniqueItems.contains(state.value))
+                  ? state.value
+                  : null;
+
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -56,7 +66,8 @@ class CustomDropdownField extends StatelessWidget {
                     ),
                   ),
                   child: DropdownButtonFormField<String>(
-                    initialValue: state.value,
+                    key: ValueKey(currentValue),
+                    initialValue: currentValue,
                     onChanged: (newValue) {
                       state.didChange(newValue);
                       if (onChanged != null) {
@@ -87,7 +98,7 @@ class CustomDropdownField extends StatelessWidget {
                         vertical: 16,
                       ),
                     ),
-                    items: items.map((String item) {
+                    items: uniqueItems.map((String item) {
                       return DropdownMenuItem<String>(
                         value: item,
                         child: Text(item),
