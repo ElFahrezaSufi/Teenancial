@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import '../data/category_catalog.dart';
 
 export 'category_model.dart';
 
@@ -111,6 +112,7 @@ class TransactionModel {
       (e) => e.name == typeStr,
       orElse: () => TransactionType.expense,
     );
+    final rawCategoryId = (map['categoryId'] as String?)?.trim() ?? '';
 
     return TransactionModel(
       id: docId ?? (map['id'] as String?) ?? '',
@@ -118,7 +120,9 @@ class TransactionModel {
       amount: (map['amount'] as num?)?.toDouble() ?? 0.0,
       date: _parseDateTime(map['date']) ?? DateTime.now(),
       notes: (map['notes'] as String?) ?? '',
-      categoryId: (map['categoryId'] as String?) ?? 'c6',
+      categoryId: rawCategoryId.isNotEmpty
+          ? rawCategoryId
+          : CategoryCatalog.defaultCategoryIdForType(parsedType),
       type: parsedType,
       dompetId: (map['dompetId'] as String?) ?? '',
       destinationDompetId: map['destinationDompetId'] as String?,
@@ -139,10 +143,14 @@ class TransactionModel {
     TransactionType? type,
     String? dompetId,
     String? destinationDompetId,
+    bool clearDestinationDompetId = false,
     DateTime? dueDate,
+    bool clearDueDate = false,
     String? contactId,
+    bool clearContactId = false,
     bool? isPaid,
     String? paidDompetId,
+    bool clearPaidDompetId = false,
   }) {
     return TransactionModel(
       id: id ?? this.id,
@@ -153,11 +161,14 @@ class TransactionModel {
       categoryId: categoryId ?? this.categoryId,
       type: type ?? this.type,
       dompetId: dompetId ?? this.dompetId,
-      destinationDompetId: destinationDompetId ?? this.destinationDompetId,
-      dueDate: dueDate ?? this.dueDate,
-      contactId: contactId ?? this.contactId,
+      destinationDompetId: clearDestinationDompetId
+          ? null
+          : (destinationDompetId ?? this.destinationDompetId),
+      dueDate: clearDueDate ? null : (dueDate ?? this.dueDate),
+      contactId: clearContactId ? null : (contactId ?? this.contactId),
       isPaid: isPaid ?? this.isPaid,
-      paidDompetId: paidDompetId ?? this.paidDompetId,
+      paidDompetId:
+          clearPaidDompetId ? null : (paidDompetId ?? this.paidDompetId),
     );
   }
 }

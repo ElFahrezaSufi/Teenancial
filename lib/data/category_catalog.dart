@@ -126,10 +126,34 @@ class CategoryCatalog {
     ),
   ];
 
-  static CategoryModel getById(String id) {
+  static String defaultCategoryIdForType(TransactionType type) {
+    switch (type) {
+      case TransactionType.income:
+        return 'c19';
+      case TransactionType.expense:
+        return 'c6';
+      case TransactionType.transfer:
+        return 'c10';
+      case TransactionType.debt:
+        return 'c14';
+      case TransactionType.receivable:
+        return 'c18';
+    }
+  }
+
+  static CategoryModel getById(String id, {TransactionType? fallbackType}) {
     return categories.firstWhere(
       (cat) => cat.id == id,
-      orElse: () => categories.last,
+      orElse: () {
+        if (fallbackType != null) {
+          final fallbackId = defaultCategoryIdForType(fallbackType);
+          return categories.firstWhere(
+            (cat) => cat.id == fallbackId,
+            orElse: () => categories.last,
+          );
+        }
+        return categories.last;
+      },
     );
   }
 
