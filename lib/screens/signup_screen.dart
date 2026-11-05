@@ -34,6 +34,17 @@ class _SignUpScreenState extends State<SignUpScreen> {
   bool _obscureConfirmPassword = true;
   bool _isLoading = false;
 
+  static const Map<String, String> _commonDomainTypos = {
+    'gmai.com': 'gmail.com',
+    'gmial.com': 'gmail.com',
+    'gamil.com': 'gmail.com',
+    'gmail.co': 'gmail.com',
+    'yaho.com': 'yahoo.com',
+    'yahooo.com': 'yahoo.com',
+    'outlok.com': 'outlook.com',
+    'hotmial.com': 'hotmail.com',
+  };
+
   @override
   void dispose() {
     _nameController.dispose();
@@ -56,8 +67,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
         await context.read<AuthProvider>().register(
               email: _emailController.text.trim(),
               password: _passwordController.text,
-              name: _nameController.text,
-              age: _ageController.text,
+              name: _nameController.text.trim(),
+              age: _ageController.text.trim(),
               gender: _selectedGender ?? '',
             );
         await LocalStorageService.instance.setHasSeenGetStarted(true);
@@ -67,12 +78,12 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Akun berhasil dibuat! Silakan masuk.'),
+            content: Text('✅ Akun berhasil dibuat! Selamat datang.'),
             backgroundColor: _primaryGreen,
           ),
         );
 
-        context.go(AppRoutes.login);
+        context.go(AppRoutes.home);
       } on FirebaseAuthException catch (e) {
         if (!mounted) return;
         setState(() => _isLoading = false);
@@ -203,7 +214,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                                   ),
                                   controller: _nameController,
                                   validator: (value) =>
-                                      value == null || value.isEmpty
+                                      value == null || value.trim().isEmpty
                                           ? 'Nama wajib diisi'
                                           : null,
                                 ),
@@ -222,11 +233,17 @@ class _SignUpScreenState extends State<SignUpScreen> {
                                         keyboardType: TextInputType.number,
                                         controller: _ageController,
                                         validator: (value) {
-                                          if (value == null || value.isEmpty) {
+                                          if (value == null ||
+                                              value.trim().isEmpty) {
                                             return 'Isi umur';
                                           }
-                                          if (int.tryParse(value) == null) {
+                                          final age =
+                                              int.tryParse(value.trim());
+                                          if (age == null) {
                                             return 'Harus angka';
+                                          }
+                                          if (age < 10 || age > 100) {
+                                            return '10 - 100 thn';
                                           }
                                           return null;
                                         },
@@ -267,40 +284,21 @@ class _SignUpScreenState extends State<SignUpScreen> {
                                       return 'Email wajib diisi';
                                     }
 
-                                    String email = value.trim().toLowerCase();
-
+                                    final email = value.trim().toLowerCase();
                                     final emailRegex = RegExp(
-                                      r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$',
+                                      r'^[a-zA-Z0-9._%+-]+@([a-zA-Z0-9-]+\.)+[a-zA-Z]{2,}$',
                                     );
                                     if (!emailRegex.hasMatch(email)) {
                                       return 'Format email salah (contoh: nama@gmail.com)';
                                     }
 
-                                    final allowedDomains = [
-                                      'gmail.com',
-                                      'yahoo.com',
-                                      'yahoo.co.id',
-                                      'outlook.com',
-                                      'hotmail.com',
-                                      'icloud.com',
-                                      'student.usu.ac.id',
-                                    ];
-
                                     final parts = email.split('@');
                                     if (parts.length == 2) {
-                                      String domain = parts[1];
-                                      if (!allowedDomains.contains(domain)) {
-                                        if (domain.contains('gmail') ||
-                                            domain.startsWith('gmai') ||
-                                            domain.startsWith('gami')) {
-                                          return 'Format email salah (contoh: nama@gmail.com)';
-                                        }
-                                        if (domain.contains('yahoo') ||
-                                            domain.startsWith('yaho')) {
-                                          return 'Format email salah (contoh: nama@gmail.com)';
-                                        }
-
-                                        return 'Hanya menerima email valid (gmail, yahoo, outlook, dll)';
+                                      final domain = parts[1];
+                                      final suggestion =
+                                          _commonDomainTypos[domain];
+                                      if (suggestion != null) {
+                                        return 'Domain tidak dikenal, maksudmu @$suggestion?';
                                       }
                                     }
 

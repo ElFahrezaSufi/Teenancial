@@ -1,11 +1,16 @@
 import 'dart:async';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import '../repositories/auth_repository.dart';
 
-final ValueNotifier<bool> registrationInProgress = ValueNotifier<bool>(false);
-
 class AuthProvider extends ChangeNotifier {
+  static final ValueNotifier<bool> _bootstrapNotifier =
+      ValueNotifier<bool>(false);
+
+  /// Read-only listenable untuk memberi tahu router saat proses bootstrap
+  /// akun baru (registrasi email / Google Sign-In) sedang berjalan atau selesai.
+  static ValueListenable<bool> get bootstrapListenable => _bootstrapNotifier;
+
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final AuthRepository _repository = AuthRepository();
 
@@ -13,22 +18,18 @@ class AuthProvider extends ChangeNotifier {
   bool _bootstrapInProgress = false;
 
   User? get user => _user;
-  bool get isAuthenticated =>
-      _user != null && !registrationInProgress.value && !_bootstrapInProgress;
+  bool get isBootstrapping => _bootstrapInProgress;
+  bool get isAuthenticated => _user != null && !_bootstrapInProgress;
 
   /// UID aktif untuk seluruh feature provider. Bernilai null saat belum login,
-  /// saat proses registrasi email berlangsung, atau saat bootstrap akun Google
-  /// belum selesai menulis dompet awal.
-  String? get activeUid =>
-      (registrationInProgress.value || _bootstrapInProgress)
-          ? null
-          : _user?.uid;
+  /// atau saat proses bootstrap akun baru (registrasi email / Google Sign-In)
+  /// belum selesai menulis profil & dompet awal di Firestore.
+  String? get activeUid => _bootstrapInProgress ? null : _user?.uid;
 
   late final StreamSubscription<User?> _authSub;
 
   AuthProvider() {
     _user = _auth.currentUser;
-    registrationInProgress.addListener(_onRegistrationStateChanged);
     _authSub = _auth.authStateChanges().listen((User? newUser) {
       final bool sessionEnded = newUser == null;
       final bool accountSwitched =
@@ -43,13 +44,13 @@ class AuthProvider extends ChangeNotifier {
     });
   }
 
-  void _onRegistrationStateChanged() {
-    notifyListeners();
+  void _setBootstrapping(bool value) {
+    _bootstrapInProgress = value;
+    _bootstrapNotifier.value = value;
   }
 
   @override
   void dispose() {
-    registrationInProgress.removeListener(_onRegistrationStateChanged);
     _authSub.cancel();
     super.dispose();
   }
@@ -71,33 +72,28 @@ class AuthProvider extends ChangeNotifier {
     required String age,
     required String gender,
   }) async {
-    registrationInProgress.value = true;
+    _setBootstrapping(true);
     try {
       await _repository.registerWithEmail(
         email: email,
         password: password,
-        name: name,
-        age: age,
-        gender: gender,
+        name: name.trim(),
+        age: age.trim(),
+        gender: gender.trim(),
       );
-      await _repository.logout();
-    } catch (_) {
-      try {
-        await _repository.logout();
-      } catch (_) {}
-      rethrow;
     } finally {
-      registrationInProgress.value = false;
+      _setBootstrapping(false);
+      notifyListeners();
     }
   }
 
   Future<bool> signInWithGoogle() async {
-    _bootstrapInProgress = true;
+    _setBootstrapping(true);
     try {
       final credential = await _repository.signInWithGoogle();
       return credential != null;
     } finally {
-      _bootstrapInProgress = false;
+      _setBootstrapping(false);
       notifyListeners();
     }
   }
