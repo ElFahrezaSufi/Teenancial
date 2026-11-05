@@ -43,12 +43,11 @@ class TargetMenabungScreen extends StatelessWidget {
         height: 160,
         width: double.infinity,
         fit: BoxFit.cover,
+        fadeInDuration: const Duration(milliseconds: 150),
+        fadeOutDuration: Duration.zero,
         placeholder: (context, url) => Container(
           height: 160,
           color: lightGreen.withValues(alpha: 0.35),
-          child: const Center(
-            child: CircularProgressIndicator(color: primaryGreen),
-          ),
         ),
         errorWidget: (context, url, error) => fallback,
       );
