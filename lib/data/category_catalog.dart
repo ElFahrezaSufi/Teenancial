@@ -56,6 +56,9 @@ class CategoryCatalog {
       type: TransactionType.transfer,
       icon: Icons.send,
     ),
+    // 'c8' dipertahankan di katalog untuk kompatibilitas mundur transaksi lama,
+    // namun disembunyikan dari pilihan Transfer baru agar pelunasan hutang
+    // dilakukan melalui Daftar Pinjaman.
     CategoryModel(
       id: 'c8',
       name: 'Bayar Hutang',
@@ -158,6 +161,8 @@ class CategoryCatalog {
   }
 
   static List<CategoryModel> getByType(TransactionType type) {
-    return categories.where((c) => c.type == type).toList();
+    return categories
+        .where((c) => c.type == type && c.id != 'c8')
+        .toList();
   }
 }

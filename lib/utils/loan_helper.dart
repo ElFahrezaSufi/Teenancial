@@ -64,6 +64,23 @@ class LoanHelper {
     return LoanDueInfo(label: '$days hari lagi', color: primaryGreen);
   }
 
+  /// Mengambil nama pihak lawan transaksi pinjaman dengan urutan prioritas:
+  /// 1. Nama dari daftar kontak (`contactName`),
+  /// 2. Field eksplisit `counterpartyName` pada dokumen transaksi,
+  /// 3. Fallback parsing dari `title` ("Hutang dari X" / "Piutang ke X").
+  static String counterpartyName(
+    TransactionModel t, {
+    String? contactName,
+  }) {
+    if (contactName != null && contactName.trim().isNotEmpty) {
+      return contactName.trim();
+    }
+    if (t.counterpartyName != null && t.counterpartyName!.trim().isNotEmpty) {
+      return t.counterpartyName!.trim();
+    }
+    return nameFromTitle(t.title);
+  }
+
   /// Mengambil nama lawan transaksi dari judul ("Hutang dari X" / "Piutang ke X").
   static String nameFromTitle(String title) {
     return title

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../data/category_catalog.dart';
 import '../models/dompet_model.dart';
@@ -27,6 +28,7 @@ class _PinjamanScreenState extends State<PinjamanScreen> {
   final _jumlahController = TextEditingController();
   final _catatanController = TextEditingController();
   final _temanController = TextEditingController();
+  final _tanggalController = TextEditingController();
 
   int _selectedTab = 0; // 0 = Hutang (Debt), 1 = Piutang (Receivable)
 
@@ -34,9 +36,6 @@ class _PinjamanScreenState extends State<PinjamanScreen> {
   String? _selectedCategoryId;
 
   DateTime? _selectedDateObj;
-  String get _selectedDate => _selectedDateObj != null
-      ? '${_selectedDateObj!.day}/${_selectedDateObj!.month}/${_selectedDateObj!.year}'
-      : '';
   bool _simpanKeDaftar = false;
   bool _isLoading = false;
 
@@ -68,6 +67,7 @@ class _PinjamanScreenState extends State<PinjamanScreen> {
     _jumlahController.dispose();
     _catatanController.dispose();
     _temanController.dispose();
+    _tanggalController.dispose();
     super.dispose();
   }
 
@@ -80,11 +80,12 @@ class _PinjamanScreenState extends State<PinjamanScreen> {
   }
 
   Future<void> _selectDate(BuildContext context) async {
+    final now = DateTime.now();
     final DateTime? picked = await showDatePicker(
       context: context,
-      initialDate: DateTime.now(),
-      firstDate: DateTime.now(),
-      lastDate: DateTime(2030),
+      initialDate: _selectedDateObj ?? now,
+      firstDate: DateTime(2020),
+      lastDate: DateTime(now.year + 10, 12, 31),
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
@@ -101,6 +102,8 @@ class _PinjamanScreenState extends State<PinjamanScreen> {
     if (picked != null) {
       setState(() {
         _selectedDateObj = picked;
+        _tanggalController.text =
+            DateFormat('dd MMMM yyyy', 'id_ID').format(picked);
       });
     }
   }
@@ -126,24 +129,37 @@ class _PinjamanScreenState extends State<PinjamanScreen> {
       final amount = double.tryParse(amountStr) ?? 0.0;
       final isDebt = _selectedTab == 0;
 
+      final dompetProvider = context.read<DompetProvider>();
+      final contactProvider = context.read<ContactProvider>();
+      final txProvider = context.read<TransactionProvider>();
+
+      // Validasi kecukupan saldo untuk Piutang (Kasih Pinjam) sebelum menulis kontak
+      if (!isDebt) {
+        final selectedDompets =
+            dompetProvider.items.where((d) => d.id == _selectedDompetId);
+        if (selectedDompets.isNotEmpty &&
+            selectedDompets.first.jumlah < amount) {
+          throw Exception(
+            'Saldo dompet "${selectedDompets.first.title}" tidak mencukupi untuk memberikan pinjaman ini.',
+          );
+        }
+      }
+
       final currentCategories =
           isDebt ? _debtCategories : _receivableCategories;
       final categoryId = _selectedCategoryId ?? currentCategories.first.id;
 
-      final contactProvider = context.read<ContactProvider>();
-      final txProvider = context.read<TransactionProvider>();
-
       String? contactId;
       final friendName = _temanController.text.trim();
-      if (_simpanKeDaftar && friendName.isNotEmpty) {
-        final newContact = await contactProvider.addContact(friendName);
-        contactId = newContact.id;
-      } else if (friendName.isNotEmpty) {
+      if (friendName.isNotEmpty) {
         final existing = contactProvider.contacts.where(
-          (c) => c.name.toLowerCase() == friendName.toLowerCase(),
+          (c) => c.name.trim().toLowerCase() == friendName.toLowerCase(),
         );
         if (existing.isNotEmpty) {
           contactId = existing.first.id;
+        } else if (_simpanKeDaftar) {
+          final newContact = await contactProvider.addContact(friendName);
+          contactId = newContact.id;
         }
       }
 
@@ -152,12 +168,13 @@ class _PinjamanScreenState extends State<PinjamanScreen> {
         title: '${isDebt ? 'Hutang dari' : 'Piutang ke'} $friendName',
         amount: amount,
         date: DateTime.now(),
-        notes: _catatanController.text,
+        notes: _catatanController.text.trim(),
         categoryId: categoryId,
         type: isDebt ? TransactionType.debt : TransactionType.receivable,
         dompetId: _selectedDompetId!,
         dueDate: _selectedDateObj,
         contactId: contactId,
+        counterpartyName: friendName,
       );
 
       await txProvider.addTransaction(transaction);
@@ -355,9 +372,8 @@ class _PinjamanScreenState extends State<PinjamanScreen> {
                       ),
                       CustomTextField(
                         label: 'Batas Waktu',
-                        hint: _selectedDate.isEmpty
-                            ? 'Pilih tanggal'
-                            : _selectedDate,
+                        hint: 'Pilih tanggal',
+                        controller: _tanggalController,
                         readOnly: true,
                         onTap: () => _selectDate(context),
                         suffixIcon: const Icon(
@@ -365,7 +381,9 @@ class _PinjamanScreenState extends State<PinjamanScreen> {
                           color: primaryGreen,
                         ),
                         validator: (value) {
-                          if (_selectedDate.isEmpty) {
+                          if (_selectedDateObj == null ||
+                              value == null ||
+                              value.isEmpty) {
                             return 'Batas waktu harus dipilih';
                           }
                           return null;
@@ -377,7 +395,7 @@ class _PinjamanScreenState extends State<PinjamanScreen> {
                         controller: _temanController,
                         contacts: contacts,
                         validator: (value) {
-                          if (value == null || value.isEmpty) {
+                          if (value == null || value.trim().isEmpty) {
                             return 'Nama teman tidak boleh kosong';
                           }
                           return null;

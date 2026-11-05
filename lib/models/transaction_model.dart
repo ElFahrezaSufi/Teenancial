@@ -17,6 +17,7 @@ class TransactionModel {
   final String? destinationDompetId; // Dompet tujuan khusus Transfer
   final DateTime? dueDate; // Batas waktu untuk pinjaman/piutang
   final String? contactId; // ID kontak terkait (teman/tujuan)
+  final String? counterpartyName; // Nama pihak terkait untuk hutang/piutang
   final bool isPaid; // Status pelunasan (khusus hutang/piutang)
   final String? paidDompetId; // Dompet yang digunakan saat pelunasan pinjaman
 
@@ -32,6 +33,7 @@ class TransactionModel {
     this.destinationDompetId,
     this.dueDate,
     this.contactId,
+    this.counterpartyName,
     this.isPaid = false,
     this.paidDompetId,
   });
@@ -89,6 +91,7 @@ class TransactionModel {
       'destinationDompetId': destinationDompetId,
       'dueDate': dueDate != null ? Timestamp.fromDate(dueDate!) : null,
       'contactId': contactId,
+      'counterpartyName': counterpartyName,
       'isPaid': isPaid,
       'paidDompetId': paidDompetId,
     };
@@ -128,6 +131,7 @@ class TransactionModel {
       destinationDompetId: map['destinationDompetId'] as String?,
       dueDate: _parseDateTime(map['dueDate']),
       contactId: map['contactId'] as String?,
+      counterpartyName: map['counterpartyName'] as String?,
       isPaid: map['isPaid'] == true,
       paidDompetId: map['paidDompetId'] as String?,
     );
@@ -148,6 +152,8 @@ class TransactionModel {
     bool clearDueDate = false,
     String? contactId,
     bool clearContactId = false,
+    String? counterpartyName,
+    bool clearCounterpartyName = false,
     bool? isPaid,
     String? paidDompetId,
     bool clearPaidDompetId = false,
@@ -166,6 +172,9 @@ class TransactionModel {
           : (destinationDompetId ?? this.destinationDompetId),
       dueDate: clearDueDate ? null : (dueDate ?? this.dueDate),
       contactId: clearContactId ? null : (contactId ?? this.contactId),
+      counterpartyName: clearCounterpartyName
+          ? null
+          : (counterpartyName ?? this.counterpartyName),
       isPaid: isPaid ?? this.isPaid,
       paidDompetId:
           clearPaidDompetId ? null : (paidDompetId ?? this.paidDompetId),

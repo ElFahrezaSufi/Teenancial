@@ -112,6 +112,70 @@ class _DaftarPinjamanScreenState extends State<DaftarPinjamanScreen> {
     }
   }
 
+  Future<void> _deleteLoan(TransactionModel item) async {
+    if (_isProcessing) return;
+
+    final bool? confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: scaffoldBg,
+        title: const Text(
+          'Hapus Pinjaman?',
+          style: TextStyle(
+            color: primaryGreen,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+        content: Text(
+          'Menghapus catatan "${item.title}" sebesar ${_formatCurrency(item.amount)} juga akan mengembalikan perubahan saldonya pada dompet terkait.',
+          style: const TextStyle(color: primaryGreen, fontSize: 13),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Batal', style: TextStyle(color: Colors.grey)),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text(
+              'Hapus',
+              style: TextStyle(
+                color: Colors.redAccent,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true || !mounted) return;
+
+    setState(() => _isProcessing = true);
+    try {
+      await context.read<TransactionProvider>().deleteTransaction(item.id);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('✅ Data pinjaman berhasil dihapus'),
+            backgroundColor: primaryGreen,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(e.toString().replaceAll('Exception: ', '')),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isProcessing = false);
+    }
+  }
+
   Widget _buildTabButton(int index, String title) {
     final isSelected = _selectedTab == index;
     const Color activeColor = Color(0xFF415121);
@@ -319,6 +383,7 @@ class _DaftarPinjamanScreenState extends State<DaftarPinjamanScreen> {
                                 item: item,
                                 formatCurrency: _formatCurrency,
                                 onMarkPaid: () => _markAsPaid(item),
+                                onDelete: () => _deleteLoan(item),
                               );
                             },
                           ),
