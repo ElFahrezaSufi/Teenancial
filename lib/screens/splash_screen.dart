@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 import '../config/app_routes.dart';
+import '../theme/app_colors.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -18,15 +19,15 @@ class _SplashScreenState extends State<SplashScreen> {
   void initState() {
     super.initState();
 
-    Future.delayed(const Duration(milliseconds: 500), () {
+    Future.delayed(const Duration(milliseconds: 50), () {
       if (mounted) setState(() => _showIcon = true);
     });
 
-    Future.delayed(const Duration(milliseconds: 1500), () {
+    Future.delayed(const Duration(milliseconds: 250), () {
       if (mounted) setState(() => _showText = true);
     });
 
-    Future.delayed(const Duration(seconds: 4), () {
+    Future.delayed(const Duration(milliseconds: 1500), () {
       if (!mounted) return;
       context.go(AppRoutes.home);
     });
@@ -35,7 +36,7 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFEDEFE2),
+      backgroundColor: scaffoldBg,
       body: Stack(
         fit: StackFit.expand,
         children: [
@@ -45,8 +46,8 @@ class _SplashScreenState extends State<SplashScreen> {
             children: [
               AnimatedOpacity(
                 opacity: _showIcon ? 1.0 : 0.0,
-                duration: const Duration(seconds: 3),
-                curve: Curves.easeIn,
+                duration: const Duration(milliseconds: 500),
+                curve: Curves.easeOut,
                 child: SvgPicture.asset(
                   'assets/images/logo_teenancial.svg',
                   width: 200,
@@ -55,7 +56,7 @@ class _SplashScreenState extends State<SplashScreen> {
               const SizedBox(height: 16),
               AnimatedOpacity(
                 opacity: _showText ? 1.0 : 0.0,
-                duration: const Duration(seconds: 1),
+                duration: const Duration(milliseconds: 600),
                 curve: Curves.easeIn,
                 child: const Text.rich(
                   TextSpan(
