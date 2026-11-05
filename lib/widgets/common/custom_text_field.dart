@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
 import '../../theme/app_colors.dart';
 
-class CustomTextField extends StatelessWidget {
+class CustomTextField extends StatefulWidget {
   final String label;
   final String hint;
   final TextInputType? keyboardType;
@@ -31,18 +32,69 @@ class CustomTextField extends StatelessWidget {
   });
 
   @override
+  State<CustomTextField> createState() => _CustomTextFieldState();
+}
+
+class _CustomTextFieldState extends State<CustomTextField> {
+  final GlobalKey<FormFieldState<String>> _formFieldKey =
+      GlobalKey<FormFieldState<String>>();
+
+  @override
+  void initState() {
+    super.initState();
+    widget.controller?.addListener(_onControllerChanged);
+  }
+
+  @override
+  void didUpdateWidget(covariant CustomTextField oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.controller != widget.controller) {
+      oldWidget.controller?.removeListener(_onControllerChanged);
+      widget.controller?.addListener(_onControllerChanged);
+      _onControllerChanged();
+    }
+  }
+
+  @override
+  void dispose() {
+    widget.controller?.removeListener(_onControllerChanged);
+    super.dispose();
+  }
+
+  void _onControllerChanged() {
+    final text = widget.controller?.text ?? '';
+    final fieldState = _formFieldKey.currentState;
+    if (fieldState == null || fieldState.value == text) return;
+
+    if (SchedulerBinding.instance.schedulerPhase ==
+        SchedulerPhase.persistentCallbacks) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        final current = _formFieldKey.currentState;
+        final latestText = widget.controller?.text ?? '';
+        if (current != null && current.value != latestText) {
+          current.didChange(latestText);
+        }
+      });
+    } else {
+      fieldState.didChange(text);
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 16.0),
       child: FormField<String>(
-        validator: validator,
-        initialValue: controller?.text,
+        key: _formFieldKey,
+        validator: widget.validator,
+        initialValue: widget.controller?.text,
         builder: (FormFieldState<String> state) {
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                label,
+                widget.label,
                 style: const TextStyle(
                   color: primaryGreen,
                   fontSize: 14,
@@ -62,37 +114,41 @@ class CustomTextField extends StatelessWidget {
                     color: inputBg,
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
-                        color: state.hasError ? Colors.redAccent : primaryGreen,
-                        width: 2),
+                      color: state.hasError ? Colors.redAccent : primaryGreen,
+                      width: 2,
+                    ),
                   ),
                   child: TextField(
-                    controller: controller,
-                    obscureText: obscureText,
-                    keyboardType: keyboardType,
-                    readOnly: readOnly,
-                    onTap: onTap,
-                    inputFormatters: inputFormatters,
+                    controller: widget.controller,
+                    obscureText: widget.obscureText,
+                    keyboardType: widget.keyboardType,
+                    readOnly: widget.readOnly,
+                    onTap: widget.onTap,
+                    inputFormatters: widget.inputFormatters,
                     onChanged: (value) {
                       state.didChange(value);
                     },
                     style: const TextStyle(
-                        color: primaryGreen,
+                      color: primaryGreen,
+                      fontSize: 15,
+                      fontFamily: 'Inter',
+                      fontWeight: FontWeight.w600,
+                    ),
+                    decoration: InputDecoration(
+                      hintText: widget.hint,
+                      hintStyle: TextStyle(
+                        color: primaryGreen.withValues(alpha: 0.5),
                         fontSize: 15,
                         fontFamily: 'Inter',
-                        fontWeight: FontWeight.w600),
-                    decoration: InputDecoration(
-                      hintText: hint,
-                      hintStyle: TextStyle(
-                          color: primaryGreen.withValues(alpha: 0.5),
-                          fontSize: 15,
-                          fontFamily: 'Inter',
-                          fontWeight: FontWeight.w500),
-                      prefixIcon: prefixIcon,
-                      suffixIcon: suffixIcon,
+                        fontWeight: FontWeight.w500,
+                      ),
+                      prefixIcon: widget.prefixIcon,
+                      suffixIcon: widget.suffixIcon,
                       border: InputBorder.none,
                       contentPadding: EdgeInsets.symmetric(
-                          vertical: 16,
-                          horizontal: prefixIcon == null ? 16 : 0),
+                        vertical: 16,
+                        horizontal: widget.prefixIcon == null ? 16 : 0,
+                      ),
                     ),
                   ),
                 ),
@@ -100,12 +156,15 @@ class CustomTextField extends StatelessWidget {
               if (state.hasError)
                 Padding(
                   padding: const EdgeInsets.only(top: 8, left: 16),
-                  child: Text(state.errorText ?? '',
-                      style: const TextStyle(
-                          color: Colors.redAccent,
-                          fontSize: 12,
-                          fontFamily: 'Inter',
-                          fontWeight: FontWeight.w600)),
+                  child: Text(
+                    state.errorText ?? '',
+                    style: const TextStyle(
+                      color: Colors.redAccent,
+                      fontSize: 12,
+                      fontFamily: 'Inter',
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
                 ),
             ],
           );

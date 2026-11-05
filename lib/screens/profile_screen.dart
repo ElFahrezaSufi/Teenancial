@@ -57,25 +57,34 @@ class _ProfileScreenState extends State<ProfileScreen> {
     super.dispose();
   }
 
+  void _setControllerTextIfChanged(
+    TextEditingController controller,
+    String nextText,
+  ) {
+    if (controller.text != nextText) {
+      controller.text = nextText;
+    }
+  }
+
   void _syncControllersFromProfile(UserModel? profile) {
     if (_isEditing) return;
 
     if (profile == null) {
       if (_syncedUid != null) {
         _syncedUid = null;
-        _fullNameController.text = 'Memuat...';
-        _emailController.text = 'Memuat...';
-        _ageController.text = '';
+        _setControllerTextIfChanged(_fullNameController, 'Memuat...');
+        _setControllerTextIfChanged(_emailController, 'Memuat...');
+        _setControllerTextIfChanged(_ageController, '');
         _selectedGender = null;
       }
       return;
     }
 
     _syncedUid = profile.uid;
-    _fullNameController.text =
-        profile.name.isNotEmpty ? profile.name : 'Pengguna';
-    _emailController.text = profile.email;
-    _ageController.text = profile.age;
+    final nextName = profile.name.isNotEmpty ? profile.name : 'Pengguna';
+    _setControllerTextIfChanged(_fullNameController, nextName);
+    _setControllerTextIfChanged(_emailController, profile.email);
+    _setControllerTextIfChanged(_ageController, profile.age);
 
     final fetchedGender = profile.gender.trim();
     if (fetchedGender == 'Laki-Laki' || fetchedGender == 'Perempuan') {
@@ -86,7 +95,26 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   void _startEditing() {
+    final userProvider = context.read<UserProvider>();
+    final profile = userProvider.profile;
+    if (userProvider.isLoading && profile == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Data profil sedang dimuat, tunggu sebentar...'),
+          backgroundColor: primaryGreen,
+        ),
+      );
+      return;
+    }
+
     setState(() {
+      if (profile != null) {
+        _setControllerTextIfChanged(_fullNameController, profile.name);
+        _setControllerTextIfChanged(_emailController, profile.email);
+        _setControllerTextIfChanged(_ageController, profile.age);
+      } else if (_fullNameController.text == 'Memuat...') {
+        _setControllerTextIfChanged(_fullNameController, '');
+      }
       _isEditing = true;
       _pendingImageFile = null;
       _removeExistingImage = false;
@@ -95,12 +123,39 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Future<void> _saveProfile() async {
     if (_isSaving) return;
+
+    final trimmedName = _fullNameController.text.trim();
+    final trimmedAge = _ageController.text.trim();
+
+    if (trimmedName.isEmpty || trimmedName == 'Memuat...') {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Nama lengkap tidak boleh kosong.'),
+          backgroundColor: Colors.redAccent,
+        ),
+      );
+      return;
+    }
+
+    if (trimmedAge.isNotEmpty) {
+      final parsedAge = int.tryParse(trimmedAge);
+      if (parsedAge == null || parsedAge < 10 || parsedAge > 100) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Umur harus berupa angka antara 10 hingga 100 tahun.'),
+            backgroundColor: Colors.redAccent,
+          ),
+        );
+        return;
+      }
+    }
+
     setState(() => _isSaving = true);
 
     try {
       await context.read<UserProvider>().saveProfile(
-            name: _fullNameController.text.trim(),
-            age: _ageController.text.trim(),
+            name: trimmedName,
+            age: trimmedAge,
             gender: _selectedGender ?? '',
             newImageFile: _pendingImageFile,
             removeImage: _removeExistingImage && _pendingImageFile == null,
@@ -160,22 +215,45 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<void> _handleLogout() async {
+    if (_isSaving) return;
     setState(() => _isSaving = true);
     _pendingImageFile = null;
     _removeExistingImage = false;
-    await LocalStorageService.instance.setHasSeenGetStarted(true);
-    if (!mounted) return;
-    await context.read<AuthProvider>().logout();
-    if (!mounted) return;
-    context.go(AppRoutes.login);
+
+    try {
+      await LocalStorageService.instance.setHasSeenGetStarted(true);
+      if (!mounted) return;
+      await context.read<AuthProvider>().logout();
+      if (!mounted) return;
+      context.go(AppRoutes.login);
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Gagal keluar akun: ${e.toString().replaceAll('Exception: ', '')}',
+          ),
+          backgroundColor: Colors.redAccent,
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isSaving = false);
+      }
+    }
   }
 
   void _handleBackButton() {
-    setState(() {
-      _pendingImageFile = null;
-      _removeExistingImage = false;
-      _isEditing = false;
-    });
+    if (_isEditing) {
+      final profile = context.read<UserProvider>().profile;
+      setState(() {
+        _pendingImageFile = null;
+        _removeExistingImage = false;
+        _isEditing = false;
+        _syncControllersFromProfile(profile);
+      });
+      return;
+    }
 
     if (context.canPop()) {
       context.pop();
@@ -225,8 +303,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   child: Padding(
                     padding: const EdgeInsets.only(left: 8.0),
                     child: IconButton(
-                      icon: const Icon(
-                        Icons.arrow_back_ios,
+                      icon: Icon(
+                        _isEditing ? Icons.close : Icons.arrow_back_ios,
                         color: primaryGreen,
                         size: 20,
                       ),

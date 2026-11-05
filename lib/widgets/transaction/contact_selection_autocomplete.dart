@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../../models/contact_model.dart';
 import '../../theme/app_colors.dart';
 
-class ContactSelectionAutocomplete extends StatelessWidget {
+class ContactSelectionAutocomplete extends StatefulWidget {
   final String label;
   final String hint;
   final TextEditingController controller;
@@ -19,6 +19,81 @@ class ContactSelectionAutocomplete extends StatelessWidget {
   });
 
   @override
+  State<ContactSelectionAutocomplete> createState() =>
+      _ContactSelectionAutocompleteState();
+}
+
+class _ContactSelectionAutocompleteState
+    extends State<ContactSelectionAutocomplete> {
+  TextEditingController? _autocompleteController;
+  bool _isSyncing = false;
+
+  @override
+  void initState() {
+    super.initState();
+    widget.controller.addListener(_onExternalControllerChanged);
+  }
+
+  @override
+  void didUpdateWidget(covariant ContactSelectionAutocomplete oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.controller != widget.controller) {
+      oldWidget.controller.removeListener(_onExternalControllerChanged);
+      widget.controller.addListener(_onExternalControllerChanged);
+      _onExternalControllerChanged();
+    }
+  }
+
+  @override
+  void dispose() {
+    widget.controller.removeListener(_onExternalControllerChanged);
+    _autocompleteController?.removeListener(_onAutocompleteControllerChanged);
+    super.dispose();
+  }
+
+  void _onExternalControllerChanged() {
+    if (_isSyncing) return;
+    final fieldController = _autocompleteController;
+    if (fieldController == null) return;
+    if (fieldController.text != widget.controller.text) {
+      _isSyncing = true;
+      fieldController.value = fieldController.value.copyWith(
+        text: widget.controller.text,
+        selection: TextSelection.collapsed(
+          offset: widget.controller.text.length,
+        ),
+        composing: TextRange.empty,
+      );
+      _isSyncing = false;
+    }
+  }
+
+  void _onAutocompleteControllerChanged() {
+    if (_isSyncing) return;
+    final fieldController = _autocompleteController;
+    if (fieldController == null) return;
+    if (widget.controller.text != fieldController.text) {
+      _isSyncing = true;
+      widget.controller.text = fieldController.text;
+      _isSyncing = false;
+    }
+  }
+
+  void _bindFieldController(TextEditingController fieldController) {
+    if (identical(_autocompleteController, fieldController)) {
+      return;
+    }
+    _autocompleteController?.removeListener(_onAutocompleteControllerChanged);
+    _autocompleteController = fieldController;
+    if (fieldController.text != widget.controller.text) {
+      _isSyncing = true;
+      fieldController.text = widget.controller.text;
+      _isSyncing = false;
+    }
+    fieldController.addListener(_onAutocompleteControllerChanged);
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 16.0),
@@ -26,7 +101,7 @@ class ContactSelectionAutocomplete extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            label,
+            widget.label,
             style: const TextStyle(
               color: primaryGreen,
               fontSize: 14,
@@ -40,14 +115,14 @@ class ContactSelectionAutocomplete extends StatelessWidget {
               if (textEditingValue.text.isEmpty) {
                 return const Iterable<String>.empty();
               }
-              return contacts.map((c) => c.name).where(
+              return widget.contacts.map((c) => c.name).where(
                     (name) => name
                         .toLowerCase()
                         .contains(textEditingValue.text.toLowerCase()),
                   );
             },
             onSelected: (String selection) {
-              controller.text = selection;
+              widget.controller.text = selection;
             },
             fieldViewBuilder: (
               context,
@@ -55,12 +130,7 @@ class ContactSelectionAutocomplete extends StatelessWidget {
               fieldFocusNode,
               onFieldSubmitted,
             ) {
-              if (controller.text != fieldTextEditingController.text) {
-                fieldTextEditingController.text = controller.text;
-              }
-              fieldTextEditingController.addListener(() {
-                controller.text = fieldTextEditingController.text;
-              });
+              _bindFieldController(fieldTextEditingController);
 
               return TextFormField(
                 controller: fieldTextEditingController,
@@ -72,7 +142,7 @@ class ContactSelectionAutocomplete extends StatelessWidget {
                   fontWeight: FontWeight.w600,
                 ),
                 decoration: InputDecoration(
-                  hintText: hint,
+                  hintText: widget.hint,
                   hintStyle: TextStyle(
                     color: primaryGreen.withValues(alpha: 0.5),
                     fontSize: 15,
@@ -101,7 +171,7 @@ class ContactSelectionAutocomplete extends StatelessWidget {
                         const BorderSide(color: primaryGreen, width: 2),
                   ),
                 ),
-                validator: validator,
+                validator: widget.validator,
               );
             },
             optionsViewBuilder: (context, onSelected, options) {
