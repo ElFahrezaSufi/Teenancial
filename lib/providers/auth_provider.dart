@@ -65,9 +65,6 @@ class AuthProvider extends ChangeNotifier {
 
   void _clearUserData() {
     unawaited(NotificationService.instance.cancelAll());
-    debugPrint(
-      'Sesi berakhir: Membersihkan sisa data lokal di seluruh Provider...',
-    );
   }
 
   Future<void> login(String email, String password) async {

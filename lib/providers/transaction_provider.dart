@@ -31,7 +31,6 @@ class TransactionProvider extends ChangeNotifier {
       _transactions.where((t) => t.type == TransactionType.receivable).toList();
 
   List<CategoryModel> get categories => CategoryCatalog.categories;
-  CategoryModel getCategoryById(String id) => CategoryCatalog.getById(id);
   List<CategoryModel> getCategoriesByType(TransactionType type) =>
       CategoryCatalog.getByType(type);
 
