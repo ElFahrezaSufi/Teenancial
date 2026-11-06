@@ -1,12 +1,12 @@
 import 'dart:async';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_auth/firebase_auth.dart' hide AuthProvider;
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../config/app_routes.dart';
 import '../models/dompet_model.dart';
 import '../models/transaction_model.dart';
-import '../providers/auth_provider.dart' show registrationInProgress;
+import '../providers/auth_provider.dart';
 import '../services/local_storage_service.dart';
 import 'app_transitions.dart';
 
@@ -40,18 +40,14 @@ final GoRouter appRouter = GoRouter(
   initialLocation: AppRoutes.splash,
   refreshListenable: Listenable.merge([
     GoRouterRefreshStream(FirebaseAuth.instance.authStateChanges()),
-    registrationInProgress,
+    AuthProvider.bootstrapListenable,
     LocalStorageService.instance.onboardingListenable,
   ]),
   redirect: (BuildContext context, GoRouterState state) {
-    if (registrationInProgress.value) return null;
+    if (AuthProvider.bootstrapListenable.value) return null;
 
     final user = FirebaseAuth.instance.currentUser;
     final isLoggedIn = user != null;
-
-    if (isLoggedIn && !LocalStorageService.instance.hasSeenGetStarted) {
-      unawaited(LocalStorageService.instance.setHasSeenGetStarted(true));
-    }
 
     if (state.matchedLocation == AppRoutes.splash) {
       return null;

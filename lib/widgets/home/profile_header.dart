@@ -1,4 +1,4 @@
-import 'dart:io';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_text_styles.dart';
@@ -6,7 +6,6 @@ import '../../theme/app_text_styles.dart';
 class ProfileHeader extends StatelessWidget {
   final String displayName;
   final int level;
-  final File? imageFile;
   final String? imageUrl;
   final VoidCallback onProfileTap;
 
@@ -14,16 +13,13 @@ class ProfileHeader extends StatelessWidget {
     super.key,
     required this.displayName,
     required this.level,
-    this.imageFile,
     this.imageUrl,
     required this.onProfileTap,
   });
 
   ImageProvider? _getAvatarProvider() {
-    if (imageFile != null) {
-      return FileImage(imageFile!);
-    } else if (imageUrl != null && imageUrl!.isNotEmpty) {
-      return NetworkImage(imageUrl!);
+    if (imageUrl != null && imageUrl!.isNotEmpty) {
+      return CachedNetworkImageProvider(imageUrl!);
     }
     return null;
   }

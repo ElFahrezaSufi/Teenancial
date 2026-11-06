@@ -3,7 +3,7 @@ import '../../theme/app_colors.dart';
 
 class CustomBottomNavBar extends StatelessWidget {
   final int selectedIndex;
-  final Function(int) onItemTapped;
+  final ValueChanged<int> onItemTapped;
 
   const CustomBottomNavBar({
     super.key,
@@ -13,67 +13,63 @@ class CustomBottomNavBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: EdgeInsets.only(
-          left: 24,
-          right: 24,
-          bottom: MediaQuery.paddingOf(context).bottom + 24),
+    return SafeArea(
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
+        margin: const EdgeInsets.only(left: 24, right: 24, bottom: 16),
+        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
         decoration: BoxDecoration(
           color: appBarBg,
-          borderRadius: BorderRadius.circular(100),
-          border: Border.all(color: primaryGreen, width: 1.5),
-          boxShadow: const [
-            BoxShadow(
-              color: primaryGreen,
-              offset: Offset(0, 4),
-              blurRadius: 0,
-            ),
-          ],
+          borderRadius: BorderRadius.circular(40),
+          border: Border.all(color: primaryGreen, width: 2),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: [
-            _buildNavItem(0, Icons.home_filled, 'Beranda'),
-            _buildNavItem(1, Icons.account_balance_wallet_outlined, 'Dompet'),
-            _buildNavItem(2, Icons.history, 'Riwayat'),
-            _buildNavItem(3, Icons.person_outline, 'Profil'),
+            _buildNavItem(icon: Icons.home_filled, label: 'Beranda', index: 0),
+            _buildNavItem(
+              icon: Icons.account_balance_wallet,
+              label: 'Dompet',
+              index: 1,
+            ),
+            _buildNavItem(icon: Icons.history, label: 'Riwayat', index: 2),
+            _buildNavItem(icon: Icons.person, label: 'Profil', index: 3),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildNavItem(int index, IconData icon, String label) {
-    final isSelected = selectedIndex == index;
+  Widget _buildNavItem({
+    required IconData icon,
+    required String label,
+    required int index,
+  }) {
+    final bool isActive = selectedIndex == index;
 
     return GestureDetector(
       onTap: () => onItemTapped(index),
       behavior: HitTestBehavior.opaque,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
+      child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         decoration: BoxDecoration(
-          color: isSelected ? iconLightGreen : Colors.transparent,
+          color: isActive
+              ? primaryGreen.withValues(alpha: 0.15)
+              : Colors.transparent,
           borderRadius: BorderRadius.circular(100),
+          border: isActive ? Border.all(color: primaryGreen, width: 1.5) : null,
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
-              icon,
-              color: primaryGreen,
-              size: 24,
-            ),
+            Icon(icon, color: primaryGreen, size: 24),
             const SizedBox(height: 4),
             Text(
               label,
-              style: TextStyle(
+              style: const TextStyle(
                 color: primaryGreen,
                 fontSize: 11,
                 fontFamily: 'Inter',
-                fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
+                fontWeight: FontWeight.w700,
               ),
             ),
           ],

@@ -3,6 +3,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 import '../config/app_routes.dart';
 import '../services/local_storage_service.dart';
+import '../theme/app_colors.dart';
 
 class GetStarted extends StatelessWidget {
   const GetStarted({super.key});
@@ -10,12 +11,12 @@ class GetStarted extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFEDEFE2),
+      backgroundColor: scaffoldBg,
       body: Stack(
         fit: StackFit.expand,
         children: [
           Container(
-            color: const Color(0xFFEDEFE2),
+            color: scaffoldBg,
             child: SvgPicture.asset(
               'assets/images/bg_curve.svg',
               fit: BoxFit.cover,
@@ -34,7 +35,7 @@ class GetStarted extends StatelessWidget {
                     'Kelola Keuangan Anda dan\nWujudkan Target Finansial Anda',
                     textAlign: TextAlign.center,
                     style: TextStyle(
-                      color: Color(0xFF627931),
+                      color: primaryGreen,
                       fontSize: 20,
                       fontFamily: 'Inter',
                       fontWeight: FontWeight.w700,
@@ -51,7 +52,7 @@ class GetStarted extends StatelessWidget {
                         'Belajar atur uang, bangun kebiasaan\nmenabung, dan wujudkan mimpimu',
                         textAlign: TextAlign.center,
                         style: TextStyle(
-                          color: Color(0xFF627931),
+                          color: primaryGreen,
                           fontSize: 16,
                           fontFamily: 'Inter',
                           fontWeight: FontWeight.w700,
@@ -79,7 +80,7 @@ class GetStarted extends StatelessWidget {
                                   width: 310,
                                   height: 68,
                                   decoration: BoxDecoration(
-                                    color: const Color(0xFF637932),
+                                    color: primaryGreen,
                                     borderRadius: BorderRadius.circular(100),
                                   ),
                                 ),
@@ -93,11 +94,11 @@ class GetStarted extends StatelessWidget {
                                   height: 68,
                                   clipBehavior: Clip.antiAlias,
                                   decoration: BoxDecoration(
-                                    color: const Color(0xFFF8FFE8),
+                                    color: inputBg,
                                     borderRadius: BorderRadius.circular(100),
                                     border: Border.all(
                                       width: 2,
-                                      color: const Color(0xFF637932),
+                                      color: primaryGreen,
                                     ),
                                   ),
                                   child: const Center(
@@ -105,7 +106,7 @@ class GetStarted extends StatelessWidget {
                                       'Mulai',
                                       textAlign: TextAlign.center,
                                       style: TextStyle(
-                                        color: Color(0xFF637932),
+                                        color: primaryGreen,
                                         fontSize: 18,
                                         fontFamily: 'Inter',
                                         fontWeight: FontWeight.w700,

@@ -1,33 +1,49 @@
 import 'dart:async';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import '../repositories/auth_repository.dart';
-
-final ValueNotifier<bool> registrationInProgress = ValueNotifier<bool>(false);
+import '../services/local_storage_service.dart';
+import '../services/notification_service.dart';
 
 class AuthProvider extends ChangeNotifier {
+  static final ValueNotifier<bool> _bootstrapNotifier =
+      ValueNotifier<bool>(false);
+
+  /// Read-only listenable untuk memberi tahu router saat proses bootstrap
+  /// akun baru (registrasi email / Google Sign-In) sedang berjalan atau selesai.
+  static ValueListenable<bool> get bootstrapListenable => _bootstrapNotifier;
+
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final AuthRepository _repository = AuthRepository();
 
   User? _user;
-  User? get user => _user;
-  bool get isAuthenticated => _user != null && !registrationInProgress.value;
+  bool _bootstrapInProgress = false;
 
-  /// UID aktif untuk seluruh feature provider. Bernilai null saat belum login
-  /// atau saat proses registrasi email sedang berlangsung sebelum auto-logout.
-  String? get activeUid => registrationInProgress.value ? null : _user?.uid;
+  User? get user => _user;
+  bool get isBootstrapping => _bootstrapInProgress;
+  bool get isAuthenticated => _user != null && !_bootstrapInProgress;
+
+  /// UID aktif untuk seluruh feature provider. Bernilai null saat belum login,
+  /// atau saat proses bootstrap akun baru (registrasi email / Google Sign-In)
+  /// belum selesai menulis profil & dompet awal di Firestore.
+  String? get activeUid => _bootstrapInProgress ? null : _user?.uid;
 
   late final StreamSubscription<User?> _authSub;
 
   AuthProvider() {
     _user = _auth.currentUser;
-    registrationInProgress.addListener(_onRegistrationStateChanged);
+    if (_user != null && !LocalStorageService.instance.hasSeenGetStarted) {
+      unawaited(LocalStorageService.instance.setHasSeenGetStarted(true));
+    }
     _authSub = _auth.authStateChanges().listen((User? newUser) {
       final bool sessionEnded = newUser == null;
       final bool accountSwitched =
           _user != null && newUser != null && _user!.uid != newUser.uid;
 
       _user = newUser;
+      if (newUser != null && !LocalStorageService.instance.hasSeenGetStarted) {
+        unawaited(LocalStorageService.instance.setHasSeenGetStarted(true));
+      }
 
       if (sessionEnded || accountSwitched) {
         _clearUserData();
@@ -36,21 +52,19 @@ class AuthProvider extends ChangeNotifier {
     });
   }
 
-  void _onRegistrationStateChanged() {
-    notifyListeners();
+  void _setBootstrapping(bool value) {
+    _bootstrapInProgress = value;
+    _bootstrapNotifier.value = value;
   }
 
   @override
   void dispose() {
-    registrationInProgress.removeListener(_onRegistrationStateChanged);
     _authSub.cancel();
     super.dispose();
   }
 
   void _clearUserData() {
-    debugPrint(
-      'Sesi berakhir: Membersihkan sisa data lokal di seluruh Provider...',
-    );
+    unawaited(NotificationService.instance.cancelAll());
   }
 
   Future<void> login(String email, String password) async {
@@ -62,31 +76,34 @@ class AuthProvider extends ChangeNotifier {
     required String password,
     required String name,
     required String age,
+    DateTime? birthDate,
     required String gender,
   }) async {
-    registrationInProgress.value = true;
+    _setBootstrapping(true);
     try {
       await _repository.registerWithEmail(
         email: email,
         password: password,
-        name: name,
-        age: age,
-        gender: gender,
+        name: name.trim(),
+        age: age.trim(),
+        birthDate: birthDate,
+        gender: gender.trim(),
       );
-      await _repository.logout();
-    } catch (_) {
-      try {
-        await _repository.logout();
-      } catch (_) {}
-      rethrow;
     } finally {
-      registrationInProgress.value = false;
+      _setBootstrapping(false);
+      notifyListeners();
     }
   }
 
   Future<bool> signInWithGoogle() async {
-    final credential = await _repository.signInWithGoogle();
-    return credential != null;
+    _setBootstrapping(true);
+    try {
+      final credential = await _repository.signInWithGoogle();
+      return credential != null;
+    } finally {
+      _setBootstrapping(false);
+      notifyListeners();
+    }
   }
 
   Future<void> sendPasswordResetEmail(String email) async {
@@ -94,6 +111,7 @@ class AuthProvider extends ChangeNotifier {
   }
 
   Future<void> logout() async {
+    await NotificationService.instance.cancelAll();
     await _repository.logout();
   }
 }

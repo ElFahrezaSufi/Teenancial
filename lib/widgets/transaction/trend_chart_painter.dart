@@ -1,4 +1,5 @@
 import 'dart:math';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import '../../theme/app_colors.dart';
 
@@ -26,17 +27,28 @@ class TrendChartPainter extends CustomPainter {
     }
 
     if (values.length == 1) {
-      // Just draw a line in the middle if only one value
       final double y = size.height / 2;
-      canvas.drawLine(Offset(0, y), Offset(size.width, y), Paint()..color = const Color(0xFFE53935)..strokeWidth = 2);
-      canvas.drawCircle(Offset(size.width/2, y), 3, Paint()..color = const Color(0xFFE53935));
+      canvas.drawLine(
+        Offset(0, y),
+        Offset(size.width, y),
+        Paint()
+          ..color = const Color(0xFFE53935)
+          ..strokeWidth = 2,
+      );
+      canvas.drawCircle(
+        Offset(size.width / 2, y),
+        3,
+        Paint()..color = const Color(0xFFE53935),
+      );
       return;
     }
 
     final List<Offset> points = [];
     for (int i = 0; i < values.length; i++) {
       final double x = size.width * i / (values.length - 1);
-      final double normalized = (values[i] - minVal) / range;
+      final double normalized = (maxVal - minVal) == 0
+          ? 0.5
+          : (values[i] - minVal) / range;
       final double y = size.height * (1 - normalized);
       points.add(Offset(x, y));
     }
@@ -81,5 +93,6 @@ class TrendChartPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(TrendChartPainter oldDelegate) => true;
+  bool shouldRepaint(covariant TrendChartPainter oldDelegate) =>
+      !listEquals(oldDelegate.values, values);
 }

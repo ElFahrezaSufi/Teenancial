@@ -9,6 +9,7 @@ import '../providers/target_provider.dart';
 import '../providers/transaction_provider.dart';
 import '../providers/user_provider.dart';
 import '../theme/app_colors.dart';
+import '../utils/currency_formatter.dart';
 
 import '../widgets/home/action_menu.dart';
 import '../widgets/home/belajar_card.dart';
@@ -43,9 +44,9 @@ class _HomeScreenState extends State<HomeScreen> {
   void didChangeDependencies() {
     super.didChangeDependencies();
     if (!_isFeenInitialized) {
-      final size = MediaQuery.of(context).size;
-      _feenX = size.width - _feenButtonWidth;
-      _feenY = size.height - _feenBottomMargin;
+      final size = MediaQuery.sizeOf(context);
+      _feenX = (size.width - _feenButtonWidth).clamp(0.0, double.infinity);
+      _feenY = (size.height - _feenBottomMargin).clamp(0.0, double.infinity);
       _isFeenInitialized = true;
     }
   }
@@ -75,24 +76,21 @@ class _HomeScreenState extends State<HomeScreen> {
     await context.push(AppRoutes.buatTarget);
   }
 
-  String _formatRupiah(double value) {
-    final parts = value.toStringAsFixed(0).split('');
-    final buffer = StringBuffer();
-    for (int i = 0; i < parts.length; i++) {
-      if (i != 0 && (parts.length - i) % 3 == 0) buffer.write('.');
-      buffer.write(parts[i]);
-    }
-    return 'Rp ${buffer.toString()}';
-  }
-
   @override
   Widget build(BuildContext context) {
     final userProvider = context.watch<UserProvider>();
     final dompetProvider = context.watch<DompetProvider>();
     final targetProvider = context.watch<TargetProvider>();
-    context.watch<TransactionProvider>();
 
-    final double topPadding = MediaQuery.of(context).padding.top;
+    final screenSize = MediaQuery.sizeOf(context);
+    final double maxFeenX =
+        (screenSize.width - _feenButtonWidth).clamp(0.0, double.infinity);
+    final double maxFeenY =
+        (screenSize.height - _feenBottomMargin).clamp(0.0, double.infinity);
+    final double clampedFeenX = _feenX.clamp(0.0, maxFeenX);
+    final double clampedFeenY = _feenY.clamp(0.0, maxFeenY);
+
+    final double topPadding = MediaQuery.paddingOf(context).top;
     final double xpProgress =
         maxXP > 0 ? (currentXP / maxXP).clamp(0.0, 1.0) : 0.0;
     final double totalSaldoReal = dompetProvider.totalSaldo;
@@ -147,7 +145,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             currentXP: currentXP,
                             maxXP: maxXP,
                             level: level,
-                            formatRupiah: _formatRupiah,
+                            formatRupiah: Formatters.rupiah,
                             onTap: _tambahTabunganMock,
                           ),
                           const SizedBox(height: 32),
@@ -194,7 +192,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           TargetMenabungHome(
                             currentTarget: currentTarget,
                             totalSaldoReal: totalSaldoReal,
-                            formatRupiah: _formatRupiah,
+                            formatRupiah: Formatters.rupiah,
                             onTambahTarget: _tambahTargetData,
                           ),
                           const SizedBox(height: 24),
@@ -208,7 +206,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           ),
                           const SizedBox(height: 12),
                           PinjamanHome(
-                            formatRupiah: _formatRupiah,
+                            formatRupiah: Formatters.rupiah,
                             onTap: () => context.push(AppRoutes.daftarPinjaman),
                           ),
                           const SizedBox(height: 24),
@@ -241,34 +239,35 @@ class _HomeScreenState extends State<HomeScreen> {
                 ? Duration.zero
                 : const Duration(milliseconds: 300),
             curve: Curves.easeOutBack,
-            left: _feenX,
-            top: _feenY,
+            left: clampedFeenX,
+            top: clampedFeenY,
             child: GestureDetector(
               onPanStart: (details) {
                 setState(() => _isDraggingFeen = true);
               },
               onPanUpdate: (details) {
+                final size = MediaQuery.sizeOf(context);
                 setState(() {
-                  _feenX += details.delta.dx;
-                  _feenY += details.delta.dy;
-                  _feenX =
-                      _feenX.clamp(0.0, MediaQuery.of(context).size.width - 80);
-                  _feenY = _feenY.clamp(
+                  _feenX = (_feenX + details.delta.dx)
+                      .clamp(0.0, (size.width - 80).clamp(0.0, double.infinity));
+                  _feenY = (_feenY + details.delta.dy).clamp(
                     0.0,
-                    MediaQuery.of(context).size.height - _feenBottomMargin,
+                    (size.height - _feenBottomMargin)
+                        .clamp(0.0, double.infinity),
                   );
                 });
               },
               onPanEnd: (details) {
+                final screenWidth = MediaQuery.sizeOf(context).width;
                 setState(() {
                   _isDraggingFeen = false;
-                  final screenWidth = MediaQuery.of(context).size.width;
                   final centerScreen = screenWidth / 2;
 
                   if (_feenX + 30 < centerScreen) {
                     _feenX = 24.0;
                   } else {
-                    _feenX = screenWidth - _feenButtonWidth;
+                    _feenX = (screenWidth - _feenButtonWidth)
+                        .clamp(0.0, double.infinity);
                   }
                 });
               },

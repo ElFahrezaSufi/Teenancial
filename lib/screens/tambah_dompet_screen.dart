@@ -1,9 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../models/dompet_model.dart';
 import '../providers/dompet_provider.dart';
+import '../providers/transaction_provider.dart';
 import '../theme/app_colors.dart';
+import '../utils/confirm_dialog.dart';
+import '../utils/currency_formatter.dart';
+import '../utils/error_mapper.dart';
+import '../widgets/common/custom_app_bar.dart';
 import '../widgets/common/custom_card.dart';
 
 class TambahDompetScreen extends StatefulWidget {
@@ -25,9 +31,9 @@ class _TambahDompetScreenState extends State<TambahDompetScreen> {
   bool _isLoading = false;
 
   final Map<String, JenisDompet> _jenisMap = {
-    'Cash': JenisDompet.cash,
-    'Accounts': JenisDompet.accounts,
-    'Card': JenisDompet.card,
+    JenisDompet.cash.label: JenisDompet.cash,
+    JenisDompet.accounts.label: JenisDompet.accounts,
+    JenisDompet.card.label: JenisDompet.card,
   };
 
   @override
@@ -43,7 +49,8 @@ class _TambahDompetScreenState extends State<TambahDompetScreen> {
           )
           .key;
       _namaDompetCtrl.text = item.nama;
-      _jumlahCtrl.text = item.jumlah.toStringAsFixed(0);
+      _jumlahCtrl.text =
+          CurrencyInputFormatter.formatValue(item.jumlah.toStringAsFixed(0));
       _catatanCtrl.text = item.catatan ?? '';
     }
   }
@@ -90,18 +97,20 @@ class _TambahDompetScreenState extends State<TambahDompetScreen> {
 
     try {
       final item = DompetItem(
-        id: widget.itemToEdit?.id ??
-            DateTime.now().millisecondsSinceEpoch.toString(),
+        id: widget.itemToEdit?.id ?? '',
         jenis: jenis,
         nama: nama,
         jumlah: jumlah,
         catatan:
             _catatanCtrl.text.trim().isEmpty ? null : _catatanCtrl.text.trim(),
+        createdAt: widget.itemToEdit?.createdAt,
       );
 
       final dompetProvider = context.read<DompetProvider>();
+      final txProvider = context.read<TransactionProvider>();
       if (widget.itemToEdit != null) {
         await dompetProvider.updateDompet(item);
+        await txProvider.loadTransactions(silent: true);
       } else {
         await dompetProvider.addDompet(item);
       }
@@ -113,13 +122,14 @@ class _TambahDompetScreenState extends State<TambahDompetScreen> {
             backgroundColor: primaryGreen,
           ),
         );
-        Navigator.pop(context, true);
+        context.pop(true);
       }
     } catch (e) {
       if (mounted) {
+        final message = ErrorMapper.message(e);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('❌ Gagal menyimpan: $e'),
+            content: Text('❌ Gagal menyimpan: $message'),
             backgroundColor: Colors.red,
           ),
         );
@@ -132,30 +142,13 @@ class _TambahDompetScreenState extends State<TambahDompetScreen> {
   Future<void> _hapus() async {
     if (widget.itemToEdit == null) return;
 
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text(
-          'Hapus Dompet',
-          style: TextStyle(color: primaryGreen),
-        ),
-        content: const Text(
-          'Yakin ingin menghapus dompet ini? Aksi tidak dapat dibatalkan.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Batal', style: TextStyle(color: Colors.grey)),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Hapus', style: TextStyle(color: Colors.red)),
-          ),
-        ],
-      ),
+    final bool confirm = await showConfirmDialog(
+      context,
+      title: 'Hapus Dompet',
+      message: 'Yakin ingin menghapus dompet ini? Aksi tidak dapat dibatalkan.',
     );
 
-    if (confirm != true || !mounted) return;
+    if (!confirm || !mounted) return;
 
     setState(() => _isLoading = true);
     try {
@@ -167,13 +160,14 @@ class _TambahDompetScreenState extends State<TambahDompetScreen> {
             backgroundColor: primaryGreen,
           ),
         );
-        Navigator.pop(context, true);
+        context.pop(true);
       }
     } catch (e) {
       if (mounted) {
+        final message = ErrorMapper.message(e);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('❌ Gagal menghapus: $e'),
+            content: Text('❌ Gagal menghapus: $message'),
             backgroundColor: Colors.red,
           ),
         );
@@ -189,51 +183,14 @@ class _TambahDompetScreenState extends State<TambahDompetScreen> {
 
     return Scaffold(
       backgroundColor: scaffoldBg,
-      appBar: PreferredSize(
-        preferredSize: const Size.fromHeight(80),
-        child: Container(
-          decoration: const BoxDecoration(
-            color: appBarBg,
-            border: Border(
-              bottom: BorderSide(color: primaryGreen, width: 1.5),
-            ),
-          ),
-          child: SafeArea(
-            child: Stack(
-              alignment: Alignment.center,
-              children: [
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: IconButton(
-                    onPressed: () => Navigator.pop(context),
-                    icon: const Icon(
-                      Icons.chevron_left,
-                      color: primaryGreen,
-                      size: 32,
-                    ),
-                  ),
-                ),
-                Text(
-                  title,
-                  style: const TextStyle(
-                    color: primaryGreen,
-                    fontSize: 22,
-                    fontFamily: 'Inter',
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                if (widget.itemToEdit != null)
-                  Align(
-                    alignment: Alignment.centerRight,
-                    child: IconButton(
-                      onPressed: _isLoading ? null : _hapus,
-                      icon: const Icon(Icons.delete_outline, color: Colors.red),
-                    ),
-                  ),
-              ],
-            ),
-          ),
-        ),
+      appBar: CustomAppBar(
+        title: title,
+        trailing: widget.itemToEdit != null
+            ? IconButton(
+                onPressed: _isLoading ? null : _hapus,
+                icon: const Icon(Icons.delete_outline, color: Colors.red),
+              )
+            : null,
       ),
       body: Stack(
         fit: StackFit.expand,
@@ -258,7 +215,7 @@ class _TambahDompetScreenState extends State<TambahDompetScreen> {
                     child: AbsorbPointer(
                       child: _InputField(
                         controller: _jenisDompetCtrl,
-                        hint: 'Cash, card, accounts, etc',
+                        hint: 'Pilih jenis dompet',
                         suffixIcon: const Icon(
                           Icons.keyboard_arrow_down_rounded,
                           color: primaryGreen,
@@ -280,8 +237,7 @@ class _TambahDompetScreenState extends State<TambahDompetScreen> {
                     controller: _jumlahCtrl,
                     hint: 'Rp 0',
                     keyboardType: TextInputType.number,
-                    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                    prefixText: 'Rp ',
+                    inputFormatters: [CurrencyInputFormatter()],
                   ),
                   const SizedBox(height: 20),
                   const _FieldLabel(label: 'Catatan'),
@@ -404,7 +360,6 @@ class _InputField extends StatelessWidget {
   final String hint;
   final TextInputType? keyboardType;
   final List<TextInputFormatter>? inputFormatters;
-  final String? prefixText;
   final Widget? suffixIcon;
   final int maxLines;
 
@@ -413,7 +368,6 @@ class _InputField extends StatelessWidget {
     required this.hint,
     this.keyboardType,
     this.inputFormatters,
-    this.prefixText,
     this.suffixIcon,
     this.maxLines = 1,
   });
@@ -440,13 +394,6 @@ class _InputField extends StatelessWidget {
             color: primaryGreen.withValues(alpha: 0.45),
             fontFamily: 'Inter',
             fontSize: 14,
-          ),
-          prefixText: prefixText,
-          prefixStyle: const TextStyle(
-            color: primaryGreen,
-            fontFamily: 'Inter',
-            fontSize: 14,
-            fontWeight: FontWeight.w500,
           ),
           suffixIcon: suffixIcon,
           border: InputBorder.none,

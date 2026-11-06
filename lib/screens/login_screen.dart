@@ -6,13 +6,10 @@ import 'package:provider/provider.dart';
 import '../config/app_routes.dart';
 import '../providers/auth_provider.dart';
 import '../services/local_storage_service.dart';
+import '../theme/app_colors.dart';
+import '../widgets/common/auth_scaffold.dart';
 import '../widgets/common/custom_card.dart';
 import '../widgets/common/custom_text_field.dart';
-
-const Color _primaryGreen = Color(0xFF637932);
-const Color _darkGreen = Color(0xFF415020);
-const Color _fieldBg = Color(0xFFF8FFE8);
-const Color _scaffoldBg = Color(0xFFEDEFE2);
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -53,7 +50,7 @@ class _LoginScreenState extends State<LoginScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Berhasil Masuk!'),
-            backgroundColor: _primaryGreen,
+            backgroundColor: primaryGreen,
           ),
         );
         context.go(AppRoutes.home);
@@ -113,7 +110,7 @@ class _LoginScreenState extends State<LoginScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Berhasil masuk dengan Google!'),
-            backgroundColor: _primaryGreen,
+            backgroundColor: primaryGreen,
           ),
         );
         context.go(AppRoutes.home);
@@ -133,103 +130,29 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: _scaffoldBg,
-      body: Stack(
-        fit: StackFit.expand,
-        children: [
-          Container(
-            color: _scaffoldBg,
-            child: SvgPicture.asset(
-              'assets/images/bg_curve.svg',
-              fit: BoxFit.cover,
-              placeholderBuilder: (context) => const SizedBox.shrink(),
+    return AuthScaffold(
+      formKey: _formKey,
+      children: [
+        Center(
+          child: SvgPicture.asset(
+            'assets/images/logo_teenancial.svg',
+            height: 120,
+            placeholderBuilder: (context) => const SizedBox(
+              height: 120,
+              child: Center(
+                child: CircularProgressIndicator(
+                  color: primaryGreen,
+                ),
+              ),
             ),
           ),
-          Column(
-            children: [
-              const SafeArea(
-                bottom: false,
-                child: SizedBox(height: 24),
-              ),
-              Expanded(
-                child: GestureDetector(
-                  onVerticalDragEnd: (details) {
-                    if ((details.primaryVelocity ?? 0) > 100) {
-                      context.go(AppRoutes.getStarted);
-                    }
-                  },
-                  child: Container(
-                    width: double.infinity,
-                    decoration: const BoxDecoration(
-                      color: _primaryGreen,
-                      borderRadius: BorderRadius.only(
-                        topLeft: Radius.circular(30),
-                        topRight: Radius.circular(30),
-                      ),
-                    ),
-                    padding: const EdgeInsets.only(
-                      left: 2,
-                      top: 6,
-                      right: 2,
-                      bottom: 0,
-                    ),
-                    child: Container(
-                      decoration: const BoxDecoration(
-                        color: _fieldBg,
-                        borderRadius: BorderRadius.only(
-                          topLeft: Radius.circular(26),
-                          topRight: Radius.circular(26),
-                        ),
-                      ),
-                      child: SafeArea(
-                        top: false,
-                        child: SingleChildScrollView(
-                          padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
-                          child: Form(
-                            key: _formKey,
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.stretch,
-                              children: [
-                                Center(
-                                  child: GestureDetector(
-                                    onTap: () =>
-                                        context.go(AppRoutes.getStarted),
-                                    child: Container(
-                                      width: 80,
-                                      height: 5,
-                                      margin: const EdgeInsets.only(bottom: 24),
-                                      decoration: BoxDecoration(
-                                        color: _primaryGreen.withValues(
-                                          alpha: 0.5,
-                                        ),
-                                        borderRadius:
-                                            BorderRadius.circular(100),
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                                Center(
-                                  child: SvgPicture.asset(
-                                    'assets/images/logo_teenancial.svg',
-                                    height: 120,
-                                    placeholderBuilder: (context) =>
-                                        const SizedBox(
-                                      height: 120,
-                                      child: Center(
-                                        child: CircularProgressIndicator(
-                                          color: _primaryGreen,
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ),
+        ),
                                 const SizedBox(height: 16),
                                 const Text(
                                   'Selamat datang kembali!',
                                   textAlign: TextAlign.center,
                                   style: TextStyle(
-                                    color: _primaryGreen,
+                                    color: primaryGreen,
                                     fontSize: 25,
                                     fontFamily: 'Inter',
                                     fontWeight: FontWeight.w700,
@@ -240,7 +163,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                   'Masuk untuk melanjutkan progresmu',
                                   textAlign: TextAlign.center,
                                   style: TextStyle(
-                                    color: _primaryGreen,
+                                    color: primaryGreen,
                                     fontSize: 14,
                                     fontFamily: 'Inter',
                                     fontWeight: FontWeight.w500,
@@ -252,7 +175,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                   hint: 'eg.nama@gmail.com',
                                   prefixIcon: const Icon(
                                     Icons.email_outlined,
-                                    color: _primaryGreen,
+                                    color: primaryGreen,
                                   ),
                                   keyboardType: TextInputType.emailAddress,
                                   controller: _emailController,
@@ -271,7 +194,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                   hint: '********',
                                   prefixIcon: const Icon(
                                     Icons.lock_outline,
-                                    color: _primaryGreen,
+                                    color: primaryGreen,
                                   ),
                                   obscureText: _obscurePassword,
                                   controller: _passwordController,
@@ -280,7 +203,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                       _obscurePassword
                                           ? Icons.visibility_off_outlined
                                           : Icons.visibility_outlined,
-                                      color: _primaryGreen,
+                                      color: primaryGreen,
                                       size: 20,
                                     ),
                                     onPressed: () {
@@ -314,7 +237,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                     child: const Text(
                                       'Lupa Password?',
                                       style: TextStyle(
-                                        color: _primaryGreen,
+                                        color: primaryGreen,
                                         fontSize: 13,
                                         fontFamily: 'Inter',
                                         fontWeight: FontWeight.w600,
@@ -327,7 +250,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                   child: ElevatedButton(
                                     onPressed: _isLoading ? null : _handleLogin,
                                     style: ElevatedButton.styleFrom(
-                                      backgroundColor: _primaryGreen,
+                                      backgroundColor: primaryGreen,
                                       shape: RoundedRectangleBorder(
                                         borderRadius: BorderRadius.circular(12),
                                       ),
@@ -338,14 +261,14 @@ class _LoginScreenState extends State<LoginScreen> {
                                             width: 24,
                                             height: 24,
                                             child: CircularProgressIndicator(
-                                              color: _fieldBg,
+                                              color: inputBg,
                                               strokeWidth: 2.5,
                                             ),
                                           )
                                         : const Text(
                                             'Masuk',
                                             style: TextStyle(
-                                              color: _fieldBg,
+                                              color: inputBg,
                                               fontSize: 16,
                                               fontFamily: 'Inter',
                                               fontWeight: FontWeight.w700,
@@ -358,7 +281,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                   children: [
                                     Expanded(
                                       child: Divider(
-                                        color: _primaryGreen.withValues(
+                                        color: primaryGreen.withValues(
                                           alpha: 0.3,
                                         ),
                                         thickness: 1.5,
@@ -368,7 +291,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                     const Text(
                                       'Atau masuk dengan',
                                       style: TextStyle(
-                                        color: _primaryGreen,
+                                        color: primaryGreen,
                                         fontSize: 13,
                                         fontFamily: 'Inter',
                                         fontWeight: FontWeight.w600,
@@ -376,7 +299,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                     ),
                                     Expanded(
                                       child: Divider(
-                                        color: _primaryGreen.withValues(
+                                        color: primaryGreen.withValues(
                                           alpha: 0.3,
                                         ),
                                         thickness: 1.5,
@@ -400,7 +323,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                           TextSpan(
                                             text: 'Belum punya akun? ',
                                             style: TextStyle(
-                                              color: _primaryGreen,
+                                              color: primaryGreen,
                                               fontSize: 14,
                                               fontFamily: 'Inter',
                                               fontWeight: FontWeight.w600,
@@ -409,7 +332,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                           TextSpan(
                                             text: 'Daftar',
                                             style: TextStyle(
-                                              color: _darkGreen,
+                                              color: darkGreen,
                                               fontSize: 14,
                                               fontFamily: 'Inter',
                                               fontWeight: FontWeight.w800,
@@ -421,19 +344,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                     ),
                                   ),
                                 ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
+      ],
     );
   }
 }
@@ -451,7 +362,7 @@ class _GoogleLoginButton extends StatelessWidget {
         child: CustomCard(
           borderRadius: 12,
           padding: EdgeInsets.zero,
-          backgroundColor: const Color(0xFFF8FFE8),
+          backgroundColor: inputBg,
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
@@ -464,7 +375,7 @@ class _GoogleLoginButton extends StatelessWidget {
               const Text(
                 'Google',
                 style: TextStyle(
-                  color: Color(0xFF637932),
+                  color: primaryGreen,
                   fontSize: 16,
                   fontFamily: 'Inter',
                   fontWeight: FontWeight.w700,

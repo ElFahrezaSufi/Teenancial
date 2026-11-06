@@ -32,20 +32,30 @@ class TargetRepository {
     required File imageFile,
   }) async {
     final secureUrl = await _cloudinaryService.uploadImage(imageFile);
+    final docRef = _firestoreService.targetsCol(uid).doc();
     final item = TargetItem(
-      id: DateTime.now().millisecondsSinceEpoch.toString(),
+      id: docRef.id,
       nama: nama.trim(),
       targetAmount: targetAmount,
+      savedAmount: 0.0,
       imageUrl: secureUrl,
       isPinned: false,
     );
 
-    await _firestoreService
-        .targetsCol(uid)
-        .doc(item.id)
-        .set(item.toMap());
+    await docRef.set(item.toMap());
 
     return item;
+  }
+
+  Future<void> updateSavedAmount({
+    required String uid,
+    required String targetId,
+    required double savedAmount,
+  }) async {
+    await _firestoreService
+        .targetsCol(uid)
+        .doc(targetId)
+        .update({'savedAmount': savedAmount});
   }
 
   Future<void> togglePinTarget({

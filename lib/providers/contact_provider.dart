@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import '../models/contact_model.dart';
 import '../repositories/contact_repository.dart';
+import '../utils/error_mapper.dart';
 
 class ContactProvider extends ChangeNotifier {
   final ContactRepository _repository;
@@ -33,11 +34,16 @@ class ContactProvider extends ChangeNotifier {
 
     if (newUid == null) {
       _isLoading = false;
-      notifyListeners();
+      Future.microtask(notifyListeners);
       return;
     }
 
-    loadContacts();
+    _isLoading = true;
+    Future.microtask(() {
+      if (_uid == newUid) {
+        loadContacts();
+      }
+    });
   }
 
   Future<void> loadContacts({bool silent = false}) async {
@@ -63,7 +69,7 @@ class ContactProvider extends ChangeNotifier {
       _errorMessage = null;
     } catch (e) {
       if (_uid != targetUid) return;
-      _errorMessage = e.toString().replaceAll('Exception: ', '');
+      _errorMessage = ErrorMapper.message(e);
     } finally {
       if (_uid == targetUid) {
         _isLoading = false;

@@ -12,21 +12,29 @@ class LoanCard extends StatelessWidget {
   final TransactionModel item;
   final String Function(double) formatCurrency;
   final VoidCallback onMarkPaid;
+  final VoidCallback? onDelete;
 
   const LoanCard({
     super.key,
     required this.item,
     required this.formatCurrency,
     required this.onMarkPaid,
+    this.onDelete,
   });
 
   @override
   Widget build(BuildContext context) {
-    final cat = CategoryCatalog.getById(item.categoryId);
+    final cat = CategoryCatalog.getById(
+      item.categoryId,
+      fallbackType: item.type,
+    );
     final bool isDebt = item.type == TransactionType.debt;
     final contact =
         context.watch<ContactProvider>().getContactById(item.contactId);
-    final String name = contact?.name ?? LoanHelper.nameFromTitle(item.title);
+    final String name = LoanHelper.counterpartyName(
+      item,
+      contactName: contact?.name,
+    );
     final LoanDueInfo? dueInfo = LoanHelper.describe(item);
     final Color statusColor = dueInfo?.color ?? primaryGreen;
 
@@ -91,6 +99,24 @@ class LoanCard extends StatelessWidget {
                   fontWeight: FontWeight.w800,
                 ),
               ),
+              if (onDelete != null) ...[
+                const SizedBox(width: 4),
+                IconButton(
+                  onPressed: onDelete,
+                  icon: const Icon(
+                    Icons.delete_outline,
+                    color: Colors.redAccent,
+                    size: 20,
+                  ),
+                  tooltip: 'Hapus Pinjaman',
+                  visualDensity: VisualDensity.compact,
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(
+                    minWidth: 32,
+                    minHeight: 32,
+                  ),
+                ),
+              ],
             ],
           ),
           const SizedBox(height: 12),

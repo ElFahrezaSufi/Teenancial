@@ -2,7 +2,6 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/dompet_model.dart';
 import '../models/transaction_model.dart';
 import '../services/firestore_service.dart';
-import '../services/legacy_seed_service.dart';
 
 class TransactionRepository {
   final FirestoreService _firestoreService;
@@ -11,7 +10,6 @@ class TransactionRepository {
       : _firestoreService = firestoreService ?? FirestoreService.instance;
 
   Future<List<TransactionModel>> getTransactions(String uid) async {
-    await LegacySeedService.instance.ensureFinanceSeeded(uid);
     final snapshot = await _firestoreService.transactionsCol(uid).get();
     final items = snapshot.docs
         .map((doc) => TransactionModel.fromMap(doc.data(), docId: doc.id))
@@ -21,9 +19,12 @@ class TransactionRepository {
   }
 
   Future<void> addTransaction(String uid, TransactionModel transaction) async {
-    final deltas = transaction.walletEffects();
     final walletsRef = _firestoreService.walletsCol(uid);
-    final txRef = _firestoreService.transactionsCol(uid).doc(transaction.id);
+    final txCol = _firestoreService.transactionsCol(uid);
+    final txRef =
+        transaction.id.isEmpty ? txCol.doc() : txCol.doc(transaction.id);
+    final txToSave = transaction.copyWith(id: txRef.id);
+    final deltas = txToSave.walletEffects();
 
     await _firestoreService.runTransaction((fsTx) async {
       // Phase 1: Read all affected wallets
@@ -52,7 +53,7 @@ class TransactionRepository {
       for (final entry in newBalances.entries) {
         fsTx.update(walletsRef.doc(entry.key), {'jumlah': entry.value});
       }
-      fsTx.set(txRef, transaction.toMap());
+      fsTx.set(txRef, txToSave.toMap());
     });
   }
 

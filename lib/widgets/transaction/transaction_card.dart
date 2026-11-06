@@ -21,7 +21,10 @@ class TransactionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cat = CategoryCatalog.getById(item.categoryId);
+    final cat = CategoryCatalog.getById(
+      item.categoryId,
+      fallbackType: item.type,
+    );
     // Piutang & Transfer keluar = uang keluar, Hutang & Pemasukan = uang masuk
     final bool isExpense = item.type == TransactionType.expense ||
         item.type == TransactionType.receivable ||

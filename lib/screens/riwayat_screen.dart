@@ -4,9 +4,15 @@ import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../config/app_routes.dart';
 import '../models/transaction_model.dart';
+import '../providers/dompet_provider.dart';
 import '../providers/transaction_provider.dart';
 import '../services/local_storage_service.dart';
 import '../theme/app_colors.dart';
+import '../utils/confirm_dialog.dart';
+import '../utils/currency_formatter.dart';
+import '../utils/error_mapper.dart';
+import '../widgets/common/async_state_view.dart';
+import '../widgets/common/custom_app_bar.dart';
 import '../widgets/common/custom_card.dart';
 import '../widgets/common/custom_filter_chip.dart';
 import '../widgets/common/skeleton.dart';
@@ -48,17 +54,8 @@ class RiwayatScreen extends StatefulWidget {
     return result;
   }
 
-  static String formatCurrency(double amount) {
-    final parts = amount.abs().toStringAsFixed(0).split('');
-    final buffer = StringBuffer();
-    int count = 0;
-    for (int i = parts.length - 1; i >= 0; i--) {
-      if (count > 0 && count % 3 == 0) buffer.write('.');
-      buffer.write(parts[i]);
-      count++;
-    }
-    final reversed = buffer.toString().split('').reversed.join();
-    return 'Rp $reversed,00';
+  static double _netWalletDelta(TransactionModel t) {
+    return t.walletEffects().values.fold(0.0, (sum, delta) => sum + delta);
   }
 
   @override
@@ -81,30 +78,14 @@ class _RiwayatScreenState extends State<RiwayatScreen> {
   }
 
   Future<void> _deleteTransaction(String id) async {
-    final bool? confirm = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text(
-          'Hapus Transaksi',
-          style: TextStyle(color: primaryGreen),
-        ),
-        content: const Text(
+    final bool confirm = await showConfirmDialog(
+      context,
+      title: 'Hapus Transaksi',
+      message:
           'Apakah Anda yakin ingin menghapus data ini? Aksi ini tidak dapat dibatalkan.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Batal', style: TextStyle(color: Colors.grey)),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Hapus', style: TextStyle(color: Colors.red)),
-          ),
-        ],
-      ),
     );
 
-    if (confirm != true || !mounted) return;
+    if (!confirm || !mounted) return;
 
     try {
       await context.read<TransactionProvider>().deleteTransaction(id);
@@ -121,7 +102,7 @@ class _RiwayatScreenState extends State<RiwayatScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              '❌ Gagal menghapus: ${e.toString().replaceAll('Exception: ', '')}',
+              '❌ Gagal menghapus: ${ErrorMapper.message(e)}',
             ),
             backgroundColor: Colors.red,
           ),
@@ -139,33 +120,6 @@ class _RiwayatScreenState extends State<RiwayatScreen> {
         ? AppRoutes.pemasukan
         : AppRoutes.pengeluaran;
     await context.push(route, extra: item);
-  }
-
-  PreferredSizeWidget _buildAppBar() {
-    return PreferredSize(
-      preferredSize: const Size.fromHeight(80),
-      child: Container(
-        decoration: const BoxDecoration(
-          color: appBarBg,
-          border: Border(
-            bottom: BorderSide(color: primaryGreen, width: 1.5),
-          ),
-        ),
-        child: const SafeArea(
-          child: Center(
-            child: Text(
-              'Riwayat',
-              style: TextStyle(
-                color: primaryGreen,
-                fontSize: 25,
-                fontFamily: 'Inter',
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
   }
 
   Widget _buildLoading() {
@@ -202,123 +156,53 @@ class _RiwayatScreenState extends State<RiwayatScreen> {
     );
   }
 
-  Widget _buildError(String errorMessage) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24.0),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(Icons.error_outline, size: 60, color: Colors.red),
-            const SizedBox(height: 16),
-            const Text(
-              'Oops, terjadi kesalahan!',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: primaryGreen,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              errorMessage,
-              textAlign: TextAlign.center,
-              style: const TextStyle(color: Colors.grey),
-            ),
-            const SizedBox(height: 24),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: primaryGreen,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-              ),
-              onPressed: () =>
-                  context.read<TransactionProvider>().loadTransactions(),
-              child: const Text(
-                'Coba Lagi',
-                style: TextStyle(color: Colors.white),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
   Widget _buildEmpty() {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24.0),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.receipt_long_outlined,
-              size: 80,
-              color: primaryGreen.withValues(alpha: 0.5),
-            ),
-            const SizedBox(height: 16),
-            const Text(
-              'Belum ada transaksi',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: primaryGreen,
-              ),
-            ),
-            const SizedBox(height: 8),
-            const Text(
-              'Coba ubah filter atau catat pemasukan dan pengeluaran pertamamu!',
-              textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.grey),
-            ),
-          ],
-        ),
-      ),
+    return const EmptyStateView(
+      icon: Icons.receipt_long_outlined,
+      title: 'Belum ada transaksi',
+      subtitle:
+          'Coba ubah filter atau catat pemasukan dan pengeluaran pertamamu!',
     );
   }
 
   @override
   Widget build(BuildContext context) {
     final txProvider = context.watch<TransactionProvider>();
+    final dompetProvider = context.watch<DompetProvider>();
     final allTransactions = txProvider.transactions;
     final filteredGroups =
         RiwayatScreen.buildFilteredGroups(allTransactions, _selectedFilter);
-    final visibleGroups = filteredGroups.take(2).toList();
+    final visibleGroups = filteredGroups.take(5).toList();
 
     final cutoff = RiwayatScreen.cutoffForFilter(_selectedFilter);
     final filteredAsc =
         allTransactions.where((t) => t.date.isAfter(cutoff)).toList()
           ..sort((a, b) => a.date.compareTo(b.date));
 
-    double balance = 0.0;
-    final List<double> trendData = [];
+    final double currentTotalSaldo = dompetProvider.totalSaldo;
+    final double periodNetDelta = filteredAsc.fold(
+      0.0,
+      (sum, t) => sum + RiwayatScreen._netWalletDelta(t),
+    );
+    final double openingBalance = currentTotalSaldo - periodNetDelta;
+
+    double runningBalance = openingBalance;
+    final List<double> trendData = [openingBalance];
     for (final t in filteredAsc) {
-      if (t.type == TransactionType.income || t.type == TransactionType.debt) {
-        balance += t.amount;
-      } else if (t.type == TransactionType.transfer &&
-          t.destinationDompetId != null) {
-        // Transfer internal antar dompet tidak mengubah total saldo
-      } else {
-        balance -= t.amount;
-      }
-      trendData.add(balance);
+      runningBalance += RiwayatScreen._netWalletDelta(t);
+      trendData.add(runningBalance);
     }
-    if (trendData.isEmpty) trendData.add(0.0);
 
-    final double totalIncome = filteredAsc
-        .where((t) => t.type == TransactionType.income)
-        .fold(0.0, (sum, t) => sum + t.amount);
-    final String maxLabel = '+ ${RiwayatScreen.formatCurrency(totalIncome)}';
-
-    const Color orangeText = Color(0xFFE18151);
+    final bool isNetPositive = periodNetDelta >= 0;
+    final String netDeltaLabel =
+        '${isNetPositive ? '+' : '-'} ${Formatters.rupiah(periodNetDelta.abs())}';
 
     return Scaffold(
       backgroundColor: scaffoldBg,
-      appBar: _buildAppBar(),
+      appBar: const CustomAppBar(
+        title: 'Riwayat',
+        showBackButton: false,
+      ),
       body: Stack(
         fit: StackFit.expand,
         children: [
@@ -332,7 +216,11 @@ class _RiwayatScreenState extends State<RiwayatScreen> {
           if (txProvider.isLoading && allTransactions.isEmpty)
             _buildLoading()
           else if (txProvider.errorMessage != null && allTransactions.isEmpty)
-            _buildError(txProvider.errorMessage!)
+            ErrorStateView(
+              errorMessage: txProvider.errorMessage!,
+              onRetry: () =>
+                  context.read<TransactionProvider>().loadTransactions(),
+            )
           else
             SafeArea(
               child: RefreshIndicator(
@@ -390,16 +278,33 @@ class _RiwayatScreenState extends State<RiwayatScreen> {
                           borderRadius: 16,
                           padding: const EdgeInsets.all(12),
                           child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.end,
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
                             children: [
-                              Text(
-                                maxLabel,
-                                style: const TextStyle(
-                                  color: primaryGreen,
-                                  fontSize: 12,
-                                  fontFamily: 'Inter',
-                                  fontWeight: FontWeight.w500,
-                                ),
+                              Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text(
+                                    'Saldo: ${Formatters.rupiah(currentTotalSaldo)}',
+                                    style: const TextStyle(
+                                      color: primaryGreen,
+                                      fontSize: 12,
+                                      fontFamily: 'Inter',
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                  Text(
+                                    netDeltaLabel,
+                                    style: TextStyle(
+                                      color: isNetPositive
+                                          ? primaryGreen
+                                          : Colors.redAccent,
+                                      fontSize: 12,
+                                      fontFamily: 'Inter',
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ],
                               ),
                               const SizedBox(height: 6),
                               SizedBox(
@@ -446,7 +351,7 @@ class _RiwayatScreenState extends State<RiwayatScreen> {
                         ...visibleGroups.map(
                           (group) => TransactionGroupList(
                             group: group,
-                            formatCurrency: RiwayatScreen.formatCurrency,
+                            formatCurrency: Formatters.rupiah,
                             onEdit: _editTransaction,
                             onDelete: _deleteTransaction,
                           ),

@@ -18,6 +18,12 @@ class CategoryCatalog {
       type: TransactionType.income,
       icon: Icons.card_giftcard,
     ),
+    CategoryModel(
+      id: 'c19',
+      name: 'Lainnya',
+      type: TransactionType.income,
+      icon: Icons.category,
+    ),
     // Expense
     CategoryModel(
       id: 'c3',
@@ -50,6 +56,9 @@ class CategoryCatalog {
       type: TransactionType.transfer,
       icon: Icons.send,
     ),
+    // 'c8' dipertahankan di katalog untuk kompatibilitas mundur transaksi lama,
+    // namun disembunyikan dari pilihan Transfer baru agar pelunasan hutang
+    // dilakukan melalui Daftar Pinjaman.
     CategoryModel(
       id: 'c8',
       name: 'Bayar Hutang',
@@ -120,14 +129,40 @@ class CategoryCatalog {
     ),
   ];
 
-  static CategoryModel getById(String id) {
+  static String defaultCategoryIdForType(TransactionType type) {
+    switch (type) {
+      case TransactionType.income:
+        return 'c19';
+      case TransactionType.expense:
+        return 'c6';
+      case TransactionType.transfer:
+        return 'c10';
+      case TransactionType.debt:
+        return 'c14';
+      case TransactionType.receivable:
+        return 'c18';
+    }
+  }
+
+  static CategoryModel getById(String id, {TransactionType? fallbackType}) {
     return categories.firstWhere(
       (cat) => cat.id == id,
-      orElse: () => categories.last,
+      orElse: () {
+        if (fallbackType != null) {
+          final fallbackId = defaultCategoryIdForType(fallbackType);
+          return categories.firstWhere(
+            (cat) => cat.id == fallbackId,
+            orElse: () => categories.last,
+          );
+        }
+        return categories.last;
+      },
     );
   }
 
   static List<CategoryModel> getByType(TransactionType type) {
-    return categories.where((c) => c.type == type).toList();
+    return categories
+        .where((c) => c.type == type && c.id != 'c8')
+        .toList();
   }
 }

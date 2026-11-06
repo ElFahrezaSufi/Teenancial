@@ -1,6 +1,5 @@
 import '../models/contact_model.dart';
 import '../services/firestore_service.dart';
-import '../services/legacy_seed_service.dart';
 
 class ContactRepository {
   final FirestoreService _firestoreService;
@@ -9,7 +8,6 @@ class ContactRepository {
       : _firestoreService = firestoreService ?? FirestoreService.instance;
 
   Future<List<ContactModel>> getContacts(String uid) async {
-    await LegacySeedService.instance.ensureFinanceSeeded(uid);
     final snapshot = await _firestoreService.contactsCol(uid).get();
     final items = snapshot.docs
         .map((doc) => ContactModel.fromMap(doc.data(), docId: doc.id))
@@ -34,15 +32,13 @@ class ContactRepository {
       return existing[matchIndex];
     }
 
+    final docRef = _firestoreService.contactsCol(uid).doc();
     final newContact = ContactModel(
-      id: DateTime.now().millisecondsSinceEpoch.toString(),
+      id: docRef.id,
       name: trimmedName,
     );
 
-    await _firestoreService
-        .contactsCol(uid)
-        .doc(newContact.id)
-        .set(newContact.toMap());
+    await docRef.set(newContact.toMap());
 
     return newContact;
   }

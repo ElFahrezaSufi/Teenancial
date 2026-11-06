@@ -1,7 +1,10 @@
+import 'dart:async';
 import 'package:flutter/foundation.dart';
 import '../data/category_catalog.dart';
 import '../models/transaction_model.dart';
 import '../repositories/transaction_repository.dart';
+import '../services/notification_service.dart';
+import '../utils/error_mapper.dart';
 import 'dompet_provider.dart';
 
 class TransactionProvider extends ChangeNotifier {
@@ -28,7 +31,6 @@ class TransactionProvider extends ChangeNotifier {
       _transactions.where((t) => t.type == TransactionType.receivable).toList();
 
   List<CategoryModel> get categories => CategoryCatalog.categories;
-  CategoryModel getCategoryById(String id) => CategoryCatalog.getById(id);
   List<CategoryModel> getCategoriesByType(TransactionType type) =>
       CategoryCatalog.getByType(type);
 
@@ -45,11 +47,17 @@ class TransactionProvider extends ChangeNotifier {
 
     if (newUid == null) {
       _isLoading = false;
-      notifyListeners();
+      unawaited(NotificationService.instance.cancelAll());
+      Future.microtask(notifyListeners);
       return;
     }
 
-    loadTransactions();
+    _isLoading = true;
+    Future.microtask(() {
+      if (_uid == newUid) {
+        loadTransactions();
+      }
+    });
   }
 
   Future<void> loadTransactions({bool silent = false}) async {
@@ -73,9 +81,10 @@ class TransactionProvider extends ChangeNotifier {
       if (_uid != targetUid) return;
       _transactions = fetched;
       _errorMessage = null;
+      unawaited(NotificationService.instance.syncLoanReminders(fetched));
     } catch (e) {
       if (_uid != targetUid) return;
-      _errorMessage = e.toString().replaceAll('Exception: ', '');
+      _errorMessage = ErrorMapper.message(e);
     } finally {
       if (_uid == targetUid) {
         _isLoading = false;
@@ -115,6 +124,7 @@ class TransactionProvider extends ChangeNotifier {
       throw Exception('Sesi pengguna tidak ditemukan');
     }
     await _repository.deleteTransaction(targetUid, transactionId);
+    unawaited(NotificationService.instance.cancelLoanReminder(transactionId));
     await _refreshAfterMutation();
   }
 
@@ -124,6 +134,7 @@ class TransactionProvider extends ChangeNotifier {
       throw Exception('Sesi pengguna tidak ditemukan');
     }
     await _repository.markAsPaid(targetUid, transactionId, dompetId);
+    unawaited(NotificationService.instance.cancelLoanReminder(transactionId));
     await _refreshAfterMutation();
   }
 }

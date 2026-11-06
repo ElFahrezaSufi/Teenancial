@@ -1,16 +1,15 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import '../providers/target_provider.dart';
+import '../theme/app_colors.dart';
 import '../utils/currency_formatter.dart';
+import '../utils/error_mapper.dart';
+import '../widgets/common/custom_app_bar.dart';
 import '../widgets/common/custom_card.dart';
 import '../widgets/common/custom_text_field.dart';
-
-const Color _primaryGreen = Color(0xFF627931);
-const Color _scaffoldBg = Color(0xFFEDEFE2);
-const Color _appBarBg = Color(0xFFF8FFE8);
-const Color _fieldBg = Color(0xFFF8FFE8);
 
 class BuatTargetScreen extends StatefulWidget {
   const BuatTargetScreen({super.key});
@@ -87,16 +86,16 @@ class _BuatTargetScreenState extends State<BuatTargetScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('✅ Target menabung berhasil disimpan!'),
-          backgroundColor: _primaryGreen,
+          backgroundColor: primaryGreen,
         ),
       );
-      Navigator.pop(context, true);
+      context.pop(true);
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            '❌ Gagal menyimpan target: ${e.toString().replaceAll('Exception: ', '')}',
+            '❌ Gagal menyimpan target: ${ErrorMapper.message(e)}',
           ),
           backgroundColor: Colors.redAccent,
         ),
@@ -109,55 +108,16 @@ class _BuatTargetScreenState extends State<BuatTargetScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: _scaffoldBg,
-      appBar: PreferredSize(
-        preferredSize: const Size.fromHeight(80),
-        child: Container(
-          decoration: const BoxDecoration(
-            color: _appBarBg,
-            border: Border(
-              bottom: BorderSide(color: _primaryGreen, width: 1.5),
-            ),
-          ),
-          child: SafeArea(
-            child: Stack(
-              children: [
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: Padding(
-                    padding: const EdgeInsets.only(left: 8.0),
-                    child: IconButton(
-                      icon: const Icon(
-                        Icons.arrow_back_ios,
-                        color: _primaryGreen,
-                        size: 20,
-                      ),
-                      onPressed:
-                          _isSaving ? null : () => Navigator.pop(context),
-                    ),
-                  ),
-                ),
-                const Center(
-                  child: Text(
-                    'Target Menabung',
-                    style: TextStyle(
-                      color: _primaryGreen,
-                      fontSize: 25,
-                      fontFamily: 'Inter',
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
+      backgroundColor: scaffoldBg,
+      appBar: CustomAppBar(
+        title: 'Target Menabung',
+        onBack: _isSaving ? () {} : () => context.pop(),
       ),
       body: Stack(
         fit: StackFit.expand,
         children: [
           Container(
-            color: _scaffoldBg,
+            color: scaffoldBg,
             child: Opacity(
               opacity: 0.4,
               child: Image.asset(
@@ -175,7 +135,7 @@ class _BuatTargetScreenState extends State<BuatTargetScreen> {
                   const Text(
                     'Foto Barang Impian *',
                     style: TextStyle(
-                      color: _primaryGreen,
+                      color: primaryGreen,
                       fontSize: 16,
                       fontFamily: 'Inter',
                       fontWeight: FontWeight.w600,
@@ -185,7 +145,7 @@ class _BuatTargetScreenState extends State<BuatTargetScreen> {
                   GestureDetector(
                     onTap: _pickImage,
                     child: CustomCard(
-                      backgroundColor: _appBarBg,
+                      backgroundColor: appBarBg,
                       borderRadius: 16,
                       padding: EdgeInsets.zero,
                       child: SizedBox(
@@ -206,14 +166,14 @@ class _BuatTargetScreenState extends State<BuatTargetScreen> {
                                     Icons.add_a_photo_outlined,
                                     size: 40,
                                     color:
-                                        _primaryGreen.withValues(alpha: 0.7),
+                                        primaryGreen.withValues(alpha: 0.7),
                                   ),
                                   const SizedBox(height: 8),
                                   Text(
                                     'Ketuk untuk unggah foto (Wajib)',
                                     style: TextStyle(
                                       color:
-                                          _primaryGreen.withValues(alpha: 0.7),
+                                          primaryGreen.withValues(alpha: 0.7),
                                       fontSize: 14,
                                       fontFamily: 'Inter',
                                     ),
@@ -229,7 +189,7 @@ class _BuatTargetScreenState extends State<BuatTargetScreen> {
                     hint: 'Contoh: Sepeda, Ipad...',
                     prefixIcon: const Icon(
                       Icons.shopping_bag_outlined,
-                      color: _primaryGreen,
+                      color: primaryGreen,
                     ),
                     controller: _namaBarangController,
                   ),
@@ -239,7 +199,7 @@ class _BuatTargetScreenState extends State<BuatTargetScreen> {
                     hint: 'Rp 0',
                     prefixIcon: const Icon(
                       Icons.payments_outlined,
-                      color: _primaryGreen,
+                      color: primaryGreen,
                     ),
                     keyboardType: TextInputType.number,
                     controller: _hargaBarangController,
@@ -251,7 +211,7 @@ class _BuatTargetScreenState extends State<BuatTargetScreen> {
                     child: CustomCard(
                       borderRadius: 100,
                       backgroundColor:
-                          _isSaving ? Colors.grey : _primaryGreen,
+                          _isSaving ? Colors.grey : primaryGreen,
                       padding: const EdgeInsets.symmetric(vertical: 18),
                       child: Center(
                         child: _isSaving
@@ -262,7 +222,7 @@ class _BuatTargetScreenState extends State<BuatTargetScreen> {
                                     width: 20,
                                     height: 20,
                                     child: CircularProgressIndicator(
-                                      color: _fieldBg,
+                                      color: inputBg,
                                       strokeWidth: 2.5,
                                     ),
                                   ),
@@ -270,7 +230,7 @@ class _BuatTargetScreenState extends State<BuatTargetScreen> {
                                   Text(
                                     'Mengunggah & Menyimpan...',
                                     style: TextStyle(
-                                      color: _fieldBg,
+                                      color: inputBg,
                                       fontSize: 15,
                                       fontFamily: 'Inter',
                                       fontWeight: FontWeight.w700,
@@ -281,7 +241,7 @@ class _BuatTargetScreenState extends State<BuatTargetScreen> {
                             : const Text(
                                 'Simpan',
                                 style: TextStyle(
-                                  color: _fieldBg,
+                                  color: inputBg,
                                   fontSize: 16,
                                   fontFamily: 'Inter',
                                   fontWeight: FontWeight.w700,

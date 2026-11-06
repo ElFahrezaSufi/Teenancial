@@ -53,6 +53,7 @@ class UserRepository {
     required String uid,
     required String name,
     required String age,
+    DateTime? birthDate,
     required String gender,
     File? newImageFile,
     String? currentImageUrl,
@@ -73,12 +74,17 @@ class UserRepository {
       await currentUser.updatePhotoURL(finalImageUrl);
     }
 
+    final resolvedAge = birthDate != null
+        ? UserModel.calculateAge(birthDate).toString()
+        : age.trim();
+
     await _firestoreService.userDoc(uid).set(
       {
         'uid': uid,
         if (currentUser?.email != null) 'email': currentUser!.email,
         'name': trimmedName,
-        'age': age.trim(),
+        'age': resolvedAge,
+        'birthDate': birthDate != null ? Timestamp.fromDate(birthDate) : null,
         'gender': gender.trim(),
         'profileImageUrl': finalImageUrl,
       },

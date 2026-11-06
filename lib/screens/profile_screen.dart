@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
@@ -9,6 +10,8 @@ import '../providers/auth_provider.dart';
 import '../providers/user_provider.dart';
 import '../services/local_storage_service.dart';
 import '../theme/app_colors.dart';
+import '../utils/error_mapper.dart';
+import '../widgets/common/custom_app_bar.dart';
 import '../widgets/common/custom_card.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -31,6 +34,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   late final TextEditingController _emailController;
 
   String? _selectedGender;
+  DateTime? _selectedBirthDate;
 
   @override
   void initState() {
@@ -57,25 +61,36 @@ class _ProfileScreenState extends State<ProfileScreen> {
     super.dispose();
   }
 
+  void _setControllerTextIfChanged(
+    TextEditingController controller,
+    String nextText,
+  ) {
+    if (controller.text != nextText) {
+      controller.text = nextText;
+    }
+  }
+
   void _syncControllersFromProfile(UserModel? profile) {
     if (_isEditing) return;
 
     if (profile == null) {
       if (_syncedUid != null) {
         _syncedUid = null;
-        _fullNameController.text = 'Memuat...';
-        _emailController.text = 'Memuat...';
-        _ageController.text = '';
+        _setControllerTextIfChanged(_fullNameController, 'Memuat...');
+        _setControllerTextIfChanged(_emailController, 'Memuat...');
+        _setControllerTextIfChanged(_ageController, '');
         _selectedGender = null;
+        _selectedBirthDate = null;
       }
       return;
     }
 
     _syncedUid = profile.uid;
-    _fullNameController.text =
-        profile.name.isNotEmpty ? profile.name : 'Pengguna';
-    _emailController.text = profile.email;
-    _ageController.text = profile.age;
+    final nextName = profile.name.isNotEmpty ? profile.name : 'Pengguna';
+    _setControllerTextIfChanged(_fullNameController, nextName);
+    _setControllerTextIfChanged(_emailController, profile.email);
+    _setControllerTextIfChanged(_ageController, profile.age);
+    _selectedBirthDate = profile.birthDate;
 
     final fetchedGender = profile.gender.trim();
     if (fetchedGender == 'Laki-Laki' || fetchedGender == 'Perempuan') {
@@ -86,21 +101,103 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   void _startEditing() {
+    final userProvider = context.read<UserProvider>();
+    final profile = userProvider.profile;
+    if (userProvider.isLoading && profile == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Data profil sedang dimuat, tunggu sebentar...'),
+          backgroundColor: primaryGreen,
+        ),
+      );
+      return;
+    }
+
     setState(() {
+      if (profile != null) {
+        _setControllerTextIfChanged(_fullNameController, profile.name);
+        _setControllerTextIfChanged(_emailController, profile.email);
+        _setControllerTextIfChanged(_ageController, profile.age);
+        _selectedBirthDate = profile.birthDate;
+      } else if (_fullNameController.text == 'Memuat...') {
+        _setControllerTextIfChanged(_fullNameController, '');
+      }
       _isEditing = true;
       _pendingImageFile = null;
       _removeExistingImage = false;
     });
   }
 
+  Future<void> _pickBirthDate() async {
+    final now = DateTime.now();
+    final defaultDate = DateTime(now.year - 17, now.month, now.day);
+    final firstDate = DateTime(now.year - 100, 1, 1);
+    final lastDate = DateTime(now.year - 10, now.month, now.day);
+
+    final initialDate = _selectedBirthDate != null &&
+            !_selectedBirthDate!.isBefore(firstDate) &&
+            !_selectedBirthDate!.isAfter(lastDate)
+        ? _selectedBirthDate!
+        : defaultDate;
+
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: initialDate,
+      firstDate: firstDate,
+      lastDate: lastDate,
+      helpText: 'Pilih Tanggal Lahir',
+    );
+    if (picked == null || !mounted) return;
+
+    final calculatedAge = UserModel.calculateAge(picked);
+    setState(() {
+      _selectedBirthDate = picked;
+      _setControllerTextIfChanged(_ageController, calculatedAge.toString());
+    });
+  }
+
   Future<void> _saveProfile() async {
     if (_isSaving) return;
+
+    final trimmedName = _fullNameController.text.trim();
+    final trimmedAge = _ageController.text.trim();
+
+    if (trimmedName.isEmpty || trimmedName == 'Memuat...') {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Nama lengkap tidak boleh kosong.'),
+          backgroundColor: Colors.redAccent,
+        ),
+      );
+      return;
+    }
+
+    if (trimmedAge.isNotEmpty) {
+      final parsedAge = int.tryParse(trimmedAge);
+      if (parsedAge == null || parsedAge < 10 || parsedAge > 100) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Umur harus berupa angka antara 10 hingga 100 tahun.'),
+            backgroundColor: Colors.redAccent,
+          ),
+        );
+        return;
+      }
+    }
+
     setState(() => _isSaving = true);
 
     try {
+      final effectiveBirthDate = (_selectedBirthDate != null &&
+              UserModel.calculateAge(_selectedBirthDate!).toString() ==
+                  trimmedAge)
+          ? _selectedBirthDate
+          : null;
+
       await context.read<UserProvider>().saveProfile(
-            name: _fullNameController.text.trim(),
-            age: _ageController.text.trim(),
+            name: trimmedName,
+            age: trimmedAge,
+            birthDate: effectiveBirthDate,
             gender: _selectedGender ?? '',
             newImageFile: _pendingImageFile,
             removeImage: _removeExistingImage && _pendingImageFile == null,
@@ -125,7 +222,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            'Gagal memperbarui profil: ${e.toString().replaceAll('Exception: ', '')}',
+            'Gagal memperbarui profil: ${ErrorMapper.message(e)}',
           ),
           backgroundColor: Colors.redAccent,
         ),
@@ -160,22 +257,45 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<void> _handleLogout() async {
+    if (_isSaving) return;
     setState(() => _isSaving = true);
     _pendingImageFile = null;
     _removeExistingImage = false;
-    await LocalStorageService.instance.setHasSeenGetStarted(true);
-    if (!mounted) return;
-    await context.read<AuthProvider>().logout();
-    if (!mounted) return;
-    context.go(AppRoutes.login);
+
+    try {
+      await LocalStorageService.instance.setHasSeenGetStarted(true);
+      if (!mounted) return;
+      await context.read<AuthProvider>().logout();
+      if (!mounted) return;
+      context.go(AppRoutes.login);
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Gagal keluar akun: ${e.toString().replaceAll('Exception: ', '')}',
+          ),
+          backgroundColor: Colors.redAccent,
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isSaving = false);
+      }
+    }
   }
 
   void _handleBackButton() {
-    setState(() {
-      _pendingImageFile = null;
-      _removeExistingImage = false;
-      _isEditing = false;
-    });
+    if (_isEditing) {
+      final profile = context.read<UserProvider>().profile;
+      setState(() {
+        _pendingImageFile = null;
+        _removeExistingImage = false;
+        _isEditing = false;
+        _syncControllersFromProfile(profile);
+      });
+      return;
+    }
 
     if (context.canPop()) {
       context.pop();
@@ -189,7 +309,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       return FileImage(_pendingImageFile!);
     }
     if (!_removeExistingImage && remoteUrl != null && remoteUrl.isNotEmpty) {
-      return NetworkImage(remoteUrl);
+      return CachedNetworkImageProvider(remoteUrl);
     }
     return null;
   }
@@ -208,66 +328,27 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     return Scaffold(
       backgroundColor: scaffoldBg,
-      appBar: PreferredSize(
-        preferredSize: const Size.fromHeight(80),
-        child: Container(
-          decoration: const BoxDecoration(
-            color: appBarBg,
-            border: Border(
-              bottom: BorderSide(color: primaryGreen, width: 1.5),
-            ),
-          ),
-          child: SafeArea(
-            child: Stack(
-              children: [
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: Padding(
-                    padding: const EdgeInsets.only(left: 8.0),
-                    child: IconButton(
-                      icon: const Icon(
-                        Icons.arrow_back_ios,
-                        color: primaryGreen,
-                        size: 20,
-                      ),
-                      onPressed: _handleBackButton,
-                    ),
-                  ),
-                ),
-                const Center(
+      appBar: CustomAppBar(
+        title: 'Profil',
+        backIcon: _isEditing ? Icons.close : Icons.arrow_back_ios,
+        onBack: _handleBackButton,
+        trailing: _isEditing
+            ? Padding(
+                padding: const EdgeInsets.only(right: 24.0),
+                child: GestureDetector(
+                  onTap: _isSaving ? null : _saveProfile,
                   child: Text(
-                    'Profil',
+                    _isSaving ? 'Menyimpan...' : 'Simpan',
                     style: TextStyle(
-                      color: primaryGreen,
-                      fontSize: 25,
+                      color: _isSaving ? Colors.grey : primaryGreen,
+                      fontSize: 15,
                       fontFamily: 'Inter',
-                      fontWeight: FontWeight.w700,
+                      fontWeight: FontWeight.w800,
                     ),
                   ),
                 ),
-                if (_isEditing)
-                  Align(
-                    alignment: Alignment.centerRight,
-                    child: Padding(
-                      padding: const EdgeInsets.only(right: 24.0),
-                      child: GestureDetector(
-                        onTap: _isSaving ? null : _saveProfile,
-                        child: Text(
-                          _isSaving ? 'Menyimpan...' : 'Simpan',
-                          style: TextStyle(
-                            color: _isSaving ? Colors.grey : primaryGreen,
-                            fontSize: 15,
-                            fontFamily: 'Inter',
-                            fontWeight: FontWeight.w800,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-              ],
-            ),
-          ),
-        ),
+              )
+            : null,
       ),
       body: Stack(
         fit: StackFit.expand,
@@ -361,6 +442,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     controller: _ageController,
                     isEditing: _isEditing,
                     keyboardType: TextInputType.number,
+                    suffixIcon: _isEditing
+                        ? IconButton(
+                            tooltip: 'Pilih Tanggal Lahir',
+                            icon: const Icon(
+                              Icons.calendar_month_outlined,
+                              color: primaryGreen,
+                              size: 20,
+                            ),
+                            onPressed: _pickBirthDate,
+                          )
+                        : null,
                   ),
                   _EditableDropdownField(
                     label: 'Jenis Kelamin',
@@ -424,12 +516,14 @@ class _EditableProfileField extends StatelessWidget {
   final TextEditingController controller;
   final bool isEditing;
   final TextInputType? keyboardType;
+  final Widget? suffixIcon;
 
   const _EditableProfileField({
     required this.label,
     required this.controller,
     required this.isEditing,
     this.keyboardType,
+    this.suffixIcon,
   });
 
   @override
@@ -464,10 +558,11 @@ class _EditableProfileField extends StatelessWidget {
                 fontFamily: 'Inter',
                 fontWeight: FontWeight.w600,
               ),
-              decoration: const InputDecoration(
+              decoration: InputDecoration(
                 border: InputBorder.none,
+                suffixIcon: suffixIcon,
                 contentPadding:
-                    EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               ),
             ),
           ),

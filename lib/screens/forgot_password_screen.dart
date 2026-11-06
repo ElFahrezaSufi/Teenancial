@@ -5,12 +5,9 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../config/app_routes.dart';
 import '../providers/auth_provider.dart';
+import '../theme/app_colors.dart';
+import '../widgets/common/auth_scaffold.dart';
 import '../widgets/common/custom_text_field.dart';
-
-const Color _primaryGreen = Color(0xFF637932);
-const Color _darkGreen = Color(0xFF415020);
-const Color _fieldBg = Color(0xFFF8FFE8);
-const Color _scaffoldBg = Color(0xFFEDEFE2);
 
 class ForgotPasswordScreen extends StatefulWidget {
   const ForgotPasswordScreen({super.key});
@@ -28,10 +25,6 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   void dispose() {
     _emailController.dispose();
     super.dispose();
-  }
-
-  void _goToGetStarted() {
-    context.go(AppRoutes.getStarted);
   }
 
   void _goBackToLogin() {
@@ -55,7 +48,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
             content: Text(
               'Tautan reset password berhasil dikirim! Silakan cek emailmu.',
             ),
-            backgroundColor: _primaryGreen,
+            backgroundColor: primaryGreen,
             duration: Duration(seconds: 4),
           ),
         );
@@ -98,102 +91,29 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: _scaffoldBg,
-      body: Stack(
-        fit: StackFit.expand,
-        children: [
-          Container(
-            color: _scaffoldBg,
-            child: SvgPicture.asset(
-              'assets/images/bg_curve.svg',
-              fit: BoxFit.cover,
-              placeholderBuilder: (context) => const SizedBox.shrink(),
+    return AuthScaffold(
+      formKey: _formKey,
+      children: [
+        Center(
+          child: SvgPicture.asset(
+            'assets/images/logo_teenancial.svg',
+            height: 120,
+            placeholderBuilder: (context) => const SizedBox(
+              height: 120,
+              child: Center(
+                child: CircularProgressIndicator(
+                  color: primaryGreen,
+                ),
+              ),
             ),
           ),
-          Column(
-            children: [
-              const SafeArea(
-                bottom: false,
-                child: SizedBox(height: 24),
-              ),
-              Expanded(
-                child: GestureDetector(
-                  onVerticalDragEnd: (details) {
-                    if ((details.primaryVelocity ?? 0) > 100) {
-                      _goToGetStarted();
-                    }
-                  },
-                  child: Container(
-                    width: double.infinity,
-                    decoration: const BoxDecoration(
-                      color: _primaryGreen,
-                      borderRadius: BorderRadius.only(
-                        topLeft: Radius.circular(30),
-                        topRight: Radius.circular(30),
-                      ),
-                    ),
-                    padding: const EdgeInsets.only(
-                      left: 2,
-                      top: 6,
-                      right: 2,
-                      bottom: 0,
-                    ),
-                    child: Container(
-                      decoration: const BoxDecoration(
-                        color: _fieldBg,
-                        borderRadius: BorderRadius.only(
-                          topLeft: Radius.circular(26),
-                          topRight: Radius.circular(26),
-                        ),
-                      ),
-                      child: SafeArea(
-                        top: false,
-                        child: SingleChildScrollView(
-                          padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
-                          child: Form(
-                            key: _formKey,
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.stretch,
-                              children: [
-                                Center(
-                                  child: GestureDetector(
-                                    onTap: _goToGetStarted,
-                                    child: Container(
-                                      width: 80,
-                                      height: 5,
-                                      margin: const EdgeInsets.only(bottom: 24),
-                                      decoration: BoxDecoration(
-                                        color: _primaryGreen.withValues(
-                                          alpha: 0.5,
-                                        ),
-                                        borderRadius:
-                                            BorderRadius.circular(100),
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                                Center(
-                                  child: SvgPicture.asset(
-                                    'assets/images/logo_teenancial.svg',
-                                    height: 120,
-                                    placeholderBuilder: (context) =>
-                                        const SizedBox(
-                                      height: 120,
-                                      child: Center(
-                                        child: CircularProgressIndicator(
-                                          color: _primaryGreen,
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ),
+        ),
                                 const SizedBox(height: 16),
                                 const Text(
                                   'Lupa Password?',
                                   textAlign: TextAlign.center,
                                   style: TextStyle(
-                                    color: _primaryGreen,
+                                    color: primaryGreen,
                                     fontSize: 25,
                                     fontFamily: 'Inter',
                                     fontWeight: FontWeight.w700,
@@ -204,7 +124,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                                   'Masukkan email yang terdaftar, kami akan mengirimkan tautan untuk mengatur ulang passwordmu.',
                                   textAlign: TextAlign.center,
                                   style: TextStyle(
-                                    color: _primaryGreen,
+                                    color: primaryGreen,
                                     fontSize: 14,
                                     fontFamily: 'Inter',
                                     fontWeight: FontWeight.w500,
@@ -216,7 +136,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                                   hint: 'eg.nama@gmail.com',
                                   prefixIcon: const Icon(
                                     Icons.email_outlined,
-                                    color: _primaryGreen,
+                                    color: primaryGreen,
                                   ),
                                   keyboardType: TextInputType.emailAddress,
                                   controller: _emailController,
@@ -238,7 +158,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                                         ? null
                                         : _handleResetPassword,
                                     style: ElevatedButton.styleFrom(
-                                      backgroundColor: _primaryGreen,
+                                      backgroundColor: primaryGreen,
                                       shape: RoundedRectangleBorder(
                                         borderRadius: BorderRadius.circular(12),
                                       ),
@@ -249,14 +169,14 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                                             width: 24,
                                             height: 24,
                                             child: CircularProgressIndicator(
-                                              color: _fieldBg,
+                                              color: inputBg,
                                               strokeWidth: 2.5,
                                             ),
                                           )
                                         : const Text(
                                             'Kirim Tautan',
                                             style: TextStyle(
-                                              color: _fieldBg,
+                                              color: inputBg,
                                               fontSize: 16,
                                               fontFamily: 'Inter',
                                               fontWeight: FontWeight.w700,
@@ -274,7 +194,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                                           TextSpan(
                                             text: 'Ingat passwordmu? ',
                                             style: TextStyle(
-                                              color: _primaryGreen,
+                                              color: primaryGreen,
                                               fontSize: 14,
                                               fontFamily: 'Inter',
                                               fontWeight: FontWeight.w600,
@@ -283,7 +203,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                                           TextSpan(
                                             text: 'Masuk',
                                             style: TextStyle(
-                                              color: _darkGreen,
+                                              color: darkGreen,
                                               fontSize: 14,
                                               fontFamily: 'Inter',
                                               fontWeight: FontWeight.w800,
@@ -295,19 +215,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                                     ),
                                   ),
                                 ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
+      ],
     );
   }
 }

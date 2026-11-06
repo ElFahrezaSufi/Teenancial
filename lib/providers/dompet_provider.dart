@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import '../models/dompet_model.dart';
 import '../repositories/dompet_repository.dart';
+import '../utils/error_mapper.dart';
 
 class DompetProvider extends ChangeNotifier {
   final DompetRepository _repository;
@@ -36,11 +37,16 @@ class DompetProvider extends ChangeNotifier {
 
     if (newUid == null) {
       _isLoading = false;
-      notifyListeners();
+      Future.microtask(notifyListeners);
       return;
     }
 
-    loadDompets();
+    _isLoading = true;
+    Future.microtask(() {
+      if (_uid == newUid) {
+        loadDompets();
+      }
+    });
   }
 
   Future<void> loadDompets({bool silent = false}) async {
@@ -66,7 +72,7 @@ class DompetProvider extends ChangeNotifier {
       _errorMessage = null;
     } catch (e) {
       if (_uid != targetUid) return;
-      _errorMessage = e.toString().replaceAll('Exception: ', '');
+      _errorMessage = ErrorMapper.message(e);
     } finally {
       if (_uid == targetUid) {
         _isLoading = false;

@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../models/dompet_model.dart';
 import '../models/transaction_model.dart';
 import '../providers/dompet_provider.dart';
 import '../providers/transaction_provider.dart';
 import '../theme/app_colors.dart';
+import '../utils/confirm_dialog.dart';
+import '../utils/currency_formatter.dart';
+import '../utils/error_mapper.dart';
+import '../widgets/common/async_state_view.dart';
 import '../widgets/common/custom_filter_chip.dart';
 import '../widgets/transaction/dompet_selection_dropdown.dart';
 import '../widgets/transaction/loan_card.dart';
@@ -24,14 +27,6 @@ class _DaftarPinjamanScreenState extends State<DaftarPinjamanScreen> {
   int _selectedTab = 0; // 0 = Hutang Saya, 1 = Piutang Saya
   _LoanFilter _filter = _LoanFilter.unpaid;
   bool _isProcessing = false;
-
-  String _formatCurrency(double value) {
-    return NumberFormat.currency(
-      locale: 'id_ID',
-      symbol: 'Rp ',
-      decimalDigits: 0,
-    ).format(value);
-  }
 
   List<TransactionModel> _visibleLoans(TransactionProvider txProvider) {
     final source =
@@ -78,7 +73,7 @@ class _DaftarPinjamanScreenState extends State<DaftarPinjamanScreen> {
       context: context,
       builder: (_) => _SettleDialog(
         item: item,
-        formatCurrency: _formatCurrency,
+        formatCurrency: Formatters.rupiah,
       ),
     );
     if (dompetId == null || !mounted) return;
@@ -102,7 +97,45 @@ class _DaftarPinjamanScreenState extends State<DaftarPinjamanScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(e.toString().replaceAll('Exception: ', '')),
+            content: Text(ErrorMapper.message(e)),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isProcessing = false);
+    }
+  }
+
+  Future<void> _deleteLoan(TransactionModel item) async {
+    if (_isProcessing) return;
+
+    final bool confirmed = await showConfirmDialog(
+      context,
+      title: 'Hapus Pinjaman?',
+      message:
+          'Menghapus catatan "${item.title}" sebesar ${Formatters.rupiah(item.amount)} juga akan mengembalikan perubahan saldonya pada dompet terkait.',
+      confirmColor: Colors.redAccent,
+    );
+
+    if (!confirmed || !mounted) return;
+
+    setState(() => _isProcessing = true);
+    try {
+      await context.read<TransactionProvider>().deleteTransaction(item.id);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('✅ Data pinjaman berhasil dihapus'),
+            backgroundColor: primaryGreen,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(ErrorMapper.message(e)),
             backgroundColor: Colors.red,
           ),
         );
@@ -178,7 +211,7 @@ class _DaftarPinjamanScreenState extends State<DaftarPinjamanScreen> {
             ),
           ),
           Text(
-            _formatCurrency(_totalOutstanding(txProvider)),
+            Formatters.rupiah(_totalOutstanding(txProvider)),
             style: const TextStyle(
               color: primaryGreen,
               fontSize: 16,
@@ -210,35 +243,10 @@ class _DaftarPinjamanScreenState extends State<DaftarPinjamanScreen> {
         break;
     }
 
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24.0),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              Icons.receipt_long_outlined,
-              size: 80,
-              color: primaryGreen.withValues(alpha: 0.5),
-            ),
-            const SizedBox(height: 16),
-            const Text(
-              'Daftar kosong',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: primaryGreen,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              message,
-              textAlign: TextAlign.center,
-              style: const TextStyle(color: Colors.grey),
-            ),
-          ],
-        ),
-      ),
+    return EmptyStateView(
+      icon: Icons.receipt_long_outlined,
+      title: 'Daftar kosong',
+      subtitle: message,
     );
   }
 
@@ -317,8 +325,9 @@ class _DaftarPinjamanScreenState extends State<DaftarPinjamanScreen> {
                               return LoanCard(
                                 key: ValueKey(item.id),
                                 item: item,
-                                formatCurrency: _formatCurrency,
+                                formatCurrency: Formatters.rupiah,
                                 onMarkPaid: () => _markAsPaid(item),
+                                onDelete: () => _deleteLoan(item),
                               );
                             },
                           ),

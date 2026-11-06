@@ -1,9 +1,9 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import '../../models/target_model.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_text_styles.dart';
 import '../common/custom_card.dart';
+import '../common/target_image.dart';
 
 class TargetMenabungHome extends StatelessWidget {
   final TargetItem? currentTarget;
@@ -19,48 +19,10 @@ class TargetMenabungHome extends StatelessWidget {
     required this.onTambahTarget,
   });
 
-  Widget _buildTargetImage(String imageUrl) {
-    final fallback = Container(
-      height: 167,
-      color: Colors.grey[300],
-      child: const Icon(Icons.broken_image, color: Colors.grey),
-    );
-
-    if (imageUrl.startsWith('http')) {
-      return Image.network(
-        imageUrl,
-        height: 167,
-        width: double.infinity,
-        fit: BoxFit.cover,
-        loadingBuilder: (context, child, loadingProgress) {
-          if (loadingProgress == null) return child;
-          return Container(
-            height: 167,
-            color: lightGreen.withValues(alpha: 0.35),
-            child: const Center(
-              child: CircularProgressIndicator(color: primaryGreen),
-            ),
-          );
-        },
-        errorBuilder: (context, error, stackTrace) => fallback,
-      );
-    }
-
-    return Image.file(
-      File(imageUrl),
-      height: 167,
-      width: double.infinity,
-      fit: BoxFit.cover,
-      errorBuilder: (context, error, stackTrace) => fallback,
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     if (currentTarget != null) {
-      final double progress = currentTarget!.targetAmount > 0
-          ? (totalSaldoReal / currentTarget!.targetAmount).clamp(0.0, 1.0)
-          : 0.0;
+      final double progress = currentTarget!.progress;
 
       return Column(
         children: [
@@ -76,7 +38,10 @@ class TargetMenabungHome extends StatelessWidget {
                     topLeft: Radius.circular(18),
                     topRight: Radius.circular(18),
                   ),
-                  child: _buildTargetImage(currentTarget!.imageUrl),
+                  child: TargetImage(
+                    imageUrl: currentTarget!.imageUrl,
+                    height: 167,
+                  ),
                 ),
                 Padding(
                   padding: const EdgeInsets.only(
@@ -98,7 +63,7 @@ class TargetMenabungHome extends StatelessWidget {
                       ),
                       const SizedBox(width: 8),
                       Text(
-                        '${formatRupiah(totalSaldoReal)}/ ${formatRupiah(currentTarget!.targetAmount)}',
+                        '${formatRupiah(currentTarget!.savedAmount)} / ${formatRupiah(currentTarget!.targetAmount)}',
                         style: const TextStyle(
                           color: primaryGreen,
                           fontSize: 12,
