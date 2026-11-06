@@ -8,6 +8,7 @@ import '../theme/app_colors.dart';
 import '../utils/confirm_dialog.dart';
 import '../utils/currency_formatter.dart';
 import '../utils/error_mapper.dart';
+import '../widgets/common/custom_app_bar.dart';
 import '../widgets/transaction/transaction_group.dart';
 import 'riwayat_screen.dart';
 
@@ -77,45 +78,10 @@ class SemuaAktivitasScreen extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: scaffoldBg,
-      appBar: PreferredSize(
-        preferredSize: const Size.fromHeight(80),
-        child: Container(
-          decoration: const BoxDecoration(
-            color: appBarBg,
-            border: Border(
-              bottom: BorderSide(color: primaryGreen, width: 1.5),
-            ),
-          ),
-          child: SafeArea(
-            child: Stack(
-              alignment: Alignment.center,
-              children: [
-                const Center(
-                  child: Text(
-                    'Semua Aktivitas',
-                    style: TextStyle(
-                      color: primaryGreen,
-                      fontSize: 25,
-                      fontFamily: 'Inter',
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ),
-                Positioned(
-                  left: 8,
-                  child: IconButton(
-                    icon: const Icon(
-                      Icons.arrow_back_ios_new,
-                      color: primaryGreen,
-                      size: 20,
-                    ),
-                    onPressed: () => context.pop(true),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
+      appBar: CustomAppBar(
+        title: 'Semua Aktivitas',
+        backIcon: Icons.arrow_back_ios_new,
+        onBack: () => context.pop(true),
       ),
       body: Stack(
         fit: StackFit.expand,

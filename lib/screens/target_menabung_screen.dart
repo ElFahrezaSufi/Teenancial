@@ -10,6 +10,7 @@ import '../theme/app_colors.dart';
 import '../utils/confirm_dialog.dart';
 import '../utils/currency_formatter.dart';
 import '../utils/error_mapper.dart';
+import '../widgets/common/custom_app_bar.dart';
 import '../widgets/common/custom_card.dart';
 import '../widgets/common/target_image.dart';
 
@@ -30,48 +31,7 @@ class TargetMenabungScreen extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: scaffoldBg,
-      appBar: PreferredSize(
-        preferredSize: const Size.fromHeight(80),
-        child: Container(
-          decoration: const BoxDecoration(
-            color: appBarBg,
-            border: Border(
-              bottom: BorderSide(color: primaryGreen, width: 1.5),
-            ),
-          ),
-          child: SafeArea(
-            child: Stack(
-              children: [
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: Padding(
-                    padding: const EdgeInsets.only(left: 8.0),
-                    child: IconButton(
-                      icon: const Icon(
-                        Icons.arrow_back_ios,
-                        color: primaryGreen,
-                        size: 20,
-                      ),
-                      onPressed: () => context.pop(),
-                    ),
-                  ),
-                ),
-                const Center(
-                  child: Text(
-                    'Target Menabung',
-                    style: TextStyle(
-                      color: primaryGreen,
-                      fontSize: 25,
-                      fontFamily: 'Inter',
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
+      appBar: const CustomAppBar(title: 'Target Menabung'),
       body: Stack(
         fit: StackFit.expand,
         children: [

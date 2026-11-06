@@ -1,6 +1,5 @@
 import 'package:firebase_auth/firebase_auth.dart' hide AuthProvider;
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../config/app_routes.dart';
@@ -9,6 +8,7 @@ import '../providers/auth_provider.dart';
 import '../services/local_storage_service.dart';
 import '../theme/app_colors.dart';
 import '../utils/error_mapper.dart';
+import '../widgets/common/auth_scaffold.dart';
 import '../widgets/common/custom_dropdown_field.dart';
 import '../widgets/common/custom_text_field.dart';
 
@@ -52,10 +52,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
     _passwordController.dispose();
     _confirmPasswordController.dispose();
     super.dispose();
-  }
-
-  void _goToGetStarted() {
-    context.go(AppRoutes.getStarted);
   }
 
   Future<void> _pickBirthDate() async {
@@ -155,93 +151,21 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: scaffoldBg,
-      body: Stack(
-        fit: StackFit.expand,
-        children: [
-          Container(
-            color: scaffoldBg,
-            child: SvgPicture.asset(
-              'assets/images/bg_curve.svg',
-              fit: BoxFit.cover,
-              placeholderBuilder: (context) => const SizedBox.shrink(),
-            ),
+    return AuthScaffold(
+      formKey: _formKey,
+      children: [
+        const SizedBox(height: 28),
+        const Text(
+          'Yuk, buat akunmu!',
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            color: primaryGreen,
+            fontSize: 30,
+            fontFamily: 'Inter',
+            fontWeight: FontWeight.w800,
           ),
-          Column(
-            children: [
-              const SafeArea(
-                bottom: false,
-                child: SizedBox(height: 24),
-              ),
-              Expanded(
-                child: GestureDetector(
-                  onVerticalDragEnd: (details) {
-                    if ((details.primaryVelocity ?? 0) > 100) {
-                      _goToGetStarted();
-                    }
-                  },
-                  child: Container(
-                    width: double.infinity,
-                    decoration: const BoxDecoration(
-                      color: primaryGreen,
-                      borderRadius: BorderRadius.only(
-                        topLeft: Radius.circular(30),
-                        topRight: Radius.circular(30),
-                      ),
-                    ),
-                    padding: const EdgeInsets.only(
-                      left: 2,
-                      top: 6,
-                      right: 2,
-                      bottom: 0,
-                    ),
-                    child: Container(
-                      decoration: const BoxDecoration(
-                        color: inputBg,
-                        borderRadius: BorderRadius.only(
-                          topLeft: Radius.circular(26),
-                          topRight: Radius.circular(26),
-                        ),
-                      ),
-                      child: SafeArea(
-                        top: false,
-                        child: SingleChildScrollView(
-                          padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
-                          child: Form(
-                            key: _formKey,
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.stretch,
-                              children: [
-                                Center(
-                                  child: GestureDetector(
-                                    onTap: _goToGetStarted,
-                                    child: Container(
-                                      width: 80,
-                                      height: 5,
-                                      margin: const EdgeInsets.only(bottom: 24),
-                                      decoration: BoxDecoration(
-                                        color: primaryGreen.withValues(
-                                          alpha: 0.5,
-                                        ),
-                                        borderRadius:
-                                            BorderRadius.circular(100),
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(height: 28),
-                                const Text(
-                                  'Yuk, buat akunmu!',
-                                  textAlign: TextAlign.center,
-                                  style: TextStyle(
-                                    color: primaryGreen,
-                                    fontSize: 30,
-                                    fontFamily: 'Inter',
-                                    fontWeight: FontWeight.w800,
-                                  ),
-                                ),
-                                const SizedBox(height: 28),
+        ),
+        const SizedBox(height: 28),
                                 CustomTextField(
                                   label: 'Nama Lengkap',
                                   hint: 'Masukkan nama lengkap',
@@ -476,19 +400,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                                     ),
                                   ),
                                 ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
+      ],
     );
   }
 }

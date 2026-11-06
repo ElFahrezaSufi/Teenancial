@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import '../config/app_routes.dart';
 import '../providers/auth_provider.dart';
 import '../theme/app_colors.dart';
+import '../widgets/common/auth_scaffold.dart';
 import '../widgets/common/custom_text_field.dart';
 
 class ForgotPasswordScreen extends StatefulWidget {
@@ -24,10 +25,6 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   void dispose() {
     _emailController.dispose();
     super.dispose();
-  }
-
-  void _goToGetStarted() {
-    context.go(AppRoutes.getStarted);
   }
 
   void _goBackToLogin() {
@@ -94,96 +91,23 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: scaffoldBg,
-      body: Stack(
-        fit: StackFit.expand,
-        children: [
-          Container(
-            color: scaffoldBg,
-            child: SvgPicture.asset(
-              'assets/images/bg_curve.svg',
-              fit: BoxFit.cover,
-              placeholderBuilder: (context) => const SizedBox.shrink(),
+    return AuthScaffold(
+      formKey: _formKey,
+      children: [
+        Center(
+          child: SvgPicture.asset(
+            'assets/images/logo_teenancial.svg',
+            height: 120,
+            placeholderBuilder: (context) => const SizedBox(
+              height: 120,
+              child: Center(
+                child: CircularProgressIndicator(
+                  color: primaryGreen,
+                ),
+              ),
             ),
           ),
-          Column(
-            children: [
-              const SafeArea(
-                bottom: false,
-                child: SizedBox(height: 24),
-              ),
-              Expanded(
-                child: GestureDetector(
-                  onVerticalDragEnd: (details) {
-                    if ((details.primaryVelocity ?? 0) > 100) {
-                      _goToGetStarted();
-                    }
-                  },
-                  child: Container(
-                    width: double.infinity,
-                    decoration: const BoxDecoration(
-                      color: primaryGreen,
-                      borderRadius: BorderRadius.only(
-                        topLeft: Radius.circular(30),
-                        topRight: Radius.circular(30),
-                      ),
-                    ),
-                    padding: const EdgeInsets.only(
-                      left: 2,
-                      top: 6,
-                      right: 2,
-                      bottom: 0,
-                    ),
-                    child: Container(
-                      decoration: const BoxDecoration(
-                        color: inputBg,
-                        borderRadius: BorderRadius.only(
-                          topLeft: Radius.circular(26),
-                          topRight: Radius.circular(26),
-                        ),
-                      ),
-                      child: SafeArea(
-                        top: false,
-                        child: SingleChildScrollView(
-                          padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
-                          child: Form(
-                            key: _formKey,
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.stretch,
-                              children: [
-                                Center(
-                                  child: GestureDetector(
-                                    onTap: _goToGetStarted,
-                                    child: Container(
-                                      width: 80,
-                                      height: 5,
-                                      margin: const EdgeInsets.only(bottom: 24),
-                                      decoration: BoxDecoration(
-                                        color: primaryGreen.withValues(
-                                          alpha: 0.5,
-                                        ),
-                                        borderRadius:
-                                            BorderRadius.circular(100),
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                                Center(
-                                  child: SvgPicture.asset(
-                                    'assets/images/logo_teenancial.svg',
-                                    height: 120,
-                                    placeholderBuilder: (context) =>
-                                        const SizedBox(
-                                      height: 120,
-                                      child: Center(
-                                        child: CircularProgressIndicator(
-                                          color: primaryGreen,
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ),
+        ),
                                 const SizedBox(height: 16),
                                 const Text(
                                   'Lupa Password?',
@@ -291,19 +215,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                                     ),
                                   ),
                                 ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
+      ],
     );
   }
 }

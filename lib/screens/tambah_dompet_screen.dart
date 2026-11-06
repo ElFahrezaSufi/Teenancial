@@ -8,6 +8,7 @@ import '../providers/transaction_provider.dart';
 import '../theme/app_colors.dart';
 import '../utils/confirm_dialog.dart';
 import '../utils/error_mapper.dart';
+import '../widgets/common/custom_app_bar.dart';
 import '../widgets/common/custom_card.dart';
 
 class TambahDompetScreen extends StatefulWidget {
@@ -180,51 +181,14 @@ class _TambahDompetScreenState extends State<TambahDompetScreen> {
 
     return Scaffold(
       backgroundColor: scaffoldBg,
-      appBar: PreferredSize(
-        preferredSize: const Size.fromHeight(80),
-        child: Container(
-          decoration: const BoxDecoration(
-            color: appBarBg,
-            border: Border(
-              bottom: BorderSide(color: primaryGreen, width: 1.5),
-            ),
-          ),
-          child: SafeArea(
-            child: Stack(
-              alignment: Alignment.center,
-              children: [
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: IconButton(
-                    onPressed: () => context.pop(),
-                    icon: const Icon(
-                      Icons.chevron_left,
-                      color: primaryGreen,
-                      size: 32,
-                    ),
-                  ),
-                ),
-                Text(
-                  title,
-                  style: const TextStyle(
-                    color: primaryGreen,
-                    fontSize: 22,
-                    fontFamily: 'Inter',
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                if (widget.itemToEdit != null)
-                  Align(
-                    alignment: Alignment.centerRight,
-                    child: IconButton(
-                      onPressed: _isLoading ? null : _hapus,
-                      icon: const Icon(Icons.delete_outline, color: Colors.red),
-                    ),
-                  ),
-              ],
-            ),
-          ),
-        ),
+      appBar: CustomAppBar(
+        title: title,
+        trailing: widget.itemToEdit != null
+            ? IconButton(
+                onPressed: _isLoading ? null : _hapus,
+                icon: const Icon(Icons.delete_outline, color: Colors.red),
+              )
+            : null,
       ),
       body: Stack(
         fit: StackFit.expand,

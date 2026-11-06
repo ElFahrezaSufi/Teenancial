@@ -6,6 +6,8 @@ import '../models/dompet_model.dart';
 import '../providers/dompet_provider.dart';
 import '../theme/app_colors.dart';
 import '../utils/currency_formatter.dart';
+import '../widgets/common/async_state_view.dart';
+import '../widgets/common/custom_app_bar.dart';
 import '../widgets/common/custom_card.dart';
 import '../widgets/common/skeleton.dart';
 
@@ -41,100 +43,6 @@ class DompetScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildError(BuildContext context, String errorMessage) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24.0),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(Icons.error_outline, size: 60, color: Colors.red),
-            const SizedBox(height: 16),
-            const Text(
-              'Oops, terjadi kesalahan!',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: primaryGreen,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              errorMessage,
-              textAlign: TextAlign.center,
-              style: const TextStyle(color: Colors.grey),
-            ),
-            const SizedBox(height: 24),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: primaryGreen,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-              ),
-              onPressed: () => context.read<DompetProvider>().loadDompets(),
-              child: const Text(
-                'Coba Lagi',
-                style: TextStyle(color: Colors.white),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildEmpty(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24.0),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.account_balance_wallet_outlined,
-              size: 80,
-              color: primaryGreen.withValues(alpha: 0.5),
-            ),
-            const SizedBox(height: 16),
-            const Text(
-              'Dompet masih kosong',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: primaryGreen,
-              ),
-            ),
-            const SizedBox(height: 8),
-            const Text(
-              'Yuk tambahkan dompet pertamamu sekarang!',
-              textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.grey),
-            ),
-            const SizedBox(height: 24),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: primaryGreen,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-              ),
-              onPressed: () => _openTambahDompet(context),
-              child: const Text(
-                'Tambah Dompet',
-                style: TextStyle(color: Colors.white),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final dompetProvider = context.watch<DompetProvider>();
@@ -148,29 +56,9 @@ class DompetScreen extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: scaffoldBg,
-      appBar: PreferredSize(
-        preferredSize: const Size.fromHeight(80),
-        child: Container(
-          decoration: const BoxDecoration(
-            color: appBarBg,
-            border: Border(
-              bottom: BorderSide(color: primaryGreen, width: 1.5),
-            ),
-          ),
-          child: const SafeArea(
-            child: Center(
-              child: Text(
-                'Dompet',
-                style: TextStyle(
-                  color: primaryGreen,
-                  fontSize: 25,
-                  fontFamily: 'Inter',
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ),
-          ),
-        ),
+      appBar: const CustomAppBar(
+        title: 'Dompet',
+        showBackButton: false,
       ),
       body: Stack(
         fit: StackFit.expand,
@@ -185,9 +73,18 @@ class DompetScreen extends StatelessWidget {
           if (dompetProvider.isLoading && dompets.isEmpty)
             _buildLoading()
           else if (dompetProvider.errorMessage != null && dompets.isEmpty)
-            _buildError(context, dompetProvider.errorMessage!)
+            ErrorStateView(
+              errorMessage: dompetProvider.errorMessage!,
+              onRetry: () => context.read<DompetProvider>().loadDompets(),
+            )
           else if (dompets.isEmpty)
-            _buildEmpty(context)
+            EmptyStateView(
+              icon: Icons.account_balance_wallet_outlined,
+              title: 'Dompet masih kosong',
+              subtitle: 'Yuk tambahkan dompet pertamamu sekarang!',
+              actionLabel: 'Tambah Dompet',
+              onAction: () => _openTambahDompet(context),
+            )
           else
             SafeArea(
               child: RefreshIndicator(

@@ -11,6 +11,8 @@ import '../theme/app_colors.dart';
 import '../utils/confirm_dialog.dart';
 import '../utils/currency_formatter.dart';
 import '../utils/error_mapper.dart';
+import '../widgets/common/async_state_view.dart';
+import '../widgets/common/custom_app_bar.dart';
 import '../widgets/common/custom_card.dart';
 import '../widgets/common/custom_filter_chip.dart';
 import '../widgets/common/skeleton.dart';
@@ -120,33 +122,6 @@ class _RiwayatScreenState extends State<RiwayatScreen> {
     await context.push(route, extra: item);
   }
 
-  PreferredSizeWidget _buildAppBar() {
-    return PreferredSize(
-      preferredSize: const Size.fromHeight(80),
-      child: Container(
-        decoration: const BoxDecoration(
-          color: appBarBg,
-          border: Border(
-            bottom: BorderSide(color: primaryGreen, width: 1.5),
-          ),
-        ),
-        child: const SafeArea(
-          child: Center(
-            child: Text(
-              'Riwayat',
-              style: TextStyle(
-                color: primaryGreen,
-                fontSize: 25,
-                fontFamily: 'Inter',
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
   Widget _buildLoading() {
     return SafeArea(
       child: Padding(
@@ -181,82 +156,12 @@ class _RiwayatScreenState extends State<RiwayatScreen> {
     );
   }
 
-  Widget _buildError(String errorMessage) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24.0),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(Icons.error_outline, size: 60, color: Colors.red),
-            const SizedBox(height: 16),
-            const Text(
-              'Oops, terjadi kesalahan!',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: primaryGreen,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              errorMessage,
-              textAlign: TextAlign.center,
-              style: const TextStyle(color: Colors.grey),
-            ),
-            const SizedBox(height: 24),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: primaryGreen,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-              ),
-              onPressed: () =>
-                  context.read<TransactionProvider>().loadTransactions(),
-              child: const Text(
-                'Coba Lagi',
-                style: TextStyle(color: Colors.white),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
   Widget _buildEmpty() {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24.0),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.receipt_long_outlined,
-              size: 80,
-              color: primaryGreen.withValues(alpha: 0.5),
-            ),
-            const SizedBox(height: 16),
-            const Text(
-              'Belum ada transaksi',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: primaryGreen,
-              ),
-            ),
-            const SizedBox(height: 8),
-            const Text(
-              'Coba ubah filter atau catat pemasukan dan pengeluaran pertamamu!',
-              textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.grey),
-            ),
-          ],
-        ),
-      ),
+    return const EmptyStateView(
+      icon: Icons.receipt_long_outlined,
+      title: 'Belum ada transaksi',
+      subtitle:
+          'Coba ubah filter atau catat pemasukan dan pengeluaran pertamamu!',
     );
   }
 
@@ -294,7 +199,10 @@ class _RiwayatScreenState extends State<RiwayatScreen> {
 
     return Scaffold(
       backgroundColor: scaffoldBg,
-      appBar: _buildAppBar(),
+      appBar: const CustomAppBar(
+        title: 'Riwayat',
+        showBackButton: false,
+      ),
       body: Stack(
         fit: StackFit.expand,
         children: [
@@ -308,7 +216,11 @@ class _RiwayatScreenState extends State<RiwayatScreen> {
           if (txProvider.isLoading && allTransactions.isEmpty)
             _buildLoading()
           else if (txProvider.errorMessage != null && allTransactions.isEmpty)
-            _buildError(txProvider.errorMessage!)
+            ErrorStateView(
+              errorMessage: txProvider.errorMessage!,
+              onRetry: () =>
+                  context.read<TransactionProvider>().loadTransactions(),
+            )
           else
             SafeArea(
               child: RefreshIndicator(

@@ -8,6 +8,7 @@ import '../theme/app_colors.dart';
 import '../utils/confirm_dialog.dart';
 import '../utils/currency_formatter.dart';
 import '../utils/error_mapper.dart';
+import '../widgets/common/async_state_view.dart';
 import '../widgets/common/custom_filter_chip.dart';
 import '../widgets/transaction/dompet_selection_dropdown.dart';
 import '../widgets/transaction/loan_card.dart';
@@ -242,35 +243,10 @@ class _DaftarPinjamanScreenState extends State<DaftarPinjamanScreen> {
         break;
     }
 
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24.0),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              Icons.receipt_long_outlined,
-              size: 80,
-              color: primaryGreen.withValues(alpha: 0.5),
-            ),
-            const SizedBox(height: 16),
-            const Text(
-              'Daftar kosong',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: primaryGreen,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              message,
-              textAlign: TextAlign.center,
-              style: const TextStyle(color: Colors.grey),
-            ),
-          ],
-        ),
-      ),
+    return EmptyStateView(
+      icon: Icons.receipt_long_outlined,
+      title: 'Daftar kosong',
+      subtitle: message,
     );
   }
 

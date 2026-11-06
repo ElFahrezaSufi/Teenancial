@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../models/belajar_model.dart';
 import '../providers/belajar_provider.dart';
 import '../theme/app_colors.dart';
 import '../widgets/belajar/level_section.dart';
+import '../widgets/common/custom_app_bar.dart';
 
 class RuangBelajarScreen extends StatelessWidget {
   const RuangBelajarScreen({super.key});
@@ -18,46 +18,7 @@ class RuangBelajarScreen extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: scaffoldBg,
-      appBar: PreferredSize(
-        preferredSize: const Size.fromHeight(80),
-        child: Container(
-          decoration: const BoxDecoration(
-            color: appBarBg,
-            border: Border(
-              bottom: BorderSide(color: primaryGreen, width: 1.5),
-            ),
-          ),
-          child: SafeArea(
-            child: Stack(
-              alignment: Alignment.center,
-              children: [
-                const Center(
-                  child: Text(
-                    'Ruang Belajar',
-                    style: TextStyle(
-                      color: primaryGreen,
-                      fontSize: 25,
-                      fontFamily: 'Inter',
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ),
-                Positioned(
-                  left: 8,
-                  child: IconButton(
-                    icon: const Icon(
-                      Icons.arrow_back_ios,
-                      color: primaryGreen,
-                      size: 20,
-                    ),
-                    onPressed: () => context.pop(),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
+      appBar: const CustomAppBar(title: 'Ruang Belajar'),
       body: Stack(
         fit: StackFit.expand,
         children: [

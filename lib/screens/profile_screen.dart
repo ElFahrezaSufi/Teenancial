@@ -11,6 +11,7 @@ import '../providers/user_provider.dart';
 import '../services/local_storage_service.dart';
 import '../theme/app_colors.dart';
 import '../utils/error_mapper.dart';
+import '../widgets/common/custom_app_bar.dart';
 import '../widgets/common/custom_card.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -327,66 +328,27 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     return Scaffold(
       backgroundColor: scaffoldBg,
-      appBar: PreferredSize(
-        preferredSize: const Size.fromHeight(80),
-        child: Container(
-          decoration: const BoxDecoration(
-            color: appBarBg,
-            border: Border(
-              bottom: BorderSide(color: primaryGreen, width: 1.5),
-            ),
-          ),
-          child: SafeArea(
-            child: Stack(
-              children: [
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: Padding(
-                    padding: const EdgeInsets.only(left: 8.0),
-                    child: IconButton(
-                      icon: Icon(
-                        _isEditing ? Icons.close : Icons.arrow_back_ios,
-                        color: primaryGreen,
-                        size: 20,
-                      ),
-                      onPressed: _handleBackButton,
-                    ),
-                  ),
-                ),
-                const Center(
+      appBar: CustomAppBar(
+        title: 'Profil',
+        backIcon: _isEditing ? Icons.close : Icons.arrow_back_ios,
+        onBack: _handleBackButton,
+        trailing: _isEditing
+            ? Padding(
+                padding: const EdgeInsets.only(right: 24.0),
+                child: GestureDetector(
+                  onTap: _isSaving ? null : _saveProfile,
                   child: Text(
-                    'Profil',
+                    _isSaving ? 'Menyimpan...' : 'Simpan',
                     style: TextStyle(
-                      color: primaryGreen,
-                      fontSize: 25,
+                      color: _isSaving ? Colors.grey : primaryGreen,
+                      fontSize: 15,
                       fontFamily: 'Inter',
-                      fontWeight: FontWeight.w700,
+                      fontWeight: FontWeight.w800,
                     ),
                   ),
                 ),
-                if (_isEditing)
-                  Align(
-                    alignment: Alignment.centerRight,
-                    child: Padding(
-                      padding: const EdgeInsets.only(right: 24.0),
-                      child: GestureDetector(
-                        onTap: _isSaving ? null : _saveProfile,
-                        child: Text(
-                          _isSaving ? 'Menyimpan...' : 'Simpan',
-                          style: TextStyle(
-                            color: _isSaving ? Colors.grey : primaryGreen,
-                            fontSize: 15,
-                            fontFamily: 'Inter',
-                            fontWeight: FontWeight.w800,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-              ],
-            ),
-          ),
-        ),
+              )
+            : null,
       ),
       body: Stack(
         fit: StackFit.expand,
