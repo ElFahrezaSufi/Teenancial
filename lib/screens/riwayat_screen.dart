@@ -8,6 +8,8 @@ import '../providers/dompet_provider.dart';
 import '../providers/transaction_provider.dart';
 import '../services/local_storage_service.dart';
 import '../theme/app_colors.dart';
+import '../utils/confirm_dialog.dart';
+import '../utils/currency_formatter.dart';
 import '../utils/error_mapper.dart';
 import '../widgets/common/custom_card.dart';
 import '../widgets/common/custom_filter_chip.dart';
@@ -50,19 +52,6 @@ class RiwayatScreen extends StatefulWidget {
     return result;
   }
 
-  static String formatCurrency(double amount) {
-    final parts = amount.abs().toStringAsFixed(0).split('');
-    final buffer = StringBuffer();
-    int count = 0;
-    for (int i = parts.length - 1; i >= 0; i--) {
-      if (count > 0 && count % 3 == 0) buffer.write('.');
-      buffer.write(parts[i]);
-      count++;
-    }
-    final reversed = buffer.toString().split('').reversed.join();
-    return 'Rp $reversed,00';
-  }
-
   static double _netWalletDelta(TransactionModel t) {
     return t.walletEffects().values.fold(0.0, (sum, delta) => sum + delta);
   }
@@ -87,30 +76,14 @@ class _RiwayatScreenState extends State<RiwayatScreen> {
   }
 
   Future<void> _deleteTransaction(String id) async {
-    final bool? confirm = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text(
-          'Hapus Transaksi',
-          style: TextStyle(color: primaryGreen),
-        ),
-        content: const Text(
+    final bool confirm = await showConfirmDialog(
+      context,
+      title: 'Hapus Transaksi',
+      message:
           'Apakah Anda yakin ingin menghapus data ini? Aksi ini tidak dapat dibatalkan.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Batal', style: TextStyle(color: Colors.grey)),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Hapus', style: TextStyle(color: Colors.red)),
-          ),
-        ],
-      ),
     );
 
-    if (confirm != true || !mounted) return;
+    if (!confirm || !mounted) return;
 
     try {
       await context.read<TransactionProvider>().deleteTransaction(id);
@@ -317,7 +290,7 @@ class _RiwayatScreenState extends State<RiwayatScreen> {
 
     final bool isNetPositive = periodNetDelta >= 0;
     final String netDeltaLabel =
-        '${isNetPositive ? '+' : '-'} ${RiwayatScreen.formatCurrency(periodNetDelta.abs())}';
+        '${isNetPositive ? '+' : '-'} ${Formatters.rupiah(periodNetDelta.abs())}';
 
     return Scaffold(
       backgroundColor: scaffoldBg,
@@ -400,7 +373,7 @@ class _RiwayatScreenState extends State<RiwayatScreen> {
                                     MainAxisAlignment.spaceBetween,
                                 children: [
                                   Text(
-                                    'Saldo: ${RiwayatScreen.formatCurrency(currentTotalSaldo)}',
+                                    'Saldo: ${Formatters.rupiah(currentTotalSaldo)}',
                                     style: const TextStyle(
                                       color: primaryGreen,
                                       fontSize: 12,
@@ -466,7 +439,7 @@ class _RiwayatScreenState extends State<RiwayatScreen> {
                         ...visibleGroups.map(
                           (group) => TransactionGroupList(
                             group: group,
-                            formatCurrency: RiwayatScreen.formatCurrency,
+                            formatCurrency: Formatters.rupiah,
                             onEdit: _editTransaction,
                             onDelete: _deleteTransaction,
                           ),

@@ -9,6 +9,7 @@ import '../providers/target_provider.dart';
 import '../providers/transaction_provider.dart';
 import '../providers/user_provider.dart';
 import '../theme/app_colors.dart';
+import '../utils/currency_formatter.dart';
 
 import '../widgets/home/action_menu.dart';
 import '../widgets/home/belajar_card.dart';
@@ -73,16 +74,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _tambahTargetData() async {
     await context.push(AppRoutes.buatTarget);
-  }
-
-  String _formatRupiah(double value) {
-    final parts = value.toStringAsFixed(0).split('');
-    final buffer = StringBuffer();
-    for (int i = 0; i < parts.length; i++) {
-      if (i != 0 && (parts.length - i) % 3 == 0) buffer.write('.');
-      buffer.write(parts[i]);
-    }
-    return 'Rp ${buffer.toString()}';
   }
 
   @override
@@ -154,7 +145,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             currentXP: currentXP,
                             maxXP: maxXP,
                             level: level,
-                            formatRupiah: _formatRupiah,
+                            formatRupiah: Formatters.rupiah,
                             onTap: _tambahTabunganMock,
                           ),
                           const SizedBox(height: 32),
@@ -201,7 +192,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           TargetMenabungHome(
                             currentTarget: currentTarget,
                             totalSaldoReal: totalSaldoReal,
-                            formatRupiah: _formatRupiah,
+                            formatRupiah: Formatters.rupiah,
                             onTambahTarget: _tambahTargetData,
                           ),
                           const SizedBox(height: 24),
@@ -215,7 +206,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           ),
                           const SizedBox(height: 12),
                           PinjamanHome(
-                            formatRupiah: _formatRupiah,
+                            formatRupiah: Formatters.rupiah,
                             onTap: () => context.push(AppRoutes.daftarPinjaman),
                           ),
                           const SizedBox(height: 24),

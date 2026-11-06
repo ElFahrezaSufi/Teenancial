@@ -5,6 +5,8 @@ import '../config/app_routes.dart';
 import '../models/transaction_model.dart';
 import '../providers/transaction_provider.dart';
 import '../theme/app_colors.dart';
+import '../utils/confirm_dialog.dart';
+import '../utils/currency_formatter.dart';
 import '../utils/error_mapper.dart';
 import '../widgets/transaction/transaction_group.dart';
 import 'riwayat_screen.dart';
@@ -18,30 +20,14 @@ class SemuaAktivitasScreen extends StatelessWidget {
   });
 
   Future<void> _deleteTransaction(BuildContext context, String id) async {
-    final bool? confirm = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text(
-          'Hapus Transaksi',
-          style: TextStyle(color: primaryGreen),
-        ),
-        content: const Text(
+    final bool confirm = await showConfirmDialog(
+      context,
+      title: 'Hapus Transaksi',
+      message:
           'Apakah Anda yakin ingin menghapus data ini? Aksi ini tidak dapat dibatalkan.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Batal', style: TextStyle(color: Colors.grey)),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Hapus', style: TextStyle(color: Colors.red)),
-          ),
-        ],
-      ),
     );
 
-    if (confirm != true || !context.mounted) return;
+    if (!confirm || !context.mounted) return;
 
     try {
       await context.read<TransactionProvider>().deleteTransaction(id);
@@ -160,7 +146,7 @@ class SemuaAktivitasScreen extends StatelessWidget {
                         ...groups.map(
                           (group) => TransactionGroupList(
                             group: group,
-                            formatCurrency: RiwayatScreen.formatCurrency,
+                            formatCurrency: Formatters.rupiah,
                             onEdit: (item) => _editTransaction(context, item),
                             onDelete: (id) => _deleteTransaction(context, id),
                           ),

@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../models/dompet_model.dart';
 import '../models/transaction_model.dart';
 import '../providers/dompet_provider.dart';
 import '../providers/transaction_provider.dart';
 import '../theme/app_colors.dart';
+import '../utils/confirm_dialog.dart';
+import '../utils/currency_formatter.dart';
 import '../utils/error_mapper.dart';
 import '../widgets/common/custom_filter_chip.dart';
 import '../widgets/transaction/dompet_selection_dropdown.dart';
@@ -25,14 +26,6 @@ class _DaftarPinjamanScreenState extends State<DaftarPinjamanScreen> {
   int _selectedTab = 0; // 0 = Hutang Saya, 1 = Piutang Saya
   _LoanFilter _filter = _LoanFilter.unpaid;
   bool _isProcessing = false;
-
-  String _formatCurrency(double value) {
-    return NumberFormat.currency(
-      locale: 'id_ID',
-      symbol: 'Rp ',
-      decimalDigits: 0,
-    ).format(value);
-  }
 
   List<TransactionModel> _visibleLoans(TransactionProvider txProvider) {
     final source =
@@ -79,7 +72,7 @@ class _DaftarPinjamanScreenState extends State<DaftarPinjamanScreen> {
       context: context,
       builder: (_) => _SettleDialog(
         item: item,
-        formatCurrency: _formatCurrency,
+        formatCurrency: Formatters.rupiah,
       ),
     );
     if (dompetId == null || !mounted) return;
@@ -116,41 +109,15 @@ class _DaftarPinjamanScreenState extends State<DaftarPinjamanScreen> {
   Future<void> _deleteLoan(TransactionModel item) async {
     if (_isProcessing) return;
 
-    final bool? confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: scaffoldBg,
-        title: const Text(
-          'Hapus Pinjaman?',
-          style: TextStyle(
-            color: primaryGreen,
-            fontWeight: FontWeight.w800,
-          ),
-        ),
-        content: Text(
-          'Menghapus catatan "${item.title}" sebesar ${_formatCurrency(item.amount)} juga akan mengembalikan perubahan saldonya pada dompet terkait.',
-          style: const TextStyle(color: primaryGreen, fontSize: 13),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Batal', style: TextStyle(color: Colors.grey)),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text(
-              'Hapus',
-              style: TextStyle(
-                color: Colors.redAccent,
-                fontWeight: FontWeight.w800,
-              ),
-            ),
-          ),
-        ],
-      ),
+    final bool confirmed = await showConfirmDialog(
+      context,
+      title: 'Hapus Pinjaman?',
+      message:
+          'Menghapus catatan "${item.title}" sebesar ${Formatters.rupiah(item.amount)} juga akan mengembalikan perubahan saldonya pada dompet terkait.',
+      confirmColor: Colors.redAccent,
     );
 
-    if (confirmed != true || !mounted) return;
+    if (!confirmed || !mounted) return;
 
     setState(() => _isProcessing = true);
     try {
@@ -243,7 +210,7 @@ class _DaftarPinjamanScreenState extends State<DaftarPinjamanScreen> {
             ),
           ),
           Text(
-            _formatCurrency(_totalOutstanding(txProvider)),
+            Formatters.rupiah(_totalOutstanding(txProvider)),
             style: const TextStyle(
               color: primaryGreen,
               fontSize: 16,
@@ -382,7 +349,7 @@ class _DaftarPinjamanScreenState extends State<DaftarPinjamanScreen> {
                               return LoanCard(
                                 key: ValueKey(item.id),
                                 item: item,
-                                formatCurrency: _formatCurrency,
+                                formatCurrency: Formatters.rupiah,
                                 onMarkPaid: () => _markAsPaid(item),
                                 onDelete: () => _deleteLoan(item),
                               );

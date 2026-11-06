@@ -1,10 +1,9 @@
-import 'dart:io';
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import '../../models/target_model.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_text_styles.dart';
 import '../common/custom_card.dart';
+import '../common/target_image.dart';
 
 class TargetMenabungHome extends StatelessWidget {
   final TargetItem? currentTarget;
@@ -19,38 +18,6 @@ class TargetMenabungHome extends StatelessWidget {
     required this.formatRupiah,
     required this.onTambahTarget,
   });
-
-  Widget _buildTargetImage(String imageUrl) {
-    final fallback = Container(
-      height: 167,
-      color: Colors.grey[300],
-      child: const Icon(Icons.broken_image, color: Colors.grey),
-    );
-
-    if (imageUrl.startsWith('http')) {
-      return CachedNetworkImage(
-        imageUrl: imageUrl,
-        height: 167,
-        width: double.infinity,
-        fit: BoxFit.cover,
-        fadeInDuration: const Duration(milliseconds: 150),
-        fadeOutDuration: Duration.zero,
-        placeholder: (context, url) => Container(
-          height: 167,
-          color: lightGreen.withValues(alpha: 0.35),
-        ),
-        errorWidget: (context, url, error) => fallback,
-      );
-    }
-
-    return Image.file(
-      File(imageUrl),
-      height: 167,
-      width: double.infinity,
-      fit: BoxFit.cover,
-      errorBuilder: (context, error, stackTrace) => fallback,
-    );
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -71,7 +38,10 @@ class TargetMenabungHome extends StatelessWidget {
                     topLeft: Radius.circular(18),
                     topRight: Radius.circular(18),
                   ),
-                  child: _buildTargetImage(currentTarget!.imageUrl),
+                  child: TargetImage(
+                    imageUrl: currentTarget!.imageUrl,
+                    height: 167,
+                  ),
                 ),
                 Padding(
                   padding: const EdgeInsets.only(

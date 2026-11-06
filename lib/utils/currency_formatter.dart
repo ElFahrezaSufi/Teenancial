@@ -1,6 +1,21 @@
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 
+class Formatters {
+  Formatters._();
+
+  static final NumberFormat _rupiahFormat = NumberFormat.currency(
+    locale: 'id_ID',
+    symbol: 'Rp ',
+    decimalDigits: 0,
+  );
+
+  /// Format angka menjadi string mata uang Rupiah tanpa desimal (misal: `Rp 50.000`).
+  static String rupiah(num value) {
+    return _rupiahFormat.format(value.round());
+  }
+}
+
 class CurrencyInputFormatter extends TextInputFormatter {
   /// Maksimal 12 digit (Rp 999.999.999.999) untuk mencegah integer overflow.
   static const int maxDigits = 12;

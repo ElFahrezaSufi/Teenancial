@@ -1,6 +1,4 @@
-import 'dart:io';
 import 'dart:math' as math;
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
@@ -9,57 +7,17 @@ import '../models/target_model.dart';
 import '../providers/dompet_provider.dart';
 import '../providers/target_provider.dart';
 import '../theme/app_colors.dart';
+import '../utils/confirm_dialog.dart';
 import '../utils/currency_formatter.dart';
 import '../utils/error_mapper.dart';
 import '../widgets/common/custom_card.dart';
+import '../widgets/common/target_image.dart';
 
 class TargetMenabungScreen extends StatelessWidget {
   const TargetMenabungScreen({super.key});
 
   Future<void> _navigasiDanTambahData(BuildContext context) async {
     await context.push(AppRoutes.buatTarget);
-  }
-
-  String _formatRupiah(double value) {
-    final parts = value.toStringAsFixed(0).split('');
-    final buffer = StringBuffer();
-    for (int i = 0; i < parts.length; i++) {
-      if (i != 0 && (parts.length - i) % 3 == 0) buffer.write('.');
-      buffer.write(parts[i]);
-    }
-    return 'Rp ${buffer.toString()}';
-  }
-
-  Widget _buildTargetImage(String imageUrl) {
-    final fallback = Container(
-      height: 160,
-      color: Colors.grey[300],
-      child: const Icon(Icons.broken_image, color: Colors.grey),
-    );
-
-    if (imageUrl.startsWith('http')) {
-      return CachedNetworkImage(
-        imageUrl: imageUrl,
-        height: 160,
-        width: double.infinity,
-        fit: BoxFit.cover,
-        fadeInDuration: const Duration(milliseconds: 150),
-        fadeOutDuration: Duration.zero,
-        placeholder: (context, url) => Container(
-          height: 160,
-          color: lightGreen.withValues(alpha: 0.35),
-        ),
-        errorWidget: (context, url, error) => fallback,
-      );
-    }
-
-    return Image.file(
-      File(imageUrl),
-      height: 160,
-      width: double.infinity,
-      fit: BoxFit.cover,
-      errorBuilder: (context, error, stackTrace) => fallback,
-    );
   }
 
   @override
@@ -220,7 +178,7 @@ class TargetMenabungScreen extends StatelessWidget {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      _formatRupiah(availableSaldo),
+                      Formatters.rupiah(availableSaldo),
                       style: const TextStyle(
                         color: primaryGreen,
                         fontSize: 18,
@@ -252,7 +210,7 @@ class TargetMenabungScreen extends StatelessWidget {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      _formatRupiah(totalAllocated),
+                      Formatters.rupiah(totalAllocated),
                       style: const TextStyle(
                         color: Color(0xFFDAB62C),
                         fontSize: 18,
@@ -375,8 +333,8 @@ class TargetMenabungScreen extends StatelessWidget {
     required double availableSaldo,
   }) {
     final double progress = item.progress;
-    final String terkumpulStr = _formatRupiah(item.savedAmount);
-    final String targetStr = _formatRupiah(item.targetAmount);
+    final String terkumpulStr = Formatters.rupiah(item.savedAmount);
+    final String targetStr = Formatters.rupiah(item.targetAmount);
     final bool canDeposit = !item.isAchieved && availableSaldo > 0;
     final bool canWithdraw = item.savedAmount > 0;
 
@@ -394,7 +352,7 @@ class TargetMenabungScreen extends StatelessWidget {
                   topLeft: Radius.circular(18),
                   topRight: Radius.circular(18),
                 ),
-                child: _buildTargetImage(item.imageUrl),
+                child: TargetImage(imageUrl: item.imageUrl, height: 160),
               ),
               if (item.isAchieved)
                 Positioned(
@@ -457,36 +415,14 @@ class TargetMenabungScreen extends StatelessWidget {
                     ),
                     onSelected: (value) async {
                       if (value == 'delete') {
-                        final bool? confirm = await showDialog<bool>(
-                          context: context,
-                          builder: (ctx) => AlertDialog(
-                            title: const Text(
-                              'Hapus Target',
-                              style: TextStyle(color: primaryGreen),
-                            ),
-                            content: const Text(
+                        final bool confirm = await showConfirmDialog(
+                          context,
+                          title: 'Hapus Target',
+                          message:
                               'Apakah Anda yakin ingin menghapus target ini?',
-                            ),
-                            actions: [
-                              TextButton(
-                                onPressed: () => Navigator.pop(ctx, false),
-                                child: const Text(
-                                  'Batal',
-                                  style: TextStyle(color: Colors.grey),
-                                ),
-                              ),
-                              TextButton(
-                                onPressed: () => Navigator.pop(ctx, true),
-                                child: const Text(
-                                  'Hapus',
-                                  style: TextStyle(color: Colors.red),
-                                ),
-                              ),
-                            ],
-                          ),
                         );
 
-                        if (confirm == true && context.mounted) {
+                        if (confirm && context.mounted) {
                           try {
                             await context
                                 .read<TargetProvider>()
@@ -727,7 +663,7 @@ class TargetMenabungScreen extends StatelessWidget {
         targetName: item.nama,
         isDeposit: isDeposit,
         maxAmount: maxAmount,
-        formatRupiah: _formatRupiah,
+        formatRupiah: Formatters.rupiah,
       ),
     );
 
@@ -744,8 +680,8 @@ class TargetMenabungScreen extends StatelessWidget {
           SnackBar(
             content: Text(
               isDeposit
-                  ? '✅ Berhasil menabung ${_formatRupiah(submittedAmount)} ke ${item.nama}!'
-                  : '✅ Berhasil menarik ${_formatRupiah(submittedAmount)} dari ${item.nama}!',
+                  ? '✅ Berhasil menabung ${Formatters.rupiah(submittedAmount)} ke ${item.nama}!'
+                  : '✅ Berhasil menarik ${Formatters.rupiah(submittedAmount)} dari ${item.nama}!',
             ),
             backgroundColor: primaryGreen,
           ),

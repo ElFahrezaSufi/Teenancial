@@ -5,6 +5,7 @@ import '../config/app_routes.dart';
 import '../models/dompet_model.dart';
 import '../providers/dompet_provider.dart';
 import '../theme/app_colors.dart';
+import '../utils/currency_formatter.dart';
 import '../widgets/common/custom_card.dart';
 import '../widgets/common/skeleton.dart';
 
@@ -253,16 +254,6 @@ class _DompetGroup extends StatelessWidget {
     required this.onItemTap,
   });
 
-  String _formatRupiah(double value) {
-    final parts = value.toStringAsFixed(0).split('');
-    final buffer = StringBuffer();
-    for (int i = 0; i < parts.length; i++) {
-      if (i != 0 && (parts.length - i) % 3 == 0) buffer.write('.');
-      buffer.write(parts[i]);
-    }
-    return 'Rp ${buffer.toString()}';
-  }
-
   @override
   Widget build(BuildContext context) {
     return Column(
@@ -302,7 +293,7 @@ class _DompetGroup extends StatelessWidget {
                     Row(
                       children: [
                         Text(
-                          _formatRupiah(item.jumlah),
+                          Formatters.rupiah(item.jumlah),
                           style: const TextStyle(
                             color: primaryGreen,
                             fontSize: 14,

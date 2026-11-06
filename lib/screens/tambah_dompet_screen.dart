@@ -6,6 +6,7 @@ import '../models/dompet_model.dart';
 import '../providers/dompet_provider.dart';
 import '../providers/transaction_provider.dart';
 import '../theme/app_colors.dart';
+import '../utils/confirm_dialog.dart';
 import '../utils/error_mapper.dart';
 import '../widgets/common/custom_card.dart';
 
@@ -138,30 +139,13 @@ class _TambahDompetScreenState extends State<TambahDompetScreen> {
   Future<void> _hapus() async {
     if (widget.itemToEdit == null) return;
 
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text(
-          'Hapus Dompet',
-          style: TextStyle(color: primaryGreen),
-        ),
-        content: const Text(
-          'Yakin ingin menghapus dompet ini? Aksi tidak dapat dibatalkan.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Batal', style: TextStyle(color: Colors.grey)),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Hapus', style: TextStyle(color: Colors.red)),
-          ),
-        ],
-      ),
+    final bool confirm = await showConfirmDialog(
+      context,
+      title: 'Hapus Dompet',
+      message: 'Yakin ingin menghapus dompet ini? Aksi tidak dapat dibatalkan.',
     );
 
-    if (confirm != true || !mounted) return;
+    if (!confirm || !mounted) return;
 
     setState(() => _isLoading = true);
     try {
