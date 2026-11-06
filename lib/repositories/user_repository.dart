@@ -6,7 +6,7 @@ import '../services/cloudinary_service.dart';
 import '../services/firestore_service.dart';
 
 class UserRepository {
-  final FirebaseAuth _auth;
+  final FirebaseAuth? _firebaseAuth;
   final FirestoreService _firestoreService;
   final CloudinaryService _cloudinaryService;
 
@@ -14,9 +14,11 @@ class UserRepository {
     FirebaseAuth? auth,
     FirestoreService? firestoreService,
     CloudinaryService? cloudinaryService,
-  })  : _auth = auth ?? FirebaseAuth.instance,
+  })  : _firebaseAuth = auth,
         _firestoreService = firestoreService ?? FirestoreService.instance,
         _cloudinaryService = cloudinaryService ?? CloudinaryService.instance;
+
+  FirebaseAuth get _auth => _firebaseAuth ?? FirebaseAuth.instance;
 
   Future<UserModel> getUserProfile(String uid) async {
     final currentUser = _auth.currentUser;
