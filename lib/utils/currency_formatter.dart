@@ -20,12 +20,6 @@ class CurrencyInputFormatter extends TextInputFormatter {
   /// Maksimal 12 digit (Rp 999.999.999.999) untuk mencegah integer overflow.
   static const int maxDigits = 12;
 
-  static final NumberFormat _currencyFormat = NumberFormat.currency(
-    locale: 'id_ID',
-    symbol: 'Rp ',
-    decimalDigits: 0,
-  );
-
   static String _sanitizeDigits(String raw) {
     final digits = raw.replaceAll(RegExp(r'[^0-9]'), '');
     if (digits.length > maxDigits) {
@@ -39,7 +33,7 @@ class CurrencyInputFormatter extends TextInputFormatter {
     final digits = _sanitizeDigits(value);
     if (digits.isEmpty) return '';
     final int number = int.tryParse(digits) ?? 0;
-    return _currencyFormat.format(number);
+    return Formatters.rupiah(number);
   }
 
   @override
@@ -61,7 +55,7 @@ class CurrencyInputFormatter extends TextInputFormatter {
       final int selectionIndexFromTheRight =
           newValue.text.length - newValue.selection.end;
       final int number = int.tryParse(digits) ?? 0;
-      final String newString = _currencyFormat.format(number);
+      final String newString = Formatters.rupiah(number);
       final int offset =
           (newString.length - selectionIndexFromTheRight).clamp(
         0,

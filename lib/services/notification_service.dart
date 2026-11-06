@@ -1,11 +1,11 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_timezone/flutter_timezone.dart';
-import 'package:intl/intl.dart';
 import 'package:timezone/data/latest_all.dart' as tz_data;
 import 'package:timezone/timezone.dart' as tz;
 
 import '../models/transaction_model.dart';
+import '../utils/currency_formatter.dart';
 import '../utils/loan_helper.dart';
 
 class NotificationService {
@@ -92,14 +92,6 @@ class NotificationService {
   int _dueDayId(String loanId) => _hashId('loan_h0_$loanId');
   int _instantId(String key) => _hashId('loan_instant_$key');
 
-  String _formatCurrency(double amount) {
-    return NumberFormat.currency(
-      locale: 'id_ID',
-      symbol: 'Rp ',
-      decimalDigits: 0,
-    ).format(amount);
-  }
-
   /// Menampilkan notifikasi instan saat pinjaman/piutang baru berhasil disimpan.
   Future<void> showLoanCreatedNotification(TransactionModel loan) async {
     if (kIsWeb) return;
@@ -115,7 +107,7 @@ class NotificationService {
       final days = LoanHelper.daysUntilDue(due);
       final isDebt = loan.type == TransactionType.debt;
       final counterparty = LoanHelper.counterpartyName(loan);
-      final formattedAmount = _formatCurrency(loan.amount);
+      final formattedAmount = Formatters.rupiah(loan.amount);
       final formattedDate = LoanHelper.formatDueDate(due);
 
       late final String title;
@@ -211,7 +203,7 @@ class NotificationService {
         final due = loan.dueDate!;
         final isDebt = loan.type == TransactionType.debt;
         final counterparty = LoanHelper.counterpartyName(loan);
-        final formattedAmount = _formatCurrency(loan.amount);
+        final formattedAmount = Formatters.rupiah(loan.amount);
         final formattedDate = LoanHelper.formatDueDate(due);
 
         // Pengingat H-1 pukul 09:00 waktu lokal

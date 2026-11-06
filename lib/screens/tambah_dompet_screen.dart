@@ -7,6 +7,7 @@ import '../providers/dompet_provider.dart';
 import '../providers/transaction_provider.dart';
 import '../theme/app_colors.dart';
 import '../utils/confirm_dialog.dart';
+import '../utils/currency_formatter.dart';
 import '../utils/error_mapper.dart';
 import '../widgets/common/custom_app_bar.dart';
 import '../widgets/common/custom_card.dart';
@@ -48,7 +49,8 @@ class _TambahDompetScreenState extends State<TambahDompetScreen> {
           )
           .key;
       _namaDompetCtrl.text = item.nama;
-      _jumlahCtrl.text = item.jumlah.toStringAsFixed(0);
+      _jumlahCtrl.text =
+          CurrencyInputFormatter.formatValue(item.jumlah.toStringAsFixed(0));
       _catatanCtrl.text = item.catatan ?? '';
     }
   }
@@ -235,8 +237,7 @@ class _TambahDompetScreenState extends State<TambahDompetScreen> {
                     controller: _jumlahCtrl,
                     hint: 'Rp 0',
                     keyboardType: TextInputType.number,
-                    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                    prefixText: 'Rp ',
+                    inputFormatters: [CurrencyInputFormatter()],
                   ),
                   const SizedBox(height: 20),
                   const _FieldLabel(label: 'Catatan'),
@@ -359,7 +360,6 @@ class _InputField extends StatelessWidget {
   final String hint;
   final TextInputType? keyboardType;
   final List<TextInputFormatter>? inputFormatters;
-  final String? prefixText;
   final Widget? suffixIcon;
   final int maxLines;
 
@@ -368,7 +368,6 @@ class _InputField extends StatelessWidget {
     required this.hint,
     this.keyboardType,
     this.inputFormatters,
-    this.prefixText,
     this.suffixIcon,
     this.maxLines = 1,
   });
@@ -395,13 +394,6 @@ class _InputField extends StatelessWidget {
             color: primaryGreen.withValues(alpha: 0.45),
             fontFamily: 'Inter',
             fontSize: 14,
-          ),
-          prefixText: prefixText,
-          prefixStyle: const TextStyle(
-            color: primaryGreen,
-            fontFamily: 'Inter',
-            fontSize: 14,
-            fontWeight: FontWeight.w500,
           ),
           suffixIcon: suffixIcon,
           border: InputBorder.none,

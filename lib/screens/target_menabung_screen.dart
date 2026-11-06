@@ -623,7 +623,6 @@ class TargetMenabungScreen extends StatelessWidget {
         targetName: item.nama,
         isDeposit: isDeposit,
         maxAmount: maxAmount,
-        formatRupiah: Formatters.rupiah,
       ),
     );
 
@@ -665,13 +664,11 @@ class _TargetAllocationDialog extends StatefulWidget {
   final String targetName;
   final bool isDeposit;
   final double maxAmount;
-  final String Function(double) formatRupiah;
 
   const _TargetAllocationDialog({
     required this.targetName,
     required this.isDeposit,
     required this.maxAmount,
-    required this.formatRupiah,
   });
 
   @override
@@ -700,8 +697,8 @@ class _TargetAllocationDialogState extends State<_TargetAllocationDialog> {
     if (amount > widget.maxAmount + 0.0001) {
       setState(
         () => _errorText = widget.isDeposit
-            ? 'Melebihi batas maksimal (${widget.formatRupiah(widget.maxAmount)})'
-            : 'Melebihi saldo tersimpan (${widget.formatRupiah(widget.maxAmount)})',
+            ? 'Melebihi batas maksimal (${Formatters.rupiah(widget.maxAmount)})'
+            : 'Melebihi saldo tersimpan (${Formatters.rupiah(widget.maxAmount)})',
       );
       return;
     }
@@ -741,8 +738,8 @@ class _TargetAllocationDialogState extends State<_TargetAllocationDialog> {
             const SizedBox(height: 4),
             Text(
               widget.isDeposit
-                  ? 'Maksimal dapat ditabung: ${widget.formatRupiah(widget.maxAmount)}'
-                  : 'Tersimpan di target ini: ${widget.formatRupiah(widget.maxAmount)}',
+                  ? 'Maksimal dapat ditabung: ${Formatters.rupiah(widget.maxAmount)}'
+                  : 'Tersimpan di target ini: ${Formatters.rupiah(widget.maxAmount)}',
               style: TextStyle(
                 color: primaryGreen.withValues(alpha: 0.75),
                 fontFamily: 'Inter',
