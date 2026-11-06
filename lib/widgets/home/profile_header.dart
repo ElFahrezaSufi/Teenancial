@@ -1,6 +1,5 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
-import '../../screens/profile_screen.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_text_styles.dart';
 
@@ -21,9 +20,8 @@ class ProfileHeader extends StatelessWidget {
   });
 
   ImageProvider? _getAvatarProvider() {
-    final activeFile = imageFile ?? ProfileScreen.profileImage;
-    if (activeFile != null) {
-      return FileImage(activeFile);
+    if (imageFile != null) {
+      return FileImage(imageFile!);
     } else if (imageUrl != null && imageUrl!.isNotEmpty) {
       return NetworkImage(imageUrl!);
     }

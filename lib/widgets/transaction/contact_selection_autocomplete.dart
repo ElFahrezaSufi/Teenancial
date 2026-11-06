@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
+import '../../models/contact_model.dart';
 import '../../theme/app_colors.dart';
-import '../../data/contact_model.dart';
 
 class ContactSelectionAutocomplete extends StatelessWidget {
   final String label;
@@ -40,17 +40,21 @@ class ContactSelectionAutocomplete extends StatelessWidget {
               if (textEditingValue.text.isEmpty) {
                 return const Iterable<String>.empty();
               }
-              return contacts
-                  .map((c) => c.name)
-                  .where((name) => name
-                      .toLowerCase()
-                      .contains(textEditingValue.text.toLowerCase()));
+              return contacts.map((c) => c.name).where(
+                    (name) => name
+                        .toLowerCase()
+                        .contains(textEditingValue.text.toLowerCase()),
+                  );
             },
             onSelected: (String selection) {
               controller.text = selection;
             },
-            fieldViewBuilder: (context, fieldTextEditingController, fieldFocusNode, onFieldSubmitted) {
-              // Ensure the internal controller matches our passed controller
+            fieldViewBuilder: (
+              context,
+              fieldTextEditingController,
+              fieldFocusNode,
+              onFieldSubmitted,
+            ) {
               if (controller.text != fieldTextEditingController.text) {
                 fieldTextEditingController.text = controller.text;
               }
@@ -83,15 +87,18 @@ class ContactSelectionAutocomplete extends StatelessWidget {
                   ),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: primaryGreen, width: 2),
+                    borderSide:
+                        const BorderSide(color: primaryGreen, width: 2),
                   ),
                   enabledBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: primaryGreen, width: 2),
+                    borderSide:
+                        const BorderSide(color: primaryGreen, width: 2),
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: primaryGreen, width: 2),
+                    borderSide:
+                        const BorderSide(color: primaryGreen, width: 2),
                   ),
                 ),
                 validator: validator,
@@ -105,7 +112,8 @@ class ContactSelectionAutocomplete extends StatelessWidget {
                   borderRadius: BorderRadius.circular(12),
                   color: inputBg,
                   child: ConstrainedBox(
-                    constraints: const BoxConstraints(maxHeight: 200, maxWidth: 300),
+                    constraints:
+                        const BoxConstraints(maxHeight: 200, maxWidth: 300),
                     child: ListView.builder(
                       padding: EdgeInsets.zero,
                       shrinkWrap: true,
@@ -113,9 +121,7 @@ class ContactSelectionAutocomplete extends StatelessWidget {
                       itemBuilder: (BuildContext context, int index) {
                         final String option = options.elementAt(index);
                         return InkWell(
-                          onTap: () {
-                            onSelected(option);
-                          },
+                          onTap: () => onSelected(option),
                           child: Padding(
                             padding: const EdgeInsets.all(16.0),
                             child: Text(

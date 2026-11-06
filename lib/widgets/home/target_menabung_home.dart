@@ -1,6 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
-import '../../data/target_model.dart';
+import '../../models/target_model.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_text_styles.dart';
 import '../common/custom_card.dart';
@@ -18,6 +18,42 @@ class TargetMenabungHome extends StatelessWidget {
     required this.formatRupiah,
     required this.onTambahTarget,
   });
+
+  Widget _buildTargetImage(String imageUrl) {
+    final fallback = Container(
+      height: 167,
+      color: Colors.grey[300],
+      child: const Icon(Icons.broken_image, color: Colors.grey),
+    );
+
+    if (imageUrl.startsWith('http')) {
+      return Image.network(
+        imageUrl,
+        height: 167,
+        width: double.infinity,
+        fit: BoxFit.cover,
+        loadingBuilder: (context, child, loadingProgress) {
+          if (loadingProgress == null) return child;
+          return Container(
+            height: 167,
+            color: lightGreen.withValues(alpha: 0.35),
+            child: const Center(
+              child: CircularProgressIndicator(color: primaryGreen),
+            ),
+          );
+        },
+        errorBuilder: (context, error, stackTrace) => fallback,
+      );
+    }
+
+    return Image.file(
+      File(imageUrl),
+      height: 167,
+      width: double.infinity,
+      fit: BoxFit.cover,
+      errorBuilder: (context, error, stackTrace) => fallback,
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -40,36 +76,45 @@ class TargetMenabungHome extends StatelessWidget {
                     topLeft: Radius.circular(18),
                     topRight: Radius.circular(18),
                   ),
-                  child: Image.file(
-                    File(currentTarget!.imageUrl),
-                    height: 167,
-                    width: double.infinity,
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) => Container(
-                        height: 167,
-                        color: Colors.grey[300],
-                        child: const Icon(Icons.broken_image, color: Colors.grey)),
-                  ),
+                  child: _buildTargetImage(currentTarget!.imageUrl),
                 ),
                 Padding(
-                  padding: const EdgeInsets.only(left: 16, right: 16, top: 16, bottom: 12),
+                  padding: const EdgeInsets.only(
+                    left: 16,
+                    right: 16,
+                    top: 16,
+                    bottom: 12,
+                  ),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(currentTarget!.nama, style: AppTextStyles.sectionTitle),
+                      Expanded(
+                        child: Text(
+                          currentTarget!.nama,
+                          style: AppTextStyles.sectionTitle,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
                       Text(
                         '${formatRupiah(totalSaldoReal)}/ ${formatRupiah(currentTarget!.targetAmount)}',
                         style: const TextStyle(
-                            color: primaryGreen,
-                            fontSize: 12,
-                            fontFamily: 'Inter',
-                            fontWeight: FontWeight.w600),
+                          color: primaryGreen,
+                          fontSize: 12,
+                          fontFamily: 'Inter',
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                     ],
                   ),
                 ),
                 Padding(
-                  padding: const EdgeInsets.only(left: 16, right: 16, bottom: 20),
+                  padding: const EdgeInsets.only(
+                    left: 16,
+                    right: 16,
+                    bottom: 20,
+                  ),
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(100),
                     child: LinearProgressIndicator(
@@ -121,12 +166,19 @@ class TargetMenabungHome extends StatelessWidget {
               color: primaryGreen.withValues(alpha: 0.5),
             ),
             const SizedBox(height: 12),
-            const Text('Belum ada target impian nih!', style: AppTextStyles.sectionTitle),
+            const Text(
+              'Belum ada target impian nih!',
+              style: AppTextStyles.sectionTitle,
+            ),
             const SizedBox(height: 4),
             const Text(
               'Yuk mulai tabung uangmu untuk beli barang impianmu.',
               textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.grey, fontSize: 12, fontFamily: 'Inter'),
+              style: TextStyle(
+                color: Colors.grey,
+                fontSize: 12,
+                fontFamily: 'Inter',
+              ),
             ),
             const SizedBox(height: 16),
             GestureDetector(
@@ -134,7 +186,8 @@ class TargetMenabungHome extends StatelessWidget {
               child: CustomCard(
                 borderRadius: 100,
                 backgroundColor: primaryGreen,
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
                 child: const Row(
                   mainAxisSize: MainAxisSize.min,
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -153,7 +206,7 @@ class TargetMenabungHome extends StatelessWidget {
                   ],
                 ),
               ),
-            )
+            ),
           ],
         ),
       );

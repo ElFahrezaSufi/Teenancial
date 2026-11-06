@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../data/belajar_data.dart';
+import '../../models/belajar_model.dart';
 import '../../theme/app_colors.dart';
 import '../common/custom_card.dart';
 
@@ -123,8 +123,6 @@ class ModuleCard extends StatelessWidget {
   }
 }
 
-// ─── Quiz Badge ───────────────────────────────────────────────────────────────
-
 class _QuizBadge extends StatelessWidget {
   final QuizData quiz;
 
@@ -166,8 +164,6 @@ class _QuizBadge extends StatelessWidget {
     );
   }
 }
-
-// ─── Action Button ────────────────────────────────────────────────────────────
 
 class _ActionButton extends StatelessWidget {
   final ModuleData module;

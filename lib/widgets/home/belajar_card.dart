@@ -1,16 +1,15 @@
 import 'package:flutter/material.dart';
-import '../../data/belajar_data.dart';
+import 'package:provider/provider.dart';
+import '../../providers/belajar_provider.dart';
 import '../../theme/app_colors.dart';
 import '../common/custom_card.dart';
 
 class BelajarCard extends StatelessWidget {
-  BelajarCard({super.key});
-
-  final _data = BelajarData.instance;
+  const BelajarCard({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final current = _data.currentModule;
+    final current = context.watch<BelajarProvider>().currentModule;
 
     final String judulModul = current?.module.title ?? 'Semua modul selesai!';
     final String labelTingkat =
@@ -27,7 +26,9 @@ class BelajarCard extends StatelessWidget {
             width: 50,
             height: 50,
             decoration: BoxDecoration(
-                color: lightGreen, borderRadius: BorderRadius.circular(12)),
+              color: lightGreen,
+              borderRadius: BorderRadius.circular(12),
+            ),
             child: const Icon(Icons.menu_book, color: primaryGreen),
           ),
           const SizedBox(width: 16),
@@ -42,10 +43,11 @@ class BelajarCard extends StatelessWidget {
                       child: Text(
                         judulModul,
                         style: const TextStyle(
-                            color: primaryGreen,
-                            fontSize: 14,
-                            fontFamily: 'Inter',
-                            fontWeight: FontWeight.w800),
+                          color: primaryGreen,
+                          fontSize: 14,
+                          fontFamily: 'Inter',
+                          fontWeight: FontWeight.w800,
+                        ),
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -55,10 +57,11 @@ class BelajarCard extends StatelessWidget {
                       Text(
                         labelTingkat,
                         style: const TextStyle(
-                            color: primaryGreen,
-                            fontSize: 11,
-                            fontFamily: 'Inter',
-                            fontWeight: FontWeight.w600),
+                          color: primaryGreen,
+                          fontSize: 11,
+                          fontFamily: 'Inter',
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                     ],
                   ],
@@ -67,10 +70,11 @@ class BelajarCard extends StatelessWidget {
                 ClipRRect(
                   borderRadius: BorderRadius.circular(10),
                   child: LinearProgressIndicator(
-                      value: progress,
-                      backgroundColor: lightGreen,
-                      color: primaryGreen,
-                      minHeight: 6),
+                    value: progress,
+                    backgroundColor: lightGreen,
+                    color: primaryGreen,
+                    minHeight: 6,
+                  ),
                 ),
               ],
             ),

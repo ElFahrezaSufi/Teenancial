@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import '../data/transaction_model.dart';
+import '../models/transaction_model.dart';
 import '../theme/app_colors.dart';
 
 /// Informasi status jatuh tempo suatu pinjaman (label + warna).
@@ -53,7 +53,10 @@ class LoanHelper {
       );
     }
     if (days == 0) {
-      return const LoanDueInfo(label: 'Jatuh tempo hari ini', color: orangeText);
+      return const LoanDueInfo(
+        label: 'Jatuh tempo hari ini',
+        color: orangeText,
+      );
     }
     if (days <= 3) {
       return LoanDueInfo(label: '$days hari lagi', color: orangeText);

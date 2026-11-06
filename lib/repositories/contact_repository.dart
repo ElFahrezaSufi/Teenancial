@@ -1,43 +1,53 @@
-import 'package:flutter/foundation.dart';
-import '../data/contact_model.dart';
+import '../models/contact_model.dart';
+import '../services/firestore_service.dart';
+import '../services/legacy_seed_service.dart';
 
-class ContactRepository extends ChangeNotifier {
-  ContactRepository._();
-  static final ContactRepository instance = ContactRepository._();
+class ContactRepository {
+  final FirestoreService _firestoreService;
 
-  final List<ContactModel> _contacts = [
-    ContactModel(id: 'c1', name: 'Budi'),
-    ContactModel(id: 'c2', name: 'Siti'),
-  ];
+  ContactRepository({FirestoreService? firestoreService})
+      : _firestoreService = firestoreService ?? FirestoreService.instance;
 
-  Future<List<ContactModel>> getContacts() async {
-    // Simulasi loading ringan
-    await Future.delayed(const Duration(milliseconds: 300));
-    return List<ContactModel>.from(_contacts);
+  Future<List<ContactModel>> getContacts(String uid) async {
+    await LegacySeedService.instance.ensureFinanceSeeded(uid);
+    final snapshot = await _firestoreService.contactsCol(uid).get();
+    final items = snapshot.docs
+        .map((doc) => ContactModel.fromMap(doc.data(), docId: doc.id))
+        .toList();
+    items.sort(
+      (a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()),
+    );
+    return items;
   }
 
-  ContactModel? getContactById(String? id) {
-    if (id == null) return null;
-    final index = _contacts.indexWhere((c) => c.id == id);
-    return index == -1 ? null : _contacts[index];
-  }
+  Future<ContactModel> addContact(String uid, String name) async {
+    final trimmedName = name.trim();
+    if (trimmedName.isEmpty) {
+      throw Exception('Nama kontak tidak boleh kosong');
+    }
 
-
-  Future<ContactModel> addContact(String name) async {
-    await Future.delayed(const Duration(milliseconds: 300));
-    
-    // Cek apakah nama sudah ada (case-insensitive)
-    final existingIndex = _contacts.indexWhere((c) => c.name.toLowerCase() == name.toLowerCase());
-    if (existingIndex != -1) {
-      return _contacts[existingIndex];
+    final existing = await getContacts(uid);
+    final matchIndex = existing.indexWhere(
+      (c) => c.name.toLowerCase() == trimmedName.toLowerCase(),
+    );
+    if (matchIndex != -1) {
+      return existing[matchIndex];
     }
 
     final newContact = ContactModel(
       id: DateTime.now().millisecondsSinceEpoch.toString(),
-      name: name,
+      name: trimmedName,
     );
-    _contacts.add(newContact);
-    notifyListeners();
+
+    await _firestoreService
+        .contactsCol(uid)
+        .doc(newContact.id)
+        .set(newContact.toMap());
+
     return newContact;
+  }
+
+  Future<void> deleteContact(String uid, String contactId) async {
+    await _firestoreService.contactsCol(uid).doc(contactId).delete();
   }
 }

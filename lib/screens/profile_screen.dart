@@ -1,19 +1,17 @@
 import 'dart:io';
-import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
-import 'package:firebase_auth/firebase_auth.dart' hide AuthProvider;
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:http/http.dart' as http;
+import '../config/app_routes.dart';
+import '../models/user_model.dart';
 import '../providers/auth_provider.dart';
+import '../providers/user_provider.dart';
+import '../services/local_storage_service.dart';
 import '../theme/app_colors.dart';
 import '../widgets/common/custom_card.dart';
 
 class ProfileScreen extends StatefulWidget {
-  static File? profileImage;
-
   const ProfileScreen({super.key});
 
   @override
@@ -22,13 +20,15 @@ class ProfileScreen extends StatefulWidget {
 
 class _ProfileScreenState extends State<ProfileScreen> {
   bool _isEditing = false;
-  bool _isLoading = false;
+  bool _isSaving = false;
 
-  String? _profileImageUrl;
+  File? _pendingImageFile;
+  bool _removeExistingImage = false;
+  String? _syncedUid;
 
-  late TextEditingController _fullNameController;
-  late TextEditingController _ageController;
-  late TextEditingController _emailController;
+  late final TextEditingController _fullNameController;
+  late final TextEditingController _ageController;
+  late final TextEditingController _emailController;
 
   String? _selectedGender;
 
@@ -40,55 +40,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
     _ageController = TextEditingController(text: '');
     _selectedGender = null;
 
-    _loadUserData();
-  }
-
-  Future<void> _loadUserData() async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user != null) {
-      await user.reload();
-      final updatedUser = FirebaseAuth.instance.currentUser;
-
-      if (!mounted || updatedUser == null) return;
-
-      _emailController.text = updatedUser.email ?? '';
-
-      try {
-        DocumentSnapshot doc = await FirebaseFirestore.instance
-            .collection('users')
-            .doc(updatedUser.uid)
-            .get();
-
-        if (doc.exists && doc.data() != null) {
-          final data = doc.data() as Map<String, dynamic>;
-          setState(() {
-            _fullNameController.text =
-                data['name'] ?? updatedUser.displayName ?? 'Pengguna';
-            _ageController.text = data['age'] ?? '';
-            _profileImageUrl = data['profileImageUrl'] ?? updatedUser.photoURL;
-
-            String fetchedGender = (data['gender'] ?? '').toString().trim();
-            if (fetchedGender == 'Laki-Laki' || fetchedGender == 'Perempuan') {
-              _selectedGender = fetchedGender;
-            } else {
-              _selectedGender = null;
-            }
-          });
-        } else {
-          setState(() {
-            String initialName = updatedUser.displayName ?? '';
-            if (initialName.trim().isEmpty && updatedUser.email != null) {
-              initialName = updatedUser.email!.split('@')[0];
-            }
-            _fullNameController.text =
-                initialName.isEmpty ? 'Pengguna' : initialName;
-            _profileImageUrl = updatedUser.photoURL;
-          });
-        }
-      } catch (e) {
-        debugPrint("Gagal memuat data Firestore: $e");
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final userProvider = context.read<UserProvider>();
+      if (userProvider.profile == null && !userProvider.isLoading) {
+        userProvider.loadProfile();
       }
-    }
+    });
   }
 
   @override
@@ -99,79 +57,82 @@ class _ProfileScreenState extends State<ProfileScreen> {
     super.dispose();
   }
 
+  void _syncControllersFromProfile(UserModel? profile) {
+    if (_isEditing) return;
+
+    if (profile == null) {
+      if (_syncedUid != null) {
+        _syncedUid = null;
+        _fullNameController.text = 'Memuat...';
+        _emailController.text = 'Memuat...';
+        _ageController.text = '';
+        _selectedGender = null;
+      }
+      return;
+    }
+
+    _syncedUid = profile.uid;
+    _fullNameController.text =
+        profile.name.isNotEmpty ? profile.name : 'Pengguna';
+    _emailController.text = profile.email;
+    _ageController.text = profile.age;
+
+    final fetchedGender = profile.gender.trim();
+    if (fetchedGender == 'Laki-Laki' || fetchedGender == 'Perempuan') {
+      _selectedGender = fetchedGender;
+    } else {
+      _selectedGender = null;
+    }
+  }
+
   void _startEditing() {
     setState(() {
       _isEditing = true;
+      _pendingImageFile = null;
+      _removeExistingImage = false;
     });
   }
 
   Future<void> _saveProfile() async {
-    setState(() => _isLoading = true);
+    if (_isSaving) return;
+    setState(() => _isSaving = true);
 
-    final user = FirebaseAuth.instance.currentUser;
-    if (user != null) {
-      String? updatedImageUrl = _profileImageUrl;
+    try {
+      await context.read<UserProvider>().saveProfile(
+            name: _fullNameController.text.trim(),
+            age: _ageController.text.trim(),
+            gender: _selectedGender ?? '',
+            newImageFile: _pendingImageFile,
+            removeImage: _removeExistingImage && _pendingImageFile == null,
+          );
 
-      try {
-        if (ProfileScreen.profileImage != null) {
-          const cloudName = 'vsgjbngi';
-          const uploadPreset = 'Teenancial';
+      if (!mounted) return;
 
-          final url = Uri.parse(
-              'https://api.cloudinary.com/v1_1/$cloudName/image/upload');
+      setState(() {
+        _pendingImageFile = null;
+        _removeExistingImage = false;
+        _isEditing = false;
+      });
 
-          final request = http.MultipartRequest('POST', url)
-            ..fields['upload_preset'] = uploadPreset
-            ..files.add(await http.MultipartFile.fromPath(
-                'file', ProfileScreen.profileImage!.path));
-
-          final response = await request.send();
-
-          if (response.statusCode == 200) {
-            final responseData = await response.stream.bytesToString();
-            final jsonMap = jsonDecode(responseData);
-            updatedImageUrl = jsonMap['secure_url'];
-          } else {
-            debugPrint("Gagal upload ke Cloudinary: ${response.statusCode}");
-          }
-        }
-
-        await user.updateDisplayName(_fullNameController.text.trim());
-        if (updatedImageUrl != null && updatedImageUrl.isNotEmpty) {
-          await user.updatePhotoURL(updatedImageUrl);
-        }
-
-        await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
-          'name': _fullNameController.text.trim(),
-          'age': _ageController.text.trim(),
-          'gender': _selectedGender ?? '',
-          if (updatedImageUrl != null) 'profileImageUrl': updatedImageUrl,
-        }, SetOptions(merge: true));
-
-        await user.reload();
-
-        setState(() {
-          _profileImageUrl = updatedImageUrl;
-          ProfileScreen.profileImage = null;
-        });
-      } catch (e) {
-        debugPrint("Error saat menyimpan profil: $e");
-      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Profil berhasil diperbarui!'),
+          backgroundColor: primaryGreen,
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Gagal memperbarui profil: ${e.toString().replaceAll('Exception: ', '')}',
+          ),
+          backgroundColor: Colors.redAccent,
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _isSaving = false);
     }
-
-    if (!mounted) return;
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Profil berhasil diperbarui!'),
-        backgroundColor: primaryGreen,
-      ),
-    );
-
-    setState(() {
-      _isLoading = false;
-      _isEditing = false;
-    });
   }
 
   Future<void> _changeProfilePicture() async {
@@ -181,11 +142,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
       if (!mounted) return;
       if (image != null) {
         setState(() {
-          ProfileScreen.profileImage = File(image.path);
+          _pendingImageFile = File(image.path);
+          _removeExistingImage = false;
         });
       }
     } catch (e) {
-      debugPrint("Gagal mengambil gambar: $e");
+      debugPrint('Gagal mengambil gambar: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -198,36 +160,52 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<void> _handleLogout() async {
-    setState(() => _isLoading = true);
-
-    ProfileScreen.profileImage = null;
-    await context.read<AuthProvider>().logout();
-
+    setState(() => _isSaving = true);
+    _pendingImageFile = null;
+    _removeExistingImage = false;
+    await LocalStorageService.instance.setHasSeenGetStarted(true);
     if (!mounted) return;
-    context.go('/get_started');
+    await context.read<AuthProvider>().logout();
+    if (!mounted) return;
+    context.go(AppRoutes.login);
   }
 
   void _handleBackButton() {
-    ProfileScreen.profileImage = null;
+    setState(() {
+      _pendingImageFile = null;
+      _removeExistingImage = false;
+      _isEditing = false;
+    });
 
     if (context.canPop()) {
       context.pop();
     } else {
-      context.go('/home');
+      context.go(AppRoutes.home);
     }
   }
 
-  ImageProvider? _getAvatarImage() {
-    if (ProfileScreen.profileImage != null) {
-      return FileImage(ProfileScreen.profileImage!);
-    } else if (_profileImageUrl != null && _profileImageUrl!.isNotEmpty) {
-      return NetworkImage(_profileImageUrl!);
+  ImageProvider? _getAvatarImage(String? remoteUrl) {
+    if (_pendingImageFile != null) {
+      return FileImage(_pendingImageFile!);
+    }
+    if (!_removeExistingImage && remoteUrl != null && remoteUrl.isNotEmpty) {
+      return NetworkImage(remoteUrl);
     }
     return null;
   }
 
   @override
   Widget build(BuildContext context) {
+    final userProvider = context.watch<UserProvider>();
+    _syncControllersFromProfile(userProvider.profile);
+
+    final remoteImageUrl = userProvider.profileImageUrl;
+    final avatarImage = _getAvatarImage(remoteImageUrl);
+    final bool hasDisplayedPhoto = _pendingImageFile != null ||
+        (!_removeExistingImage &&
+            remoteImageUrl != null &&
+            remoteImageUrl.isNotEmpty);
+
     return Scaffold(
       backgroundColor: scaffoldBg,
       appBar: PreferredSize(
@@ -247,8 +225,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   child: Padding(
                     padding: const EdgeInsets.only(left: 8.0),
                     child: IconButton(
-                      icon: const Icon(Icons.arrow_back_ios,
-                          color: primaryGreen, size: 20),
+                      icon: const Icon(
+                        Icons.arrow_back_ios,
+                        color: primaryGreen,
+                        size: 20,
+                      ),
                       onPressed: _handleBackButton,
                     ),
                   ),
@@ -270,11 +251,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     child: Padding(
                       padding: const EdgeInsets.only(right: 24.0),
                       child: GestureDetector(
-                        onTap: _saveProfile,
-                        child: const Text(
-                          'Simpan',
+                        onTap: _isSaving ? null : _saveProfile,
+                        child: Text(
+                          _isSaving ? 'Menyimpan...' : 'Simpan',
                           style: TextStyle(
-                            color: primaryGreen,
+                            color: _isSaving ? Colors.grey : primaryGreen,
                             fontSize: 15,
                             fontFamily: 'Inter',
                             fontWeight: FontWeight.w800,
@@ -319,25 +300,27 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             color: inputBg,
                             shape: BoxShape.circle,
                             border: Border.all(color: primaryGreen, width: 2),
-                            image: _getAvatarImage() != null
+                            image: avatarImage != null
                                 ? DecorationImage(
-                                    image: _getAvatarImage()!,
+                                    image: avatarImage,
                                     fit: BoxFit.cover,
                                   )
                                 : null,
                           ),
-                          child: _getAvatarImage() == null
-                              ? const Icon(Icons.person,
-                                  color: primaryGreen, size: 60)
+                          child: avatarImage == null
+                              ? const Icon(
+                                  Icons.person,
+                                  color: primaryGreen,
+                                  size: 60,
+                                )
                               : null,
                         ),
                         GestureDetector(
                           onTap: _isEditing
-                              ? (ProfileScreen.profileImage != null ||
-                                      _profileImageUrl != null
+                              ? (hasDisplayedPhoto
                                   ? () => setState(() {
-                                        ProfileScreen.profileImage = null;
-                                        _profileImageUrl = null;
+                                        _pendingImageFile = null;
+                                        _removeExistingImage = true;
                                       })
                                   : _changeProfilePicture)
                               : _startEditing,
@@ -346,8 +329,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             height: 32,
                             decoration: BoxDecoration(
                               color: _isEditing
-                                  ? (ProfileScreen.profileImage != null ||
-                                          _profileImageUrl != null
+                                  ? (hasDisplayedPhoto
                                       ? Colors.redAccent
                                       : const Color(0xFFDAB62C))
                                   : primaryGreen,
@@ -356,8 +338,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             ),
                             child: Icon(
                               _isEditing
-                                  ? (ProfileScreen.profileImage != null ||
-                                          _profileImageUrl != null
+                                  ? (hasDisplayedPhoto
                                       ? Icons.delete_outline
                                       : Icons.camera_alt)
                                   : Icons.edit,
@@ -400,18 +381,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   ),
                   const SizedBox(height: 24),
                   GestureDetector(
-                    onTap: _isLoading ? null : _handleLogout,
+                    onTap: _isSaving ? null : _handleLogout,
                     child: CustomCard(
                       borderRadius: 100,
                       backgroundColor: primaryGreen,
                       padding: const EdgeInsets.symmetric(vertical: 16),
                       child: Center(
-                        child: _isLoading
+                        child: _isSaving
                             ? const SizedBox(
                                 width: 24,
                                 height: 24,
                                 child: CircularProgressIndicator(
-                                    color: inputBg, strokeWidth: 2.5),
+                                  color: inputBg,
+                                  strokeWidth: 2.5,
+                                ),
                               )
                             : const Text(
                                 'Keluar',
@@ -551,14 +534,18 @@ class _EditableDropdownField extends StatelessWidget {
                       contentPadding:
                           EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                     ),
-                    icon:
-                        const Icon(Icons.arrow_drop_down, color: primaryGreen),
+                    icon: const Icon(
+                      Icons.arrow_drop_down,
+                      color: primaryGreen,
+                    ),
                     dropdownColor: Colors.white,
                   )
                 : Container(
                     width: double.infinity,
                     padding: const EdgeInsets.symmetric(
-                        horizontal: 16, vertical: 14),
+                      horizontal: 16,
+                      vertical: 14,
+                    ),
                     child: Text(
                       (value != null && value!.isNotEmpty) ? value! : '-',
                       style: TextStyle(

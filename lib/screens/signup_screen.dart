@@ -1,11 +1,13 @@
+import 'package:firebase_auth/firebase_auth.dart' hide AuthProvider;
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
-import 'package:firebase_auth/firebase_auth.dart' hide AuthProvider;
+import '../config/app_routes.dart';
 import '../providers/auth_provider.dart';
-import '../widgets/common/custom_text_field.dart';
+import '../services/local_storage_service.dart';
 import '../widgets/common/custom_dropdown_field.dart';
+import '../widgets/common/custom_text_field.dart';
 
 const Color _primaryGreen = Color(0xFF637932);
 const Color _darkGreen = Color(0xFF415020);
@@ -43,7 +45,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
   }
 
   void _goToGetStarted() {
-    context.go('/get_started');
+    context.go(AppRoutes.getStarted);
   }
 
   Future<void> _handleSignUp() async {
@@ -58,6 +60,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
               age: _ageController.text,
               gender: _selectedGender ?? '',
             );
+        await LocalStorageService.instance.setHasSeenGetStarted(true);
 
         if (!mounted) return;
         setState(() => _isLoading = false);
@@ -69,7 +72,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
           ),
         );
 
-        context.go('/login');
+        context.go(AppRoutes.login);
       } on FirebaseAuthException catch (e) {
         if (!mounted) return;
         setState(() => _isLoading = false);
@@ -140,7 +143,11 @@ class _SignUpScreenState extends State<SignUpScreen> {
                       ),
                     ),
                     padding: const EdgeInsets.only(
-                        left: 2, top: 6, right: 2, bottom: 0),
+                      left: 2,
+                      top: 6,
+                      right: 2,
+                      bottom: 0,
+                    ),
                     child: Container(
                       decoration: const BoxDecoration(
                         color: _fieldBg,
@@ -167,7 +174,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
                                       margin: const EdgeInsets.only(bottom: 24),
                                       decoration: BoxDecoration(
                                         color: _primaryGreen.withValues(
-                                            alpha: 0.5),
+                                          alpha: 0.5,
+                                        ),
                                         borderRadius:
                                             BorderRadius.circular(100),
                                       ),
@@ -189,8 +197,10 @@ class _SignUpScreenState extends State<SignUpScreen> {
                                 CustomTextField(
                                   label: 'Nama Lengkap',
                                   hint: 'Masukkan nama lengkap',
-                                  prefixIcon: const Icon(Icons.person_outline,
-                                      color: _primaryGreen),
+                                  prefixIcon: const Icon(
+                                    Icons.person_outline,
+                                    color: _primaryGreen,
+                                  ),
                                   controller: _nameController,
                                   validator: (value) =>
                                       value == null || value.isEmpty
@@ -206,8 +216,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
                                         label: 'Umur',
                                         hint: '15',
                                         prefixIcon: const Icon(
-                                            Icons.cake_outlined,
-                                            color: _primaryGreen),
+                                          Icons.cake_outlined,
+                                          color: _primaryGreen,
+                                        ),
                                         keyboardType: TextInputType.number,
                                         controller: _ageController,
                                         validator: (value) {
@@ -245,8 +256,10 @@ class _SignUpScreenState extends State<SignUpScreen> {
                                 CustomTextField(
                                   label: 'Email',
                                   hint: 'eg.nama@gmail.com',
-                                  prefixIcon: const Icon(Icons.email_outlined,
-                                      color: _primaryGreen),
+                                  prefixIcon: const Icon(
+                                    Icons.email_outlined,
+                                    color: _primaryGreen,
+                                  ),
                                   keyboardType: TextInputType.emailAddress,
                                   controller: _emailController,
                                   validator: (value) {
@@ -257,7 +270,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
                                     String email = value.trim().toLowerCase();
 
                                     final emailRegex = RegExp(
-                                        r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$');
+                                      r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$',
+                                    );
                                     if (!emailRegex.hasMatch(email)) {
                                       return 'Format email salah (contoh: nama@gmail.com)';
                                     }
@@ -269,7 +283,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                                       'outlook.com',
                                       'hotmail.com',
                                       'icloud.com',
-                                      'student.usu.ac.id'
+                                      'student.usu.ac.id',
                                     ];
 
                                     final parts = email.split('@');
@@ -296,8 +310,10 @@ class _SignUpScreenState extends State<SignUpScreen> {
                                 CustomTextField(
                                   label: 'Password',
                                   hint: '********',
-                                  prefixIcon: const Icon(Icons.lock_outline,
-                                      color: _primaryGreen),
+                                  prefixIcon: const Icon(
+                                    Icons.lock_outline,
+                                    color: _primaryGreen,
+                                  ),
                                   obscureText: _obscurePassword,
                                   controller: _passwordController,
                                   suffixIcon: IconButton(
@@ -308,8 +324,10 @@ class _SignUpScreenState extends State<SignUpScreen> {
                                       color: _primaryGreen,
                                       size: 20,
                                     ),
-                                    onPressed: () => setState(() =>
-                                        _obscurePassword = !_obscurePassword),
+                                    onPressed: () => setState(
+                                      () =>
+                                          _obscurePassword = !_obscurePassword,
+                                    ),
                                   ),
                                   validator: (value) {
                                     if (value == null || value.isEmpty) {
@@ -324,8 +342,10 @@ class _SignUpScreenState extends State<SignUpScreen> {
                                 CustomTextField(
                                   label: 'Konfirmasi Password',
                                   hint: '********',
-                                  prefixIcon: const Icon(Icons.lock_outline,
-                                      color: _primaryGreen),
+                                  prefixIcon: const Icon(
+                                    Icons.lock_outline,
+                                    color: _primaryGreen,
+                                  ),
                                   obscureText: _obscureConfirmPassword,
                                   controller: _confirmPasswordController,
                                   suffixIcon: IconButton(
@@ -336,9 +356,10 @@ class _SignUpScreenState extends State<SignUpScreen> {
                                       color: _primaryGreen,
                                       size: 20,
                                     ),
-                                    onPressed: () => setState(() =>
-                                        _obscureConfirmPassword =
-                                            !_obscureConfirmPassword),
+                                    onPressed: () => setState(
+                                      () => _obscureConfirmPassword =
+                                          !_obscureConfirmPassword,
+                                    ),
                                   ),
                                   validator: (value) {
                                     if (value == null || value.isEmpty) {
@@ -368,8 +389,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
                                             width: 24,
                                             height: 24,
                                             child: CircularProgressIndicator(
-                                                color: _fieldBg,
-                                                strokeWidth: 2.5),
+                                              color: _fieldBg,
+                                              strokeWidth: 2.5,
+                                            ),
                                           )
                                         : const Text(
                                             'Daftar Sekarang',
@@ -386,7 +408,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                                 Center(
                                   child: GestureDetector(
                                     onTap: () {
-                                      context.go('/login');
+                                      context.go(AppRoutes.login);
                                     },
                                     child: const Text.rich(
                                       TextSpan(

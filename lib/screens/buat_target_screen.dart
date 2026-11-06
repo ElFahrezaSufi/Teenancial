@@ -1,9 +1,11 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import '../widgets/common/custom_text_field.dart';
-import '../widgets/common/custom_card.dart';
+import 'package:provider/provider.dart';
+import '../providers/target_provider.dart';
 import '../utils/currency_formatter.dart';
+import '../widgets/common/custom_card.dart';
+import '../widgets/common/custom_text_field.dart';
 
 const Color _primaryGreen = Color(0xFF627931);
 const Color _scaffoldBg = Color(0xFFEDEFE2);
@@ -21,6 +23,7 @@ class _BuatTargetScreenState extends State<BuatTargetScreen> {
   final _namaBarangController = TextEditingController();
   final _hargaBarangController = TextEditingController();
   File? _selectedImage;
+  bool _isSaving = false;
 
   @override
   void dispose() {
@@ -30,6 +33,7 @@ class _BuatTargetScreenState extends State<BuatTargetScreen> {
   }
 
   Future<void> _pickImage() async {
+    if (_isSaving) return;
     final ImagePicker picker = ImagePicker();
     try {
       final XFile? image = await picker.pickImage(source: ImageSource.gallery);
@@ -40,7 +44,7 @@ class _BuatTargetScreenState extends State<BuatTargetScreen> {
         });
       }
     } catch (e) {
-      debugPrint("Gagal mengambil gambar: $e");
+      debugPrint('Gagal mengambil gambar: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -52,27 +56,54 @@ class _BuatTargetScreenState extends State<BuatTargetScreen> {
     }
   }
 
-  void _simpanData() {
+  Future<void> _simpanData() async {
+    if (_isSaving) return;
     final nama = _namaBarangController.text.trim();
-    final harga = _hargaBarangController.text.trim();
+    final hargaText = _hargaBarangController.text.trim();
+    final double harga = double.tryParse(
+          hargaText.replaceAll(RegExp(r'[^0-9]'), ''),
+        ) ??
+        0.0;
 
-    if (nama.isEmpty || harga.isEmpty || _selectedImage == null) {
+    if (nama.isEmpty || harga <= 0 || _selectedImage == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Tolong isi semua data dan pilih gambar!'),
+          content: Text('Tolong isi semua data dan pilih foto barang impian!'),
           backgroundColor: Colors.redAccent,
         ),
       );
       return;
     }
 
-    final dataTargetBaru = {
-      'nama': nama,
-      'harga': harga,
-      'imagePath': _selectedImage!.path,
-    };
+    setState(() => _isSaving = true);
+    try {
+      await context.read<TargetProvider>().createTarget(
+            nama: nama,
+            targetAmount: harga,
+            imageFile: _selectedImage!,
+          );
 
-    Navigator.pop(context, dataTargetBaru);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('✅ Target menabung berhasil disimpan!'),
+          backgroundColor: _primaryGreen,
+        ),
+      );
+      Navigator.pop(context, true);
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            '❌ Gagal menyimpan target: ${e.toString().replaceAll('Exception: ', '')}',
+          ),
+          backgroundColor: Colors.redAccent,
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _isSaving = false);
+    }
   }
 
   @override
@@ -96,9 +127,13 @@ class _BuatTargetScreenState extends State<BuatTargetScreen> {
                   child: Padding(
                     padding: const EdgeInsets.only(left: 8.0),
                     child: IconButton(
-                      icon: const Icon(Icons.arrow_back_ios,
-                          color: _primaryGreen, size: 20),
-                      onPressed: () => Navigator.pop(context),
+                      icon: const Icon(
+                        Icons.arrow_back_ios,
+                        color: _primaryGreen,
+                        size: 20,
+                      ),
+                      onPressed:
+                          _isSaving ? null : () => Navigator.pop(context),
                     ),
                   ),
                 ),
@@ -138,7 +173,7 @@ class _BuatTargetScreenState extends State<BuatTargetScreen> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   const Text(
-                    'Foto Barang Impian',
+                    'Foto Barang Impian *',
                     style: TextStyle(
                       color: _primaryGreen,
                       fontSize: 16,
@@ -167,13 +202,15 @@ class _BuatTargetScreenState extends State<BuatTargetScreen> {
                             : Column(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
-                                  Icon(Icons.add_a_photo_outlined,
-                                      size: 40,
-                                      color:
-                                          _primaryGreen.withValues(alpha: 0.7)),
+                                  Icon(
+                                    Icons.add_a_photo_outlined,
+                                    size: 40,
+                                    color:
+                                        _primaryGreen.withValues(alpha: 0.7),
+                                  ),
                                   const SizedBox(height: 8),
                                   Text(
-                                    'Ketuk untuk unggah foto',
+                                    'Ketuk untuk unggah foto (Wajib)',
                                     style: TextStyle(
                                       color:
                                           _primaryGreen.withValues(alpha: 0.7),
@@ -190,37 +227,66 @@ class _BuatTargetScreenState extends State<BuatTargetScreen> {
                   CustomTextField(
                     label: 'Barang Target',
                     hint: 'Contoh: Sepeda, Ipad...',
-                    prefixIcon: const Icon(Icons.shopping_bag_outlined,
-                        color: _primaryGreen),
+                    prefixIcon: const Icon(
+                      Icons.shopping_bag_outlined,
+                      color: _primaryGreen,
+                    ),
                     controller: _namaBarangController,
                   ),
                   const SizedBox(height: 24),
                   CustomTextField(
                     label: 'Perkiraan Harga Barang',
                     hint: 'Rp 0',
-                    prefixIcon: const Icon(Icons.payments_outlined,
-                        color: _primaryGreen),
+                    prefixIcon: const Icon(
+                      Icons.payments_outlined,
+                      color: _primaryGreen,
+                    ),
                     keyboardType: TextInputType.number,
                     controller: _hargaBarangController,
                     inputFormatters: [CurrencyInputFormatter()],
                   ),
                   const SizedBox(height: 48),
                   GestureDetector(
-                    onTap: _simpanData,
+                    onTap: _isSaving ? null : _simpanData,
                     child: CustomCard(
                       borderRadius: 100,
-                      backgroundColor: _primaryGreen,
+                      backgroundColor:
+                          _isSaving ? Colors.grey : _primaryGreen,
                       padding: const EdgeInsets.symmetric(vertical: 18),
-                      child: const Center(
-                        child: Text(
-                          'Simpan',
-                          style: TextStyle(
-                            color: _fieldBg,
-                            fontSize: 16,
-                            fontFamily: 'Inter',
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
+                      child: Center(
+                        child: _isSaving
+                            ? const Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  SizedBox(
+                                    width: 20,
+                                    height: 20,
+                                    child: CircularProgressIndicator(
+                                      color: _fieldBg,
+                                      strokeWidth: 2.5,
+                                    ),
+                                  ),
+                                  SizedBox(width: 12),
+                                  Text(
+                                    'Mengunggah & Menyimpan...',
+                                    style: TextStyle(
+                                      color: _fieldBg,
+                                      fontSize: 15,
+                                      fontFamily: 'Inter',
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                ],
+                              )
+                            : const Text(
+                                'Simpan',
+                                style: TextStyle(
+                                  color: _fieldBg,
+                                  fontSize: 16,
+                                  fontFamily: 'Inter',
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
                       ),
                     ),
                   ),

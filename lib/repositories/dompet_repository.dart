@@ -1,72 +1,64 @@
-import 'package:flutter/foundation.dart';
-import '../data/dompet_model.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import '../data/legacy_wallet_catalog.dart';
+import '../models/dompet_model.dart';
+import '../services/firestore_service.dart';
 
-class DompetRepository extends ChangeNotifier {
-  DompetRepository._();
-  static final DompetRepository instance = DompetRepository._();
+class DompetRepository {
+  final FirestoreService _firestoreService;
 
-  final List<DompetItem> _items = [
-    DompetItem(id: 'd1', jenis: JenisDompet.cash, nama: 'Dompet Utama', jumlah: 150000),
-    DompetItem(id: 'd2', jenis: JenisDompet.accounts, nama: 'SeaBank', jumlah: 500000),
-    DompetItem(id: 'd3', jenis: JenisDompet.accounts, nama: 'Go-Pay', jumlah: 75000),
-    DompetItem(id: 'd4', jenis: JenisDompet.accounts, nama: 'Dana', jumlah: 125000),
-    DompetItem(id: 'd5', jenis: JenisDompet.accounts, nama: 'Ovo', jumlah: 20000),
-    DompetItem(id: 'd6', jenis: JenisDompet.card, nama: 'Mandiri', jumlah: 1200000),
-  ];
+  DompetRepository({FirestoreService? firestoreService})
+      : _firestoreService = firestoreService ?? FirestoreService.instance;
 
-  // READ
-  Future<List<DompetItem>> getDompets({bool simulateError = false}) async {
-    await Future.delayed(const Duration(milliseconds: 1000)); // Simulasi Loading
-    if (simulateError) {
-      throw Exception('Simulasi gagal memuat data dompet');
+  Future<List<DompetItem>> getDompets(String uid) async {
+    final walletsRef = _firestoreService.walletsCol(uid);
+    final snapshot = await walletsRef.get();
+
+    if (snapshot.docs.isEmpty) {
+      final userDocRef = _firestoreService.userDoc(uid);
+      final userSnap = await userDocRef.get();
+      final bool walletSeeded = userSnap.data()?['walletSeeded'] == true;
+
+      if (!walletSeeded) {
+        final seedWallets = LegacyWalletCatalog.buildExistingUserSeedWallets();
+        final batch = _firestoreService.batch();
+
+        for (final wallet in seedWallets) {
+          batch.set(walletsRef.doc(wallet.id), wallet.toMap());
+        }
+        batch.set(
+          userDocRef,
+          {'walletSeeded': true},
+          SetOptions(merge: true),
+        );
+
+        await batch.commit();
+        return seedWallets;
+      }
+      return [];
     }
-    return List<DompetItem>.from(_items);
+
+    final items = snapshot.docs
+        .map((doc) => DompetItem.fromMap(doc.data(), docId: doc.id))
+        .toList();
+    items.sort((a, b) => a.id.compareTo(b.id));
+    return items;
   }
 
-  // CREATE
-  Future<void> addDompet(DompetItem item) async {
-    await Future.delayed(const Duration(seconds: 1)); // Simulasi Loading
-    _items.add(item);
-    notifyListeners();
+  Future<void> addDompet(String uid, DompetItem item) async {
+    await _firestoreService
+        .walletsCol(uid)
+        .doc(item.id)
+        .set(item.toMap());
   }
 
-  // UPDATE
-  Future<void> updateDompet(DompetItem item) async {
-    await Future.delayed(const Duration(seconds: 1)); // Simulasi Loading
-    final index = _items.indexWhere((d) => d.id == item.id);
-    if (index != -1) {
-      _items[index] = item;
-      notifyListeners();
-    } else {
-      throw Exception('Data dompet tidak ditemukan');
-    }
+  Future<void> updateDompet(String uid, DompetItem item) async {
+    await _firestoreService
+        .walletsCol(uid)
+        .doc(item.id)
+        .set(item.toMap());
   }
 
-  // DELETE
-  Future<void> deleteDompet(String id) async {
-    await Future.delayed(const Duration(seconds: 1)); // Simulasi Loading
-    _items.removeWhere((d) => d.id == id);
-    notifyListeners();
+  Future<void> deleteDompet(String uid, String dompetId) async {
+    await _firestoreService.walletsCol(uid).doc(dompetId).delete();
   }
-
-  // UPDATE SALDO (Fungsi Helper untuk Transaksi)
-  Future<void> addSaldo(String dompetId, double nominal) async {
-    final dompet = _items.firstWhere((d) => d.id == dompetId, orElse: () => throw Exception('Dompet tidak ditemukan'));
-    dompet.jumlah += nominal;
-    notifyListeners();
-  }
-
-  Future<void> subtractSaldo(String dompetId, double nominal) async {
-    final dompet = _items.firstWhere((d) => d.id == dompetId, orElse: () => throw Exception('Dompet tidak ditemukan'));
-    if (dompet.jumlah < nominal) {
-      throw Exception('Saldo tidak mencukupi di dompet ${dompet.nama}');
-    }
-    dompet.jumlah -= nominal;
-    notifyListeners();
-  }
-
-  double get totalSaldo => _items.fold(0, (sum, item) => sum + item.jumlah);
-
-  // Akses sinkron ke daftar dompet (tanpa simulasi loading)
-  List<DompetItem> get currentDompets => List<DompetItem>.from(_items);
 }

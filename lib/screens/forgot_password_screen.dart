@@ -1,8 +1,9 @@
+import 'package:firebase_auth/firebase_auth.dart' hide AuthProvider;
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
-import 'package:firebase_auth/firebase_auth.dart' hide AuthProvider;
+import '../config/app_routes.dart';
 import '../providers/auth_provider.dart';
 import '../widgets/common/custom_text_field.dart';
 
@@ -30,11 +31,11 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   }
 
   void _goToGetStarted() {
-    context.go('/get_started');
+    context.go(AppRoutes.getStarted);
   }
 
   void _goBackToLogin() {
-    context.go('/login');
+    context.go(AppRoutes.login);
   }
 
   Future<void> _handleResetPassword() async {
@@ -52,7 +53,8 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text(
-                'Tautan reset password berhasil dikirim! Silakan cek emailmu.'),
+              'Tautan reset password berhasil dikirim! Silakan cek emailmu.',
+            ),
             backgroundColor: _primaryGreen,
             duration: Duration(seconds: 4),
           ),
@@ -132,7 +134,11 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                       ),
                     ),
                     padding: const EdgeInsets.only(
-                        left: 2, top: 6, right: 2, bottom: 0),
+                      left: 2,
+                      top: 6,
+                      right: 2,
+                      bottom: 0,
+                    ),
                     child: Container(
                       decoration: const BoxDecoration(
                         color: _fieldBg,
@@ -159,7 +165,8 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                                       margin: const EdgeInsets.only(bottom: 24),
                                       decoration: BoxDecoration(
                                         color: _primaryGreen.withValues(
-                                            alpha: 0.5),
+                                          alpha: 0.5,
+                                        ),
                                         borderRadius:
                                             BorderRadius.circular(100),
                                       ),
@@ -175,7 +182,8 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                                       height: 120,
                                       child: Center(
                                         child: CircularProgressIndicator(
-                                            color: _primaryGreen),
+                                          color: _primaryGreen,
+                                        ),
                                       ),
                                     ),
                                   ),
@@ -206,8 +214,10 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                                 CustomTextField(
                                   label: 'Email',
                                   hint: 'eg.nama@gmail.com',
-                                  prefixIcon: const Icon(Icons.email_outlined,
-                                      color: _primaryGreen),
+                                  prefixIcon: const Icon(
+                                    Icons.email_outlined,
+                                    color: _primaryGreen,
+                                  ),
                                   keyboardType: TextInputType.emailAddress,
                                   controller: _emailController,
                                   validator: (value) {
@@ -230,8 +240,8 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                                     style: ElevatedButton.styleFrom(
                                       backgroundColor: _primaryGreen,
                                       shape: RoundedRectangleBorder(
-                                          borderRadius:
-                                              BorderRadius.circular(12)),
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
                                       elevation: 0,
                                     ),
                                     child: _isLoading
@@ -246,10 +256,11 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                                         : const Text(
                                             'Kirim Tautan',
                                             style: TextStyle(
-                                                color: _fieldBg,
-                                                fontSize: 16,
-                                                fontFamily: 'Inter',
-                                                fontWeight: FontWeight.w700),
+                                              color: _fieldBg,
+                                              fontSize: 16,
+                                              fontFamily: 'Inter',
+                                              fontWeight: FontWeight.w700,
+                                            ),
                                           ),
                                   ),
                                 ),
@@ -261,19 +272,23 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                                       TextSpan(
                                         children: [
                                           TextSpan(
-                                              text: 'Ingat passwordmu? ',
-                                              style: TextStyle(
-                                                  color: _primaryGreen,
-                                                  fontSize: 14,
-                                                  fontFamily: 'Inter',
-                                                  fontWeight: FontWeight.w600)),
+                                            text: 'Ingat passwordmu? ',
+                                            style: TextStyle(
+                                              color: _primaryGreen,
+                                              fontSize: 14,
+                                              fontFamily: 'Inter',
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                          ),
                                           TextSpan(
-                                              text: 'Masuk',
-                                              style: TextStyle(
-                                                  color: _darkGreen,
-                                                  fontSize: 14,
-                                                  fontFamily: 'Inter',
-                                                  fontWeight: FontWeight.w800)),
+                                            text: 'Masuk',
+                                            style: TextStyle(
+                                              color: _darkGreen,
+                                              fontSize: 14,
+                                              fontFamily: 'Inter',
+                                              fontWeight: FontWeight.w800,
+                                            ),
+                                          ),
                                         ],
                                       ),
                                       textAlign: TextAlign.center,

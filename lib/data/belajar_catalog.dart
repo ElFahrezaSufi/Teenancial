@@ -1,50 +1,9 @@
-// Data modul ruang belajar — dipakai bersama oleh home_screen & ruang_belajar_screen
+import '../models/belajar_model.dart';
 
-enum ModuleStatus { locked, available, completed }
+class BelajarCatalog {
+  BelajarCatalog._();
 
-class QuizData {
-  final String label;
-  ModuleStatus status;
-
-  QuizData({required this.label, this.status = ModuleStatus.locked});
-}
-
-class ModuleData {
-  final String title;
-  final String description;
-  final QuizData quiz;
-  ModuleStatus status;
-  bool isExpanded;
-
-  ModuleData({
-    required this.title,
-    required this.description,
-    required this.quiz,
-    this.status = ModuleStatus.locked,
-    this.isExpanded = false,
-  });
-}
-
-class LevelData {
-  final String tingkat;
-  final String subtitle;
-  final List<ModuleData> modules;
-
-  LevelData({
-    required this.tingkat,
-    required this.subtitle,
-    required this.modules,
-  });
-}
-
-// Singleton state agar home & ruang belajar berbagi data yang sama
-class BelajarData {
-  BelajarData._();
-  static final BelajarData instance = BelajarData._();
-
-  late List<LevelData> levels = _buildLevels();
-
-  List<LevelData> _buildLevels() {
+  static List<LevelData> buildLevels() {
     return [
       // ── DASAR ──────────────────────────────────────────────────────────────
       LevelData(
@@ -136,77 +95,5 @@ class BelajarData {
         ],
       ),
     ];
-  }
-
-  // Kembalikan modul pertama yang masih available atau sedang dikerjakan
-  // beserta info level-nya. Null jika semua sudah selesai.
-  ({ModuleData module, LevelData level, double levelProgress})?
-      get currentModule {
-    for (final level in levels) {
-      final completed =
-          level.modules.where((m) => m.status == ModuleStatus.completed).length;
-      final progress = completed / level.modules.length;
-
-      for (final mod in level.modules) {
-        if (mod.status == ModuleStatus.available) {
-          return (module: mod, level: level, levelProgress: progress);
-        }
-        // Modul selesai tapi kuisnya belum → tampilkan modul ini
-        if (mod.status == ModuleStatus.completed &&
-            mod.quiz.status == ModuleStatus.available) {
-          return (module: mod, level: level, levelProgress: progress);
-        }
-      }
-    }
-    return null;
-  }
-
-  void recomputeLocks() {
-    for (int li = 0; li < levels.length; li++) {
-      final level = levels[li];
-      for (int mi = 0; mi < level.modules.length; mi++) {
-        final mod = level.modules[mi];
-
-        if (mod.status == ModuleStatus.completed) {
-          mod.quiz.status = ModuleStatus.completed;
-          continue;
-        }
-
-        bool moduleUnlocked;
-        if (li == 0 && mi == 0) {
-          moduleUnlocked = true;
-        } else if (mi > 0) {
-          moduleUnlocked =
-              level.modules[mi - 1].status == ModuleStatus.completed;
-        } else {
-          moduleUnlocked = levels[li - 1]
-              .modules
-              .every((m) => m.status == ModuleStatus.completed);
-        }
-
-        mod.status =
-            moduleUnlocked ? ModuleStatus.available : ModuleStatus.locked;
-        mod.quiz.status = mod.status == ModuleStatus.completed
-            ? ModuleStatus.completed
-            : ModuleStatus.locked;
-      }
-    }
-  }
-
-  void completeModule(int levelIndex, int moduleIndex) {
-    final mod = levels[levelIndex].modules[moduleIndex];
-    if (mod.status == ModuleStatus.available) {
-      mod.status = ModuleStatus.completed;
-      mod.quiz.status = ModuleStatus.available;
-      recomputeLocks();
-    }
-  }
-
-  void completeQuiz(int levelIndex, int moduleIndex) {
-    final quiz = levels[levelIndex].modules[moduleIndex].quiz;
-    if (quiz.status == ModuleStatus.available) {
-      quiz.status = ModuleStatus.completed;
-      recomputeLocks();
-    }
   }
 }

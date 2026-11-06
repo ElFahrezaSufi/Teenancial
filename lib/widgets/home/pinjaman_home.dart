@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import '../../data/transaction_model.dart';
-import '../../repositories/transaction_repository.dart';
+import 'package:provider/provider.dart';
+import '../../models/transaction_model.dart';
+import '../../providers/transaction_provider.dart';
 import '../../theme/app_colors.dart';
 import '../../utils/loan_helper.dart';
 import '../common/custom_card.dart';
@@ -19,9 +20,10 @@ class PinjamanHome extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final repo = TransactionRepository.instance;
-    final unpaidDebts = repo.debts.where((t) => !t.isPaid).toList();
-    final unpaidReceivables = repo.receivables.where((t) => !t.isPaid).toList();
+    final txProvider = context.watch<TransactionProvider>();
+    final unpaidDebts = txProvider.debts.where((t) => !t.isPaid).toList();
+    final unpaidReceivables =
+        txProvider.receivables.where((t) => !t.isPaid).toList();
 
     final double totalDebt = unpaidDebts.fold(0.0, (s, t) => s + t.amount);
     final double totalReceivable =
@@ -32,7 +34,9 @@ class PinjamanHome extends StatelessWidget {
       ...unpaidReceivables,
     ];
     final int overdueCount = allUnpaid
-        .where((t) => t.dueDate != null && LoanHelper.daysUntilDue(t.dueDate!) < 0)
+        .where(
+          (t) => t.dueDate != null && LoanHelper.daysUntilDue(t.dueDate!) < 0,
+        )
         .length;
     final int soonCount = allUnpaid.where((t) {
       if (t.dueDate == null) return false;
@@ -104,9 +108,9 @@ class PinjamanHome extends StatelessWidget {
               ),
             ] else ...[
               const SizedBox(height: 12),
-              Row(
+              const Row(
                 mainAxisAlignment: MainAxisAlignment.center,
-                children: const [
+                children: [
                   Text(
                     'Lihat detail & jatuh tempo',
                     style: TextStyle(

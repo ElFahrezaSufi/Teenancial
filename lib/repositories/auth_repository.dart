@@ -1,11 +1,16 @@
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:google_sign_in/google_sign_in.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
+import 'package:google_sign_in/google_sign_in.dart';
+import '../data/legacy_wallet_catalog.dart';
+import '../services/firestore_service.dart';
 
 class AuthRepository {
   final FirebaseAuth _auth = FirebaseAuth.instance;
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final FirestoreService _firestoreService;
+
+  AuthRepository({FirestoreService? firestoreService})
+      : _firestoreService = firestoreService ?? FirestoreService.instance;
 
   Future<UserCredential> loginWithEmail(String email, String password) async {
     return await _auth.signInWithEmailAndPassword(
@@ -30,14 +35,29 @@ class AuthRepository {
     if (user != null) {
       try {
         await user.updateDisplayName(name.trim());
-        await _firestore.collection('users').doc(user.uid).set({
+
+        final initialWallet = LegacyWalletCatalog.buildNewUserInitialWallet();
+        final batch = _firestoreService.batch();
+
+        batch.set(_firestoreService.userDoc(user.uid), {
           'uid': user.uid,
           'email': user.email,
           'name': name.trim(),
           'age': age.trim(),
           'gender': gender.trim(),
+          'walletSeeded': true,
+          'legacyFinanceSeeded': true,
+          'completedModules': <String>[],
+          'completedQuizzes': <String>[],
           'createdAt': FieldValue.serverTimestamp(),
         });
+
+        batch.set(
+          _firestoreService.walletsCol(user.uid).doc(initialWallet.id),
+          initialWallet.toMap(),
+        );
+
+        await batch.commit();
       } catch (_) {
         try {
           await user.delete();
@@ -91,12 +111,15 @@ class AuthRepository {
 
       final user = userCredential.user;
       if (user != null) {
-        final userDocRef = _firestore.collection('users').doc(user.uid);
-        final isNewUser =
+        final userDocRef = _firestoreService.userDoc(user.uid);
+        final bool isNewUser =
             userCredential.additionalUserInfo?.isNewUser == true;
 
-        if (isNewUser || !(await userDocRef.get()).exists) {
-          await userDocRef.set({
+        if (isNewUser) {
+          final initialWallet = LegacyWalletCatalog.buildNewUserInitialWallet();
+          final batch = _firestoreService.batch();
+
+          batch.set(userDocRef, {
             'uid': user.uid,
             'email': user.email,
             'name': user.displayName ?? 'Pengguna Baru',
@@ -104,6 +127,31 @@ class AuthRepository {
             'gender': '',
             if (user.photoURL != null && user.photoURL!.isNotEmpty)
               'profileImageUrl': user.photoURL,
+            'walletSeeded': true,
+            'legacyFinanceSeeded': true,
+            'completedModules': <String>[],
+            'completedQuizzes': <String>[],
+            'createdAt': FieldValue.serverTimestamp(),
+          });
+
+          batch.set(
+            _firestoreService.walletsCol(user.uid).doc(initialWallet.id),
+            initialWallet.toMap(),
+          );
+
+          await batch.commit();
+        } else if (!(await userDocRef.get()).exists) {
+          // Akun lama yang belum memiliki dokumen users/{uid}:
+          // Biarkan walletSeeded = false agar DompetRepository men-seed 6 dompet existing.
+          await userDocRef.set({
+            'uid': user.uid,
+            'email': user.email,
+            'name': user.displayName ?? 'Pengguna',
+            'age': '',
+            'gender': '',
+            if (user.photoURL != null && user.photoURL!.isNotEmpty)
+              'profileImageUrl': user.photoURL,
+            'walletSeeded': false,
             'createdAt': FieldValue.serverTimestamp(),
           });
         }

@@ -1,31 +1,20 @@
 import 'package:flutter/material.dart';
-import '../data/belajar_data.dart';
+import 'package:provider/provider.dart';
+import '../models/belajar_model.dart';
+import '../providers/belajar_provider.dart';
 import '../theme/app_colors.dart';
 import '../widgets/belajar/level_section.dart';
 
-class RuangBelajarScreen extends StatefulWidget {
+class RuangBelajarScreen extends StatelessWidget {
   const RuangBelajarScreen({super.key});
-
-  @override
-  State<RuangBelajarScreen> createState() => _RuangBelajarScreenState();
-}
-
-class _RuangBelajarScreenState extends State<RuangBelajarScreen> {
-  final _data = BelajarData.instance;
-
-  void _completeModule(int levelIndex, int moduleIndex) {
-    setState(() => _data.completeModule(levelIndex, moduleIndex));
-  }
-
-  void _completeQuiz(int levelIndex, int moduleIndex) {
-    setState(() => _data.completeQuiz(levelIndex, moduleIndex));
-  }
 
   int _completedCount(LevelData level) =>
       level.modules.where((m) => m.status == ModuleStatus.completed).length;
 
   @override
   Widget build(BuildContext context) {
+    final belajarProvider = context.watch<BelajarProvider>();
+
     return Scaffold(
       backgroundColor: scaffoldBg,
       appBar: PreferredSize(
@@ -55,8 +44,11 @@ class _RuangBelajarScreenState extends State<RuangBelajarScreen> {
                 Positioned(
                   left: 8,
                   child: IconButton(
-                    icon: const Icon(Icons.arrow_back_ios,
-                        color: primaryGreen, size: 20),
+                    icon: const Icon(
+                      Icons.arrow_back_ios,
+                      color: primaryGreen,
+                      size: 20,
+                    ),
                     onPressed: () => Navigator.pop(context),
                   ),
                 ),
@@ -83,20 +75,23 @@ class _RuangBelajarScreenState extends State<RuangBelajarScreen> {
               padding: const EdgeInsets.fromLTRB(24, 20, 24, 100),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: _data.levels
+                children: belajarProvider.levels
                     .asMap()
                     .entries
-                    .map((entry) => LevelSection(
-                          levelIndex: entry.key,
-                          level: entry.value,
-                          completedCount: _completedCount(entry.value),
-                          onCompleteModule: _completeModule,
-                          onCompleteQuiz: _completeQuiz,
-                          onToggleExpand: (mi) => setState(() {
-                            entry.value.modules[mi].isExpanded =
-                                !entry.value.modules[mi].isExpanded;
-                          }),
-                        ))
+                    .map(
+                      (entry) => LevelSection(
+                        levelIndex: entry.key,
+                        level: entry.value,
+                        completedCount: _completedCount(entry.value),
+                        onCompleteModule: (li, mi) =>
+                            context.read<BelajarProvider>().completeModule(li, mi),
+                        onCompleteQuiz: (li, mi) =>
+                            context.read<BelajarProvider>().completeQuiz(li, mi),
+                        onToggleExpand: (mi) => context
+                            .read<BelajarProvider>()
+                            .toggleExpand(entry.key, mi),
+                      ),
+                    )
                     .toList(),
               ),
             ),

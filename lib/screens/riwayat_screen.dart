@@ -1,133 +1,54 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
-import '../data/transaction_model.dart';
-import '../repositories/transaction_repository.dart';
+import 'package:provider/provider.dart';
+import '../config/app_routes.dart';
+import '../models/transaction_model.dart';
+import '../providers/transaction_provider.dart';
+import '../services/local_storage_service.dart';
 import '../theme/app_colors.dart';
 import '../widgets/common/custom_card.dart';
 import '../widgets/common/custom_filter_chip.dart';
 import '../widgets/common/skeleton.dart';
 import '../widgets/transaction/transaction_group.dart';
 import '../widgets/transaction/trend_chart_painter.dart';
-import 'pemasukan_screen.dart';
-import 'pengeluaran_screen.dart';
-import 'semua_aktivitas_screen.dart';
-
-enum _LoadState { loading, success, error, empty }
 
 class RiwayatScreen extends StatefulWidget {
   const RiwayatScreen({super.key});
 
-  @override
-  State<RiwayatScreen> createState() => _RiwayatScreenState();
-}
-
-class _RiwayatScreenState extends State<RiwayatScreen> {
-  int _selectedFilter = 0; // 0: Mingguan, 1: Bulanan, 2: Tahunan
-  _LoadState _loadState = _LoadState.loading;
-  String _errorMessage = '';
-  
-  List<TransactionModel> _allTransactions = [];
-  List<TransactionGroupData> _filteredGroups = [];
-  List<double> _trendData = [];
-  String _maxLabel = '';
-
-  @override
-  void initState() {
-    super.initState();
-    _loadData();
-    TransactionRepository.instance.addListener(_onTransactionChanged);
-  }
-
-  @override
-  void dispose() {
-    TransactionRepository.instance.removeListener(_onTransactionChanged);
-    super.dispose();
-  }
-
-  void _onTransactionChanged() {
-    _loadData();
-  }
-
-  Future<void> _loadData({bool simulateError = false}) async {
-    setState(() => _loadState = _LoadState.loading);
-    try {
-      final data = await TransactionRepository.instance.getTransactions(simulateError: simulateError);
-      _allTransactions = data;
-      _processData();
-    } catch (e) {
-      setState(() {
-        _errorMessage = e.toString();
-        _loadState = _LoadState.error;
-      });
-    }
-  }
-
-  void _processData() {
-    if (_allTransactions.isEmpty) {
-      setState(() {
-        _loadState = _LoadState.empty;
-        _filteredGroups = [];
-        _trendData = [];
-      });
-      return;
-    }
-
+  static DateTime cutoffForFilter(int filterIndex) {
     final now = DateTime.now();
-    DateTime cutoff;
-    if (_selectedFilter == 0) {
-      cutoff = now.subtract(const Duration(days: 7));
-    } else if (_selectedFilter == 1) {
-      cutoff = now.subtract(const Duration(days: 30));
-    } else {
-      cutoff = now.subtract(const Duration(days: 365));
+    if (filterIndex == 0) {
+      return now.subtract(const Duration(days: 7));
+    } else if (filterIndex == 1) {
+      return now.subtract(const Duration(days: 30));
     }
-
-    final filtered = _allTransactions.where((t) => t.date.isAfter(cutoff)).toList();
-    
-    if (filtered.isEmpty) {
-      setState(() {
-        _loadState = _LoadState.empty;
-        _filteredGroups = [];
-        _trendData = [];
-      });
-      return;
-    }
-
-    // Grouping
-    final Map<String, List<TransactionModel>> groups = {};
-    for (var t in filtered) {
-      final dateStr = DateFormat('EEEE, dd MMMM yyyy', 'id_ID').format(t.date);
-      if (!groups.containsKey(dateStr)) groups[dateStr] = [];
-      groups[dateStr]!.add(t);
-    }
-
-    _filteredGroups = groups.entries.map((e) => TransactionGroupData(dateLabel: e.key, items: e.value)).toList();
-    _filteredGroups.sort((a, b) => b.items.first.date.compareTo(a.items.first.date));
-
-    // Trend calculation
-    filtered.sort((a, b) => a.date.compareTo(b.date));
-    double balance = 0.0;
-    _trendData = [];
-    for (var t in filtered) {
-      if (t.type == TransactionType.income) {
-        balance += t.amount;
-      } else {
-        balance -= t.amount;
-      }
-      _trendData.add(balance);
-    }
-    if (_trendData.isEmpty) _trendData = [0.0];
-
-    // Max Label
-    double totalIncome = filtered.where((t) => t.type == TransactionType.income).fold(0, (sum, t) => sum + t.amount);
-    _maxLabel = '+ ${_formatCurrency(totalIncome)}';
-
-    setState(() {
-      _loadState = _LoadState.success;
-    });
+    return now.subtract(const Duration(days: 365));
   }
 
-  String _formatCurrency(double amount) {
+  static List<TransactionGroupData> buildFilteredGroups(
+    List<TransactionModel> allTransactions,
+    int filterIndex,
+  ) {
+    final cutoff = cutoffForFilter(filterIndex);
+    final filtered =
+        allTransactions.where((t) => t.date.isAfter(cutoff)).toList();
+    if (filtered.isEmpty) return [];
+
+    final Map<String, List<TransactionModel>> groups = {};
+    for (final t in filtered) {
+      final dateStr = DateFormat('EEEE, dd MMMM yyyy', 'id_ID').format(t.date);
+      groups.putIfAbsent(dateStr, () => []).add(t);
+    }
+
+    final result = groups.entries
+        .map((e) => TransactionGroupData(dateLabel: e.key, items: e.value))
+        .toList();
+    result.sort((a, b) => b.items.first.date.compareTo(a.items.first.date));
+    return result;
+  }
+
+  static String formatCurrency(double amount) {
     final parts = amount.abs().toStringAsFixed(0).split('');
     final buffer = StringBuffer();
     int count = 0;
@@ -140,12 +61,36 @@ class _RiwayatScreenState extends State<RiwayatScreen> {
     return 'Rp $reversed,00';
   }
 
+  @override
+  State<RiwayatScreen> createState() => _RiwayatScreenState();
+}
+
+class _RiwayatScreenState extends State<RiwayatScreen> {
+  int _selectedFilter = 0; // 0: Mingguan, 1: Bulanan, 2: Tahunan
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedFilter = LocalStorageService.instance.riwayatFilterIndex;
+  }
+
+  void _setFilter(int index) {
+    if (_selectedFilter == index) return;
+    setState(() => _selectedFilter = index);
+    LocalStorageService.instance.setRiwayatFilterIndex(index);
+  }
+
   Future<void> _deleteTransaction(String id) async {
     final bool? confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Hapus Transaksi', style: TextStyle(color: primaryGreen)),
-        content: const Text('Apakah Anda yakin ingin menghapus data ini? Aksi ini tidak dapat dibatalkan.'),
+        title: const Text(
+          'Hapus Transaksi',
+          style: TextStyle(color: primaryGreen),
+        ),
+        content: const Text(
+          'Apakah Anda yakin ingin menghapus data ini? Aksi ini tidak dapat dibatalkan.',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
@@ -159,40 +104,41 @@ class _RiwayatScreenState extends State<RiwayatScreen> {
       ),
     );
 
-    if (confirm != true) return;
+    if (confirm != true || !mounted) return;
 
-    setState(() => _loadState = _LoadState.loading);
     try {
-      await TransactionRepository.instance.deleteTransaction(id);
+      await context.read<TransactionProvider>().deleteTransaction(id);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('✅ Data berhasil dihapus!'), backgroundColor: primaryGreen),
+          const SnackBar(
+            content: Text('✅ Data berhasil dihapus!'),
+            backgroundColor: primaryGreen,
+          ),
         );
       }
-      _loadData();
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('❌ Gagal menghapus: $e'), backgroundColor: Colors.red),
+          SnackBar(
+            content: Text(
+              '❌ Gagal menghapus: ${e.toString().replaceAll('Exception: ', '')}',
+            ),
+            backgroundColor: Colors.red,
+          ),
         );
       }
-      _loadData();
     }
   }
 
   Future<void> _editTransaction(TransactionModel item) async {
-    final result = await Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => item.type == TransactionType.income 
-          ? PemasukanScreen(transactionToEdit: item) 
-          : PengeluaranScreen(transactionToEdit: item),
-      ),
-    );
-
-    if (result == true) {
-      _loadData();
+    if (item.type != TransactionType.income &&
+        item.type != TransactionType.expense) {
+      return;
     }
+    final route = item.type == TransactionType.income
+        ? AppRoutes.pemasukan
+        : AppRoutes.pengeluaran;
+    await context.push(route, extra: item);
   }
 
   PreferredSizeWidget _buildAppBar() {
@@ -256,7 +202,7 @@ class _RiwayatScreenState extends State<RiwayatScreen> {
     );
   }
 
-  Widget _buildError() {
+  Widget _buildError(String errorMessage) {
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(24.0),
@@ -267,11 +213,15 @@ class _RiwayatScreenState extends State<RiwayatScreen> {
             const SizedBox(height: 16),
             const Text(
               'Oops, terjadi kesalahan!',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: primaryGreen),
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: primaryGreen,
+              ),
             ),
             const SizedBox(height: 8),
             Text(
-              _errorMessage,
+              errorMessage,
               textAlign: TextAlign.center,
               style: const TextStyle(color: Colors.grey),
             ),
@@ -279,11 +229,18 @@ class _RiwayatScreenState extends State<RiwayatScreen> {
             ElevatedButton(
               style: ElevatedButton.styleFrom(
                 backgroundColor: primaryGreen,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12)
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
               ),
-              onPressed: () => _loadData(),
-              child: const Text('Coba Lagi', style: TextStyle(color: Colors.white)),
+              onPressed: () =>
+                  context.read<TransactionProvider>().loadTransactions(),
+              child: const Text(
+                'Coba Lagi',
+                style: TextStyle(color: Colors.white),
+              ),
             ),
           ],
         ),
@@ -298,11 +255,19 @@ class _RiwayatScreenState extends State<RiwayatScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.receipt_long_outlined, size: 80, color: primaryGreen.withValues(alpha: 0.5)),
+            Icon(
+              Icons.receipt_long_outlined,
+              size: 80,
+              color: primaryGreen.withValues(alpha: 0.5),
+            ),
             const SizedBox(height: 16),
             const Text(
               'Belum ada transaksi',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: primaryGreen),
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: primaryGreen,
+              ),
             ),
             const SizedBox(height: 8),
             const Text(
@@ -318,7 +283,37 @@ class _RiwayatScreenState extends State<RiwayatScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final visibleGroups = _filteredGroups.take(2).toList();
+    final txProvider = context.watch<TransactionProvider>();
+    final allTransactions = txProvider.transactions;
+    final filteredGroups =
+        RiwayatScreen.buildFilteredGroups(allTransactions, _selectedFilter);
+    final visibleGroups = filteredGroups.take(2).toList();
+
+    final cutoff = RiwayatScreen.cutoffForFilter(_selectedFilter);
+    final filteredAsc =
+        allTransactions.where((t) => t.date.isAfter(cutoff)).toList()
+          ..sort((a, b) => a.date.compareTo(b.date));
+
+    double balance = 0.0;
+    final List<double> trendData = [];
+    for (final t in filteredAsc) {
+      if (t.type == TransactionType.income || t.type == TransactionType.debt) {
+        balance += t.amount;
+      } else if (t.type == TransactionType.transfer &&
+          t.destinationDompetId != null) {
+        // Transfer internal antar dompet tidak mengubah total saldo
+      } else {
+        balance -= t.amount;
+      }
+      trendData.add(balance);
+    }
+    if (trendData.isEmpty) trendData.add(0.0);
+
+    final double totalIncome = filteredAsc
+        .where((t) => t.type == TransactionType.income)
+        .fold(0.0, (sum, t) => sum + t.amount);
+    final String maxLabel = '+ ${RiwayatScreen.formatCurrency(totalIncome)}';
+
     const Color orangeText = Color(0xFFE18151);
 
     return Scaffold(
@@ -334,119 +329,107 @@ class _RiwayatScreenState extends State<RiwayatScreen> {
               fit: BoxFit.cover,
             ),
           ),
-          if (_loadState == _LoadState.loading) _buildLoading(),
-          if (_loadState == _LoadState.error) _buildError(),
-          if (_loadState == _LoadState.success || _loadState == _LoadState.empty)
+          if (txProvider.isLoading && allTransactions.isEmpty)
+            _buildLoading()
+          else if (txProvider.errorMessage != null && allTransactions.isEmpty)
+            _buildError(txProvider.errorMessage!)
+          else
             SafeArea(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(24.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        CustomFilterChip(
-                          label: 'Mingguan',
-                          selected: _selectedFilter == 0,
-                          onTap: () {
-                            setState(() => _selectedFilter = 0);
-                            _processData();
-                          },
-                        ),
-                        const SizedBox(width: 8),
-                        CustomFilterChip(
-                          label: 'Bulanan',
-                          selected: _selectedFilter == 1,
-                          onTap: () {
-                            setState(() => _selectedFilter = 1);
-                            _processData();
-                          },
-                        ),
-                        const SizedBox(width: 8),
-                        CustomFilterChip(
-                          label: 'Tahunan',
-                          selected: _selectedFilter == 2,
-                          onTap: () {
-                            setState(() => _selectedFilter = 2);
-                            _processData();
-                          },
-                        ),
-                      ],
-                    ),
-                    
-                    if (_loadState == _LoadState.empty)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 60),
-                        child: _buildEmpty(),
-                      )
-                    else ...[
-                      const SizedBox(height: 20),
-                      const Text(
-                        'Tren Saldo',
-                        style: TextStyle(
-                          color: primaryGreen,
-                          fontSize: 14,
-                          fontFamily: 'Inter',
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                      const SizedBox(height: 10),
-                      CustomCard(
-                        backgroundColor: cardBg,
-                        borderRadius: 16,
-                        padding: const EdgeInsets.all(12),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.end,
-                          children: [
-                            Text(
-                              _maxLabel,
-                              style: const TextStyle(
-                                color: primaryGreen,
-                                fontSize: 12,
-                                fontFamily: 'Inter',
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                            const SizedBox(height: 6),
-                            SizedBox(
-                              height: 150,
-                              child: CustomPaint(
-                                painter: TrendChartPainter(_trendData),
-                                child: const SizedBox.expand(),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 24),
+              child: RefreshIndicator(
+                color: primaryGreen,
+                backgroundColor: scaffoldBg,
+                onRefresh: () => context
+                    .read<TransactionProvider>()
+                    .loadTransactions(silent: true),
+                child: SingleChildScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  padding: const EdgeInsets.all(24.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
                       Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          const Text(
-                            'Aktivitas Terbaru',
-                            style: TextStyle(
-                              color: primaryGreen,
-                              fontSize: 14,
-                              fontFamily: 'Inter',
-                              fontWeight: FontWeight.w700,
-                            ),
+                          CustomFilterChip(
+                            label: 'Mingguan',
+                            selected: _selectedFilter == 0,
+                            onTap: () => _setFilter(0),
                           ),
-                          if (_filteredGroups.isNotEmpty)
+                          const SizedBox(width: 8),
+                          CustomFilterChip(
+                            label: 'Bulanan',
+                            selected: _selectedFilter == 1,
+                            onTap: () => _setFilter(1),
+                          ),
+                          const SizedBox(width: 8),
+                          CustomFilterChip(
+                            label: 'Tahunan',
+                            selected: _selectedFilter == 2,
+                            onTap: () => _setFilter(2),
+                          ),
+                        ],
+                      ),
+                      if (filteredGroups.isEmpty)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 60),
+                          child: _buildEmpty(),
+                        )
+                      else ...[
+                        const SizedBox(height: 20),
+                        const Text(
+                          'Tren Saldo',
+                          style: TextStyle(
+                            color: primaryGreen,
+                            fontSize: 14,
+                            fontFamily: 'Inter',
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        CustomCard(
+                          backgroundColor: cardBg,
+                          borderRadius: 16,
+                          padding: const EdgeInsets.all(12),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              Text(
+                                maxLabel,
+                                style: const TextStyle(
+                                  color: primaryGreen,
+                                  fontSize: 12,
+                                  fontFamily: 'Inter',
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                              const SizedBox(height: 6),
+                              SizedBox(
+                                height: 150,
+                                child: CustomPaint(
+                                  painter: TrendChartPainter(trendData),
+                                  child: const SizedBox.expand(),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 24),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Text(
+                              'Aktivitas Terbaru',
+                              style: TextStyle(
+                                color: primaryGreen,
+                                fontSize: 14,
+                                fontFamily: 'Inter',
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
                             GestureDetector(
-                              onTap: () async {
-                                final result = await Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (_) => SemuaAktivitasScreen(
-                                      groups: _filteredGroups,
-                                      formatCurrency: _formatCurrency,
-                                      onEdit: _editTransaction,
-                                      onDelete: _deleteTransaction,
-                                    ),
-                                  ),
-                                );
-                                if (result == true) _loadData();
-                              },
+                              onTap: () => context.push(
+                                AppRoutes.semuaAktivitas,
+                                extra: _selectedFilter,
+                              ),
                               child: const Text(
                                 'Lihat semua',
                                 style: TextStyle(
@@ -457,20 +440,21 @@ class _RiwayatScreenState extends State<RiwayatScreen> {
                                 ),
                               ),
                             ),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-                      ...visibleGroups.map(
-                        (group) => TransactionGroupList(
-                          group: group,
-                          formatCurrency: _formatCurrency,
-                          onEdit: _editTransaction,
-                          onDelete: _deleteTransaction,
+                          ],
                         ),
-                      ),
+                        const SizedBox(height: 12),
+                        ...visibleGroups.map(
+                          (group) => TransactionGroupList(
+                            group: group,
+                            formatCurrency: RiwayatScreen.formatCurrency,
+                            onEdit: _editTransaction,
+                            onDelete: _deleteTransaction,
+                          ),
+                        ),
+                      ],
+                      const SizedBox(height: 80),
                     ],
-                    const SizedBox(height: 80),
-                  ],
+                  ),
                 ),
               ),
             ),

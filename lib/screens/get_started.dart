@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:go_router/go_router.dart'; // Import go_router
+import 'package:go_router/go_router.dart';
+import '../config/app_routes.dart';
+import '../services/local_storage_service.dart';
 
 class GetStarted extends StatelessWidget {
   const GetStarted({super.key});
@@ -58,9 +60,11 @@ class GetStarted extends StatelessWidget {
                       ),
                       const SizedBox(height: 28),
                       GestureDetector(
-                        onTap: () {
-                          // Menggunakan go_router untuk pindah ke halaman login
-                          context.go('/login');
+                        onTap: () async {
+                          await LocalStorageService.instance
+                              .setHasSeenGetStarted(true);
+                          if (!context.mounted) return;
+                          context.go(AppRoutes.login);
                         },
                         child: SizedBox(
                           width: 310,
