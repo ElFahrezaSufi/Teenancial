@@ -15,9 +15,10 @@ class BelajarProvider extends ChangeNotifier {
   List<LevelData> _levels = BelajarCatalog.buildLevels();
   Set<String> _completedModules = {};
   Set<String> _completedQuizzes = {};
+  Set<String> _expandedModules = {};
   bool _isLoading = false;
 
-  List<LevelData> get levels => _levels;
+  List<LevelData> get levels => List<LevelData>.unmodifiable(_levels);
   bool get isLoading => _isLoading;
 
   ({ModuleData module, LevelData level, double levelProgress})?
@@ -45,9 +46,9 @@ class BelajarProvider extends ChangeNotifier {
   void updateUser(String? newUid) {
     if (_uid == newUid) return;
     _uid = newUid;
-    _levels = BelajarCatalog.buildLevels();
     _completedModules = {};
     _completedQuizzes = {};
+    _expandedModules = {};
     _recomputeLocks();
 
     if (newUid == null) {
@@ -90,52 +91,89 @@ class BelajarProvider extends ChangeNotifier {
   }
 
   void _recomputeLocks() {
-    for (int li = 0; li < _levels.length; li++) {
-      final level = _levels[li];
+    final baseLevels = BelajarCatalog.buildLevels();
+    final updatedLevels = <LevelData>[];
+
+    for (int li = 0; li < baseLevels.length; li++) {
+      final level = baseLevels[li];
+      final updatedModules = <ModuleData>[];
+
       for (int mi = 0; mi < level.modules.length; mi++) {
         final mod = level.modules[mi];
         final key = BelajarProgressModel.keyOf(li, mi);
         final isModDone = _completedModules.contains(key);
         final isQuizDone = _completedQuizzes.contains(key);
 
-        if (isModDone) {
-          mod.status = ModuleStatus.completed;
-          mod.quiz.status =
-              isQuizDone ? ModuleStatus.completed : ModuleStatus.available;
-          continue;
-        }
+        late final ModuleStatus moduleStatus;
+        late final ModuleStatus quizStatus;
 
-        bool moduleUnlocked;
-        if (li == 0 && mi == 0) {
-          moduleUnlocked = true;
-        } else if (mi > 0) {
-          final prevKey = BelajarProgressModel.keyOf(li, mi - 1);
-          moduleUnlocked = _completedModules.contains(prevKey) &&
-              _completedQuizzes.contains(prevKey);
+        if (isModDone) {
+          moduleStatus = ModuleStatus.completed;
+          quizStatus =
+              isQuizDone ? ModuleStatus.completed : ModuleStatus.available;
         } else {
-          final prevLevel = _levels[li - 1];
-          moduleUnlocked = true;
-          for (int pmi = 0; pmi < prevLevel.modules.length; pmi++) {
-            final prevKey = BelajarProgressModel.keyOf(li - 1, pmi);
-            if (!_completedModules.contains(prevKey) ||
-                !_completedQuizzes.contains(prevKey)) {
-              moduleUnlocked = false;
-              break;
+          bool moduleUnlocked;
+          if (li == 0 && mi == 0) {
+            moduleUnlocked = true;
+          } else if (mi > 0) {
+            final prevKey = BelajarProgressModel.keyOf(li, mi - 1);
+            moduleUnlocked = _completedModules.contains(prevKey) &&
+                _completedQuizzes.contains(prevKey);
+          } else {
+            final prevLevel = baseLevels[li - 1];
+            moduleUnlocked = true;
+            for (int pmi = 0; pmi < prevLevel.modules.length; pmi++) {
+              final prevKey = BelajarProgressModel.keyOf(li - 1, pmi);
+              if (!_completedModules.contains(prevKey) ||
+                  !_completedQuizzes.contains(prevKey)) {
+                moduleUnlocked = false;
+                break;
+              }
             }
           }
+
+          moduleStatus =
+              moduleUnlocked ? ModuleStatus.available : ModuleStatus.locked;
+          quizStatus = ModuleStatus.locked;
         }
 
-        mod.status =
-            moduleUnlocked ? ModuleStatus.available : ModuleStatus.locked;
-        mod.quiz.status = ModuleStatus.locked;
+        final isExpanded = moduleStatus != ModuleStatus.locked &&
+            _expandedModules.contains(key);
+
+        updatedModules.add(
+          mod.copyWith(
+            status: moduleStatus,
+            isExpanded: isExpanded,
+            quiz: mod.quiz.copyWith(status: quizStatus),
+          ),
+        );
       }
+
+      updatedLevels.add(
+        level.copyWith(
+          modules: List<ModuleData>.unmodifiable(updatedModules),
+        ),
+      );
     }
+
+    _levels = List<LevelData>.unmodifiable(updatedLevels);
   }
 
   void toggleExpand(int levelIndex, int moduleIndex) {
-    final mod = _levels[levelIndex].modules[moduleIndex];
+    if (levelIndex < 0 || levelIndex >= _levels.length) return;
+    final modules = _levels[levelIndex].modules;
+    if (moduleIndex < 0 || moduleIndex >= modules.length) return;
+
+    final mod = modules[moduleIndex];
     if (mod.status == ModuleStatus.locked) return;
-    mod.isExpanded = !mod.isExpanded;
+
+    final key = BelajarProgressModel.keyOf(levelIndex, moduleIndex);
+    if (_expandedModules.contains(key)) {
+      _expandedModules.remove(key);
+    } else {
+      _expandedModules.add(key);
+    }
+    _recomputeLocks();
     notifyListeners();
   }
 

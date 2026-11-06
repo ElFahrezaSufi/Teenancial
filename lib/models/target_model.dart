@@ -6,7 +6,7 @@ class TargetItem {
   final double targetAmount;
   final double savedAmount;
   final String imageUrl;
-  bool isPinned;
+  final bool isPinned;
   final DateTime createdAt;
 
   TargetItem({

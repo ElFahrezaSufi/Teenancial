@@ -4,7 +4,7 @@ class BelajarCatalog {
   BelajarCatalog._();
 
   static List<LevelData> buildLevels() {
-    return [
+    return const [
       // ── DASAR ──────────────────────────────────────────────────────────────
       LevelData(
         tingkat: 'Dasar (Beginner)',

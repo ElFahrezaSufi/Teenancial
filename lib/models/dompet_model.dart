@@ -20,11 +20,11 @@ class DompetItem {
   final String id;
   final JenisDompet jenis;
   final String nama;
-  double jumlah;
+  final double jumlah;
   final String? catatan;
   final DateTime? createdAt;
 
-  DompetItem({
+  const DompetItem({
     required this.id,
     required this.jenis,
     required this.nama,

@@ -7,11 +7,14 @@ import '../models/user_model.dart';
 import '../services/firestore_service.dart';
 
 class AuthRepository {
-  final FirebaseAuth _auth = FirebaseAuth.instance;
+  final FirebaseAuth _auth;
   final FirestoreService _firestoreService;
 
-  AuthRepository({FirestoreService? firestoreService})
-      : _firestoreService = firestoreService ?? FirestoreService.instance;
+  AuthRepository({
+    FirebaseAuth? auth,
+    FirestoreService? firestoreService,
+  })  : _auth = auth ?? FirebaseAuth.instance,
+        _firestoreService = firestoreService ?? FirestoreService.instance;
 
   /// Memastikan dokumen profil `users/{uid}` dan dompet awal `wallets/d1`
   /// sudah terbuat secara idempoten dan atomik.
