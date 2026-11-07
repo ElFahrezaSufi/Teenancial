@@ -20,7 +20,7 @@ Teenancial adalah aplikasi manajemen keuangan Android berbasis Flutter yang dira
 
 Untuk menjalankan atau mem-build proyek ini, pastikan lingkungan pengembangan Anda memenuhi spesifikasi berikut:
 - **Flutter SDK:** `>= 3.24.0` (kompatibel dengan Dart SDK `^3.5.0`).
-- **Android SDK:** Compile SDK 36, Min SDK 24 (Android 7.0+), dengan *Core Library Desugaring* aktif.
+- **Android SDK:** Compile SDK 37, Min SDK 24 (Android 7.0+), dengan *Core Library Desugaring* aktif.
 - **Layanan Cloud (Gratis / Free Tier):**
   - **Firebase Authentication** (Email/Password & Google Sign-In) dan **Cloud Firestore** (konfigurasi di `lib/firebase_options.dart` & `android/app/google-services.json`).
   - **Cloudinary** (*Unsigned Upload Preset* untuk unggahan foto profil dan target menabung, dikonfigurasi di `lib/config/app_constants.dart`).
