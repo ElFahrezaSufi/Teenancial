@@ -112,11 +112,11 @@ class DompetScreen extends StatelessWidget {
                       const SizedBox(height: 16),
                       GestureDetector(
                         onTap: () => _openTambahDompet(context),
-                        child: CustomCard(
+                        child: const CustomCard(
                           borderRadius: 100,
                           backgroundColor: primaryGreen,
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          child: const Center(
+                          padding: EdgeInsets.symmetric(vertical: 16),
+                          child: Center(
                             child: Text(
                               '+ Tambah Dompet',
                               style: TextStyle(

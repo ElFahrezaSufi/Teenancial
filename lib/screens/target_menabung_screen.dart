@@ -257,12 +257,11 @@ class TargetMenabungScreen extends StatelessWidget {
           const SizedBox(height: 24),
           GestureDetector(
             onTap: () => _navigasiDanTambahData(context),
-            child: CustomCard(
+            child: const CustomCard(
               borderRadius: 100,
               backgroundColor: primaryGreen,
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-              child: const Row(
+              padding: EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+              child: Row(
                 mainAxisSize: MainAxisSize.min,
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [

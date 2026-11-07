@@ -13,8 +13,8 @@ class AuthProvider extends ChangeNotifier {
   /// akun baru (registrasi email / Google Sign-In) sedang berjalan atau selesai.
   static ValueListenable<bool> get bootstrapListenable => _bootstrapNotifier;
 
-  final FirebaseAuth _auth = FirebaseAuth.instance;
-  final AuthRepository _repository = AuthRepository();
+  final FirebaseAuth _auth;
+  final AuthRepository _repository;
 
   User? _user;
   bool _bootstrapInProgress = false;
@@ -30,7 +30,11 @@ class AuthProvider extends ChangeNotifier {
 
   late final StreamSubscription<User?> _authSub;
 
-  AuthProvider() {
+  AuthProvider({
+    FirebaseAuth? auth,
+    AuthRepository? repository,
+  })  : _auth = auth ?? FirebaseAuth.instance,
+        _repository = repository ?? AuthRepository() {
     _user = _auth.currentUser;
     if (_user != null && !LocalStorageService.instance.hasSeenGetStarted) {
       unawaited(LocalStorageService.instance.setHasSeenGetStarted(true));
