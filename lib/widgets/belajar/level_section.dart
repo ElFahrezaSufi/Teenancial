@@ -8,8 +8,6 @@ class LevelSection extends StatelessWidget {
   final int levelIndex;
   final LevelData level;
   final int completedCount;
-  final void Function(int li, int mi) onCompleteModule;
-  final void Function(int li, int mi) onCompleteQuiz;
   final void Function(int mi) onToggleExpand;
 
   const LevelSection({
@@ -17,14 +15,13 @@ class LevelSection extends StatelessWidget {
     required this.levelIndex,
     required this.level,
     required this.completedCount,
-    required this.onCompleteModule,
-    required this.onCompleteQuiz,
     required this.onToggleExpand,
   });
 
   @override
   Widget build(BuildContext context) {
-    final bool levelLocked = level.modules.first.status == ModuleStatus.locked;
+    final bool levelLocked = level.modules.isEmpty ||
+        level.modules.first.status == ModuleStatus.locked;
     final double progress =
         level.modules.isEmpty ? 0 : completedCount / level.modules.length;
 
@@ -116,8 +113,6 @@ class LevelSection extends StatelessWidget {
                   levelIndex: levelIndex,
                   moduleIndex: e.key,
                   module: e.value,
-                  onCompleteModule: onCompleteModule,
-                  onCompleteQuiz: onCompleteQuiz,
                   onToggleExpand: () => onToggleExpand(e.key),
                 ),
               ),

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../models/belajar_model.dart';
+import '../../screens/materi_screen.dart';
+import '../../screens/quiz_screen.dart';
 import '../../theme/app_colors.dart';
 import '../common/custom_card.dart';
 
@@ -7,8 +9,6 @@ class ModuleCard extends StatelessWidget {
   final int levelIndex;
   final int moduleIndex;
   final ModuleData module;
-  final void Function(int li, int mi) onCompleteModule;
-  final void Function(int li, int mi) onCompleteQuiz;
   final VoidCallback onToggleExpand;
 
   const ModuleCard({
@@ -16,8 +16,6 @@ class ModuleCard extends StatelessWidget {
     required this.levelIndex,
     required this.moduleIndex,
     required this.module,
-    required this.onCompleteModule,
-    required this.onCompleteQuiz,
     required this.onToggleExpand,
   });
 
@@ -98,19 +96,61 @@ class ModuleCard extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(height: 14),
-                      Row(
-                        children: [
-                          Expanded(child: _QuizBadge(quiz: module.quiz)),
-                          const SizedBox(width: 10),
-                          _ActionButton(
-                            module: module,
-                            onCompleteModule: () =>
-                                onCompleteModule(levelIndex, moduleIndex),
-                            onCompleteQuiz: () =>
-                                onCompleteQuiz(levelIndex, moduleIndex),
-                          ),
-                        ],
-                      ),
+                      if (module.status == ModuleStatus.completed) ...[
+                        _QuizBadge(quiz: module.quiz),
+                        const SizedBox(height: 10),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: _ReviewAction(
+                                label: 'Baca Lagi',
+                                icon: Icons.menu_book_outlined,
+                                onTap: () => Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => MateriScreen(
+                                      levelIndex: levelIndex,
+                                      moduleIndex: moduleIndex,
+                                      module: module,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: _ReviewAction(
+                                label:
+                                    module.quiz.status == ModuleStatus.completed
+                                        ? 'Ulangi Kuis'
+                                        : 'Mulai Kuis',
+                                icon: Icons.quiz_outlined,
+                                onTap: () => Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => QuizScreen(
+                                      levelIndex: levelIndex,
+                                      moduleIndex: moduleIndex,
+                                      module: module,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ] else
+                        Row(
+                          children: [
+                            Expanded(child: _QuizBadge(quiz: module.quiz)),
+                            const SizedBox(width: 10),
+                            _ActionButton(
+                              levelIndex: levelIndex,
+                              moduleIndex: moduleIndex,
+                              module: module,
+                            ),
+                          ],
+                        ),
                     ],
                   ),
                 ),
@@ -123,9 +163,10 @@ class ModuleCard extends StatelessWidget {
   }
 }
 
+// ─── Quiz Badge ───────────────────────────────────────────────────────────────
+
 class _QuizBadge extends StatelessWidget {
   final QuizData quiz;
-
   const _QuizBadge({required this.quiz});
 
   @override
@@ -165,15 +206,64 @@ class _QuizBadge extends StatelessWidget {
   }
 }
 
+class _ReviewAction extends StatelessWidget {
+  final String label;
+  final IconData icon;
+  final VoidCallback onTap;
+
+  const _ReviewAction({
+    required this.label,
+    required this.icon,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 9),
+        decoration: BoxDecoration(
+          border: Border.all(color: primaryGreen, width: 1.5),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, size: 16, color: primaryGreen),
+            const SizedBox(width: 6),
+            Flexible(
+              child: Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  color: primaryGreen,
+                  fontSize: 12,
+                  fontFamily: 'Inter',
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ─── Action Button ────────────────────────────────────────────────────────────
+
 class _ActionButton extends StatelessWidget {
+  final int levelIndex;
+  final int moduleIndex;
   final ModuleData module;
-  final VoidCallback onCompleteModule;
-  final VoidCallback onCompleteQuiz;
 
   const _ActionButton({
+    required this.levelIndex,
+    required this.moduleIndex,
     required this.module,
-    required this.onCompleteModule,
-    required this.onCompleteQuiz,
   });
 
   @override
@@ -188,20 +278,28 @@ class _ActionButton extends StatelessWidget {
     bool isOutlined = false;
 
     if (moduleAvailable) {
-      label = 'Selesaikan Modul';
-      onTap = () => _confirmComplete(
+      label = 'Baca Materi';
+      onTap = () => Navigator.push(
             context,
-            title: 'Selesaikan Modul?',
-            body: 'Tandai modul ini sebagai selesai dan buka kuis?',
-            onConfirm: onCompleteModule,
+            MaterialPageRoute(
+              builder: (_) => MateriScreen(
+                levelIndex: levelIndex,
+                moduleIndex: moduleIndex,
+                module: module,
+              ),
+            ),
           );
     } else if (moduleCompleted && quizAvailable) {
       label = 'Mulai Kuis';
-      onTap = () => _confirmComplete(
+      onTap = () => Navigator.push(
             context,
-            title: 'Mulai Kuis?',
-            body: 'Kerjakan kuis untuk menyelesaikan modul ini sepenuhnya?',
-            onConfirm: onCompleteQuiz,
+            MaterialPageRoute(
+              builder: (_) => QuizScreen(
+                levelIndex: levelIndex,
+                moduleIndex: moduleIndex,
+                module: module,
+              ),
+            ),
           );
     } else if (moduleCompleted && quizCompleted) {
       label = 'Selesai ✓';
@@ -232,66 +330,6 @@ class _ActionButton extends StatelessWidget {
             fontWeight: FontWeight.w700,
           ),
         ),
-      ),
-    );
-  }
-
-  void _confirmComplete(
-    BuildContext context, {
-    required String title,
-    required String body,
-    required VoidCallback onConfirm,
-  }) {
-    showDialog(
-      context: context,
-      builder: (_) => AlertDialog(
-        backgroundColor: cardBg,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Text(
-          title,
-          style: const TextStyle(
-            color: primaryGreen,
-            fontFamily: 'Inter',
-            fontWeight: FontWeight.w700,
-            fontSize: 16,
-          ),
-        ),
-        content: Text(
-          body,
-          style: const TextStyle(
-            color: primaryGreen,
-            fontFamily: 'Inter',
-            fontSize: 14,
-            fontWeight: FontWeight.w500,
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text(
-              'Batal',
-              style: TextStyle(
-                color: primaryGreen,
-                fontFamily: 'Inter',
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-              onConfirm();
-            },
-            child: const Text(
-              'Ya, Lanjutkan',
-              style: TextStyle(
-                color: primaryGreen,
-                fontFamily: 'Inter',
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-          ),
-        ],
       ),
     );
   }
