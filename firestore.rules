@@ -10,5 +10,15 @@ service cloud.firestore {
         allow read, write: if request.auth != null && request.auth.uid == userId;
       }
     }
+    // Materi & kuis Ruang Belajar: semua pengguna yang login boleh membaca,
+    // tidak ada yang boleh menulis dari aplikasi (isi diubah lewat skrip seed / Console).
+    match /belajar_levels/{levelId} {
+      allow read: if request.auth != null;
+      allow write: if false;
+    }
+    match /belajar_modules/{moduleId} {
+      allow read: if request.auth != null;
+      allow write: if false;
+    }
   }
 }
