@@ -1,0 +1,1245 @@
+{
+  "levels": [
+    {
+      "id": "dasar",
+      "order": 1,
+      "tingkat": "Dasar (Beginner)",
+      "subtitle": "Modul dasar untuk membangun kebiasaan dan pemahaman awal."
+    },
+    {
+      "id": "sedang",
+      "order": 2,
+      "tingkat": "Sedang (Intermediate)",
+      "subtitle": "Modul untuk remaja yang mulai ingin merencanakan keuangan masa depan di Teenancial."
+    },
+    {
+      "id": "sulit",
+      "order": 3,
+      "tingkat": "Sulit (Advanced)",
+      "subtitle": "Modul lanjutan untuk mencapai kemandirian dan kebebasan finansial sejak muda."
+    }
+  ],
+  "modules": [
+    {
+      "id": "kebutuhan-vs-keinginan",
+      "levelId": "dasar",
+      "order": 1,
+      "title": "Mengenal Uang: Kebutuhan vs Keinginan",
+      "description": "Pahami dari mana asal uang sakumu dan temukan cara termudah membedakan antara kebutuhan pokok dan sekadar keinginan sementara.",
+      "sections": [
+        {
+          "heading": "Dari mana uang sakumu berasal?",
+          "body": "Uang saku biasanya berasal dari orang tua yang bekerja keras mencari penghasilan. Artinya, uang itu terbatas: kalau habis, tidak otomatis datang lagi sampai periode berikutnya. Memahami bahwa uang itu terbatas adalah langkah pertama mengelolanya. Selain uang saku, sumber lain bisa berupa hadiah, hasil menjual barang, atau penghasilan kecil dari usaha sendiri. Apa pun sumbernya, semua uang yang kamu pegang perlu dicatat dan dipakai dengan sadar."
+        },
+        {
+          "heading": "Kebutuhan dan keinginan itu beda",
+          "body": "Kebutuhan adalah hal yang harus dipenuhi agar kamu tetap sehat, aman, dan bisa menjalani hidup serta sekolah dengan baik, misalnya makan bergizi, ongkos ke sekolah, buku pelajaran, dan pulsa atau kuota untuk belajar. Keinginan adalah hal yang membuat hidup lebih menyenangkan tetapi masih bisa ditunda atau ditiadakan, misalnya jajan boba setiap hari, skin game, atau sepatu model terbaru padahal sepatu lama masih layak. Keinginan bukan hal buruk, hanya perlu ditempatkan setelah kebutuhan."
+        },
+        {
+          "heading": "Tes tiga pertanyaan sebelum membeli",
+          "body": "Sebelum mengeluarkan uang, tanyakan tiga hal. Satu: kalau barang ini tidak kubeli, apakah sekolah, kesehatan, atau keselamatanku terganggu? Dua: adakah pilihan yang lebih murah dengan fungsi yang sama? Tiga: apakah aku masih menginginkannya setelah menunggu 24 jam, atau bahkan 7 hari untuk barang yang lebih mahal? Kalau jawaban pertama ya, kemungkinan itu kebutuhan. Kalau kamu ragu, aturan menunggu biasanya membuat keinginan sesaat hilang sendiri."
+        },
+        {
+          "heading": "Area abu-abu dan biaya peluang",
+          "body": "Ada barang yang berada di antara kebutuhan dan keinginan. Contohnya HP: kebutuhan untuk belajar dan berkomunikasi, tetapi HP termahal adalah keinginan. Caranya, penuhi fungsi dasarnya dulu, lalu anggap selisih harganya sebagai keinginan. Ingat juga biaya peluang: setiap uang yang kamu belanjakan untuk satu hal berarti tidak bisa dipakai untuk hal lain. Uang Rp50.000 untuk jajan hari ini tidak bisa lagi menjadi tabungan untuk target yang kamu impikan."
+        },
+        {
+          "heading": "Kasus 1: Dimas dan sepatu basket",
+          "body": "Dimas menerima uang saku Rp600.000 per bulan. Teman-teman satu timnya sudah memakai sepatu basket baru seharga Rp800.000, padahal sepatu Dimas masih bagus dan nyaman. Dimas ingin beli supaya tidak terlihat ketinggalan. Saat memakai tes tiga pertanyaan, ia sadar: sekolah dan kesehatannya tidak terganggu tanpa sepatu itu, sepatu lamanya masih berfungsi, dan setelah menunggu seminggu rasa ingin belinya sudah jauh berkurang. Dimas memutuskan menabung Rp100.000 per bulan, jadi sepatu baru baru terbeli dalam 8 bulan, dan itu pun kalau ia masih menginginkannya. Pelajarannya: keinginan yang dipicu rasa tidak mau ketinggalan sering mereda kalau diberi waktu."
+        },
+        {
+          "heading": "Kasus 2: Salsa, kuota, dan top-up game",
+          "body": "Salsa punya Rp50.000 untuk kuota bulan ini. Kuota itu dipakai untuk mengerjakan tugas daring, mengunduh materi, dan video konferensi dengan kelompok belajar. Di saat yang sama ada event game favoritnya yang menawarkan item eksklusif Rp30.000. Kalau semua dipakai untuk game, kuota belajarnya habis di minggu kedua. Salsa membagi: Rp35.000 untuk kuota belajar (kebutuhan) dan Rp15.000 untuk game (keinginan). Dengan begitu tugas tetap lancar dan ia tetap bisa menikmati game sedikit. Intinya, kebutuhan dipenuhi lebih dulu, keinginan mendapat sisa."
+        },
+        {
+          "heading": "Kasus 3: Ajakan nongkrong tiap Jumat",
+          "body": "Rafi diajak teman-temannya nongkrong di kafe setiap Jumat dan rata-rata menghabiskan Rp40.000. Sekali terasa kecil, tetapi dalam sebulan (4 kali) jumlahnya Rp160.000, dan dalam setahun (48 kali) mencapai Rp1.920.000. Rafi lalu mengubah kebiasaannya: ikut nongkrong dua kali sebulan, memesan satu minuman saja, dan sesekali mengajak temannya bermain di taman sekolah yang gratis. Ia tetap bergaul, tetapi pengeluarannya turun sekitar separuh. Pengeluaran kecil yang berulang itulah yang paling sering lolos dari perhatian."
+        },
+        {
+          "heading": "Kasus 4: Diskon 50 persen yang menggoda",
+          "body": "Nadia melihat baju yang diskon 50 persen, dari Rp200.000 menjadi Rp100.000. Ia berpikir, wah hemat Rp100.000! Padahal Nadia sudah punya banyak baju dan tidak sedang membutuhkannya. Kalau ia membelinya, uangnya yang keluar adalah Rp100.000, bukan hemat Rp100.000. Hemat yang sebenarnya hanya terjadi kalau barang itu memang sudah ada di daftar kebutuhanmu. Tanyakan: seandainya harganya tidak diskon, apakah aku tetap mau membelinya? Kalau jawabannya tidak, berarti itu hanya godaan."
+        },
+        {
+          "heading": "Ringkasan dan tantangan 7 hari",
+          "body": "Ringkasan: uang itu terbatas, kebutuhan didahulukan, keinginan boleh asal ada jatahnya, dan jeda waktu membantu menilai mana yang benar-benar penting. Tantangan 7 hari: catat semua pengeluaranmu setiap hari di Teenancial, lalu beri tanda K untuk kebutuhan dan I untuk keinginan. Di hari ketujuh, hitung berapa persen uangmu yang habis untuk keinginan. Kalau lebih dari separuh, pikirkan satu pos yang bisa dikurangi minggu depan."
+        }
+      ],
+      "references": [
+        "Otoritas Jasa Keuangan (OJK) - materi literasi keuangan untuk pelajar",
+        "Bank Indonesia - Gerakan Nasional Cerdas Keuangan"
+      ],
+      "quiz": {
+        "label": "Kuis 1: Analisis Kebutuhan",
+        "passingScore": 70,
+        "questions": [
+          {
+            "question": "Manakah contoh KEBUTUHAN bagi seorang pelajar?",
+            "options": [
+              "Membeli buku pelajaran yang diwajibkan sekolah",
+              "Membeli skin game terbaru",
+              "Nonton konser idola",
+              "Membeli sepatu edisi terbatas"
+            ],
+            "correctIndex": 0,
+            "explanation": "Buku pelajaran yang diwajibkan sekolah mendukung kegiatan belajar sehingga termasuk kebutuhan. Pilihan lain adalah keinginan."
+          },
+          {
+            "question": "Kamu ingin membeli sepatu baru padahal sepatu lama masih layak pakai. Itu termasuk ...",
+            "options": [
+              "Kebutuhan pokok",
+              "Keinginan",
+              "Dana darurat",
+              "Investasi"
+            ],
+            "correctIndex": 1,
+            "explanation": "Selama sepatu lama masih layak, membeli yang baru hanyalah keinginan yang bisa ditunda."
+          },
+          {
+            "question": "Apa fungsi aturan menunggu 24 jam sebelum membeli sesuatu?",
+            "options": [
+              "Supaya harga barang turun",
+              "Supaya barang tidak habis stok",
+              "Supaya keinginan sesaat mereda dan kamu bisa berpikir lebih jernih",
+              "Supaya bisa meminjam uang teman"
+            ],
+            "correctIndex": 2,
+            "explanation": "Jeda waktu membantu membedakan dorongan sesaat dengan kebutuhan yang sebenarnya."
+          },
+          {
+            "question": "Apa yang dimaksud dengan biaya peluang (opportunity cost)?",
+            "options": [
+              "Biaya tambahan saat membeli barang online",
+              "Bunga dari tabungan",
+              "Pajak atas jajan",
+              "Hal lain yang tidak bisa kamu lakukan karena uangnya sudah dipakai untuk pilihan tertentu"
+            ],
+            "correctIndex": 3,
+            "explanation": "Setiap rupiah hanya bisa dipakai sekali. Memilih satu hal berarti melepas kesempatan memakainya untuk hal lain."
+          },
+          {
+            "question": "Dimas ingin sepatu Rp800.000 padahal sepatu lama masih bagus. Menurut tes tiga pertanyaan, langkah paling tepat adalah ...",
+            "options": [
+              "Langsung membeli supaya tidak ketinggalan tren",
+              "Menunggu beberapa hari, mencari alternatif yang lebih murah, lalu menabung kalau masih menginginkannya",
+              "Memakai uang untuk kuota belajar",
+              "Meminjam uang ke teman agar bisa membeli hari ini"
+            ],
+            "correctIndex": 1,
+            "explanation": "Jeda waktu dan mencari alternatif membantu membedakan kebutuhan dengan keinginan karena ikut-ikutan."
+          }
+        ]
+      }
+    },
+    {
+      "id": "anggaran-50-30-20",
+      "levelId": "dasar",
+      "order": 2,
+      "title": "Jurus Anggaran Sederhana: Metode 50/30/20",
+      "description": "Uang saku selalu habis di tengah bulan? Pelajari cara membagi uangmu ke dalam pos-pos pengeluaran agar selalu cukup dan bisa menabung.",
+      "sections": [
+        {
+          "heading": "Apa itu anggaran?",
+          "body": "Anggaran atau budget adalah rencana tentang ke mana uangmu akan pergi sebelum kamu membelanjakannya. Tanpa rencana, uang cenderung habis untuk hal-hal kecil yang tidak terasa, lalu kamu bingung ke mana perginya. Dengan anggaran, kamu yang mengendalikan uang, bukan sebaliknya. Anggaran tidak perlu rumit. Cukup bagi uang yang kamu terima ke dalam beberapa pos."
+        },
+        {
+          "heading": "Metode 50/30/20",
+          "body": "Metode ini membagi penghasilan menjadi tiga bagian. Sebanyak 50 persen untuk kebutuhan, seperti makan, transportasi, dan keperluan sekolah. Sebanyak 30 persen untuk keinginan, seperti jajan, hiburan, dan game. Sebanyak 20 persen untuk tabungan atau tujuan keuangan. Contoh: uang saku Rp500.000 sebulan dibagi menjadi Rp250.000 untuk kebutuhan, Rp150.000 untuk keinginan, dan Rp100.000 untuk tabungan."
+        },
+        {
+          "heading": "Sesuaikan dengan kondisimu",
+          "body": "Angka 50/30/20 adalah panduan, bukan aturan mati. Pelajar yang kebutuhan pokoknya sudah ditanggung orang tua bisa memakai porsi yang berbeda, misalnya 40/30/30 supaya tabungan lebih besar. Yang paling penting adalah ada bagian untuk menabung, berapa pun ukurannya, dan kamu konsisten menjalankannya setiap bulan."
+        },
+        {
+          "heading": "Bayar diri sendiri lebih dulu",
+          "body": "Kebiasaan terbaik adalah memisahkan tabungan segera setelah uang diterima, bukan menunggu sisa di akhir bulan. Kalau menunggu sisa, biasanya tidak ada yang tersisa. Di Teenancial, kamu bisa membuat dompet atau target menabung khusus lalu memindahkan bagian tabungan di hari pertama. Catat juga semua pengeluaran supaya di akhir bulan kamu bisa mengecek apakah pembagianmu sudah sesuai rencana."
+        },
+        {
+          "heading": "Kasus 1: Bima dan jajan kecil yang menumpuk",
+          "body": "Bima menerima uang saku Rp600.000 per bulan. Dengan metode 50/30/20 jatahnya: Rp300.000 kebutuhan, Rp180.000 keinginan, dan Rp120.000 tabungan. Setelah mencatat, ia kaget karena jajan Rp8.000 yang ia beli hampir setiap hari sekolah (sekitar 22 hari) totalnya Rp176.000. Hampir semua jatah keinginannya habis hanya untuk jajan, sehingga tidak ada sisa untuk game atau nongkrong. Bima memutuskan membawa bekal dari rumah tiga kali seminggu. Pengeluaran kecil yang rutin memang sering tidak terasa sampai kamu mencatatnya."
+        },
+        {
+          "heading": "Kasus 2: Rani yang punya penghasilan tambahan",
+          "body": "Rani mendapat uang saku Rp400.000 dan bulan ini ia juga menjual stiker buatannya dengan hasil Rp150.000. Totalnya Rp550.000. Ia menerapkan 50/30/20 pada seluruh jumlah itu: Rp275.000 kebutuhan, Rp165.000 keinginan, dan Rp110.000 tabungan. Karena penghasilan dari usahanya tidak tetap, Rani menetapkan satu aturan: tabungan dihitung dari uang yang benar-benar sudah diterima, bukan dari perkiraan. Kalau bulan depan stikernya sepi, anggarannya tinggal menyesuaikan."
+        },
+        {
+          "heading": "Kasus 3: Ketika jatah keinginan sudah habis",
+          "body": "Di minggu kedua, Dito sudah menghabiskan seluruh jatah keinginannya (Rp150.000) untuk membeli item game. Ada tiga pilihan: mengambil dari tabungan, meminjam ke teman, atau menahan diri sampai akhir bulan. Pilihan terbaik adalah menahan diri. Kalau mengambil dari tabungan, tujuan yang tadinya mau dicapai ikut mundur, dan kebiasaan itu akan terulang tiap bulan. Dito juga belajar memakai amplop atau dompet terpisah untuk tiap pos, jadi ia bisa melihat sisa jatah keinginan sebelum belanja. Di Teenancial ia membuat dompet khusus Keinginan."
+        },
+        {
+          "heading": "Kasus 4: Memecah anggaran jadi mingguan",
+          "body": "Jatah keinginan Rp150.000 per bulan terasa banyak di awal dan cepat habis. Cara mengatasinya, bagi per minggu: Rp150.000 dibagi 4 minggu sama dengan Rp37.500 per minggu. Kalau minggu ini hanya terpakai Rp20.000, sisanya Rp17.500 boleh dibawa ke minggu berikutnya atau dipindahkan ke tabungan. Dengan jatah mingguan, kamu lebih mudah mengontrol dan tidak kehabisan di minggu terakhir."
+        },
+        {
+          "heading": "Ringkasan dan tantangan satu bulan",
+          "body": "Ringkasan: anggaran adalah rencana, 50/30/20 hanyalah panduan awal, dan mencatat adalah kunci. Tantangan: selama satu bulan, bagi uangmu ke tiga dompet (kebutuhan, keinginan, tabungan) di hari pertama, lalu catat semua pengeluaran. Di akhir bulan, bandingkan rencana dengan kenyataan dan ubah porsinya sesuai hasil temuanmu."
+        }
+      ],
+      "references": [
+        "Otoritas Jasa Keuangan (OJK) - materi perencanaan keuangan",
+        "Konsep anggaran 50/30/20 (panduan umum perencanaan keuangan pribadi)"
+      ],
+      "quiz": {
+        "label": "Kuis 2: Praktik Budgeting",
+        "passingScore": 70,
+        "questions": [
+          {
+            "question": "Dalam metode 50/30/20, angka 20 mewakili ...",
+            "options": [
+              "Tabungan atau tujuan keuangan",
+              "Keinginan",
+              "Kebutuhan",
+              "Pajak"
+            ],
+            "correctIndex": 0,
+            "explanation": "50 persen kebutuhan, 30 persen keinginan, dan 20 persen tabungan."
+          },
+          {
+            "question": "Uang saku Rp400.000 per bulan. Berapa bagian untuk keinginan (30%)?",
+            "options": [
+              "Rp80.000",
+              "Rp120.000",
+              "Rp160.000",
+              "Rp200.000"
+            ],
+            "correctIndex": 1,
+            "explanation": "30 persen dari Rp400.000 adalah Rp120.000."
+          },
+          {
+            "question": "Kapan waktu terbaik untuk menyisihkan tabungan?",
+            "options": [
+              "Di akhir bulan jika ada sisa",
+              "Segera setelah uang diterima",
+              "Saat ada diskon",
+              "Setelah semua keinginan terbeli"
+            ],
+            "correctIndex": 1,
+            "explanation": "Jika menunggu sisa, biasanya tidak ada yang tersisa. Sisihkan di awal."
+          },
+          {
+            "question": "Mengapa persentase 50/30/20 boleh disesuaikan?",
+            "options": [
+              "Karena angkanya sudah pasti salah",
+              "Karena bank mewajibkannya",
+              "Karena kondisi tiap orang berbeda, yang penting tetap ada bagian untuk menabung",
+              "Karena tidak berpengaruh pada tabungan"
+            ],
+            "correctIndex": 2,
+            "explanation": "Metode ini hanya panduan. Sesuaikan dengan kondisimu selama kebiasaan menabung tetap berjalan."
+          },
+          {
+            "question": "Rani punya uang saku Rp400.000 ditambah Rp150.000 dari menjual stiker. Dengan 50/30/20, berapa bagian tabungan (20%) dari total uangnya?",
+            "options": [
+              "Rp80.000",
+              "Rp100.000",
+              "Rp110.000",
+              "Rp150.000"
+            ],
+            "correctIndex": 2,
+            "explanation": "Total Rp550.000. 20 persen dari Rp550.000 adalah Rp110.000."
+          }
+        ]
+      }
+    },
+    {
+      "id": "celengan-vs-dompet-digital",
+      "levelId": "dasar",
+      "order": 3,
+      "title": "Celengan Konvensional vs Dompet Digital",
+      "description": "Mulai dari celengan babi, rekening bank, hingga QRIS dan e-wallet. Kenali tempat terbaik dan teraman untuk menyimpan uangmu.",
+      "sections": [
+        {
+          "heading": "Pilihan tempat menyimpan uang",
+          "body": "Uang bisa disimpan di beberapa tempat: celengan atau dompet tunai, rekening tabungan bank, dan dompet digital (e-wallet) seperti GoPay, DANA, atau OVO. Setiap tempat punya kelebihan dan risiko. Pilihan terbaik bergantung pada tujuan: uang untuk dipakai harian, uang untuk ditabung jangka panjang, atau uang untuk keperluan mendadak."
+        },
+        {
+          "heading": "Kelebihan dan kekurangan",
+          "body": "Celengan membuat uang sulit diambil sehingga membantu disiplin, tetapi tidak berbunga, bisa hilang atau rusak, dan tidak tercatat. Rekening bank lebih aman dan simpanan di bank umumnya dijamin Lembaga Penjamin Simpanan (LPS) sesuai ketentuan yang berlaku, tetapi untuk anak di bawah 17 tahun biasanya pembukaan rekening melibatkan orang tua atau wali. Dompet digital praktis untuk bayar cepat dan QRIS, tetapi karena mudah dipakai, pengeluaran kecil sering tidak terasa. Saldo uang elektronik umumnya tidak dijamin LPS seperti tabungan bank, jadi jangan menumpuk uang besar di sana."
+        },
+        {
+          "heading": "Memakai QRIS dan e-wallet dengan aman",
+          "body": "QRIS memudahkan pembayaran di mana saja. Sebelum menekan bayar, selalu cek nama merchant yang muncul di layar dan nominal yang kamu bayar. Waspadai kode QR yang ditempel menimpa kode asli atau dikirim orang tak dikenal. Aktifkan PIN atau biometrik pada aplikasi, dan batasi saldo e-wallet sesuai kebutuhan harian. Isi ulang secukupnya, bukan seluruh uang saku."
+        },
+        {
+          "heading": "Aturan emas keamanan digital",
+          "body": "Satu: jangan pernah membagikan PIN, password, atau kode OTP kepada siapa pun, termasuk yang mengaku dari bank atau aplikasi. Dua: waspada pesan berisi link yang menjanjikan hadiah atau meminta verifikasi akun, itu ciri penipuan phishing. Tiga: hindari bertransaksi lewat WiFi publik yang tidak aman. Empat: segera hubungi layanan resmi dan ganti PIN jika merasa akunmu bermasalah. Kalau ragu, tanyakan kepada orang tua atau guru sebelum melanjutkan."
+        },
+        {
+          "heading": "Kasus 1: Tia dan celengan ayam",
+          "body": "Tia menabung Rp5.000 setiap hari di celengan ayam, jadi sebulan terkumpul sekitar Rp150.000. Tetapi celengan itu tidak punya tujuan, sehingga setiap kali ada yang menarik, Tia membongkarnya. Ia lalu menempelkan tulisan Sepeda Baru di celengan dan mencatat targetnya. Tabungan yang punya tujuan jelas jauh lebih sulit dibongkar dibanding tabungan tanpa nama. Fitur Target Menabung di Teenancial bekerja dengan cara yang sama."
+        },
+        {
+          "heading": "Kasus 2: Kevin dan saldo e-wallet yang cepat habis",
+          "body": "Kevin mengisi saldo e-wallet Rp200.000 sekaligus karena ada promo cashback kecil. Karena mudah dipakai, dalam 10 hari saldonya habis untuk jajan online dan top-up game, padahal itu uang untuk sebulan. Kevin mengubah kebiasaannya: mengisi Rp50.000 setiap minggu. Kalau saldo habis lebih cepat, ia tahu harus menahan diri. Cara ini membuat pengeluaran digital lebih terkontrol."
+        },
+        {
+          "heading": "Kasus 3: Maya dan QRIS yang janggal",
+          "body": "Maya hendak membayar di warung sebelah sekolah. Saat memindai QRIS, nama merchant yang tampil adalah nama orang yang tidak ia kenal, bukan nama warung. Maya berhenti dan menanyakan kepada penjual. Ternyata ada stiker QR palsu yang ditempel menimpa QR asli oleh orang iseng. Karena Maya mengecek nama merchant sebelum bayar, uangnya selamat. Kebiasaan sederhana ini mencegah salah transfer dan penipuan."
+        },
+        {
+          "heading": "Kasus 4: Pesan WhatsApp yang mengaku admin",
+          "body": "Seseorang mengirim pesan ke Andi: Akun e-wallet kamu akan diblokir, kirimkan kode OTP untuk verifikasi. Pesan terlihat meyakinkan dengan logo dan bahasa resmi. Andi tahu bahwa OTP tidak boleh dibagikan siapa pun, jadi ia tidak membalas, memblokir nomor itu, dan membuka aplikasi resmi untuk memeriksa akunnya. Modus lain yang sering terjadi adalah file berekstensi .apk yang dikirim lewat chat dengan alasan undangan atau resi paket. Jangan pasang aplikasi dari file yang dikirim lewat chat, karena bisa mencuri data dan mengakses akun keuanganmu."
+        },
+        {
+          "heading": "Ringkasan dan tantangan audit 10 menit",
+          "body": "Ringkasan: pilih tempat simpan sesuai tujuan, beri nama pada tabunganmu, batasi saldo e-wallet, cek nama merchant sebelum bayar, dan jangan bagikan PIN atau OTP. Tantangan: luangkan 10 menit untuk mengaktifkan PIN atau biometrik di aplikasi keuanganmu, melihat riwayat transaksi, dan menghapus aplikasi dompet digital yang sudah tidak kamu pakai."
+        }
+      ],
+      "references": [
+        "Lembaga Penjamin Simpanan (LPS) - ketentuan penjaminan simpanan",
+        "Bank Indonesia - QRIS dan keamanan transaksi digital",
+        "Otoritas Jasa Keuangan (OJK) - waspada penipuan keuangan"
+      ],
+      "quiz": {
+        "label": "Kuis 3: Keamanan Bertransaksi",
+        "passingScore": 70,
+        "questions": [
+          {
+            "question": "Kapan kamu boleh memberikan kode OTP kepada orang lain?",
+            "options": [
+              "Jika orang itu mengaku petugas bank",
+              "Jika diminta teman dekat lewat chat",
+              "Jika diminta untuk menerima hadiah",
+              "Tidak pernah, OTP bersifat rahasia"
+            ],
+            "correctIndex": 3,
+            "explanation": "OTP adalah kunci rahasia akunmu. Pihak resmi tidak pernah memintanya."
+          },
+          {
+            "question": "Apa yang sebaiknya dicek sebelum membayar dengan QRIS?",
+            "options": [
+              "Nama merchant dan nominal pembayaran",
+              "Warna kode QR",
+              "Jumlah teman di aplikasi",
+              "Jam transaksi"
+            ],
+            "correctIndex": 0,
+            "explanation": "Memastikan nama merchant dan nominal mencegah salah bayar atau terjebak QR palsu."
+          },
+          {
+            "question": "Salah satu kelebihan celengan dibanding dompet digital adalah ...",
+            "options": [
+              "Uang berbunga setiap bulan",
+              "Uang lebih sulit diambil sehingga membantu disiplin menabung",
+              "Bisa dipakai untuk QRIS",
+              "Dijamin LPS"
+            ],
+            "correctIndex": 1,
+            "explanation": "Celengan tidak berbunga dan tidak dijamin, tetapi membuat uang tidak mudah terpakai."
+          },
+          {
+            "question": "Kamu menerima pesan: Selamat, kamu menang hadiah! Klik link dan masukkan PIN. Apa tindakan terbaik?",
+            "options": [
+              "Klik link supaya hadiah tidak hangus",
+              "Bagikan ke teman",
+              "Abaikan, jangan klik, dan laporkan karena ini ciri phishing",
+              "Balas dengan memberi nomor rekening"
+            ],
+            "correctIndex": 2,
+            "explanation": "Hadiah yang meminta PIN atau data pribadi adalah penipuan. Jangan klik dan jangan beri data."
+          },
+          {
+            "question": "Maya memindai QRIS di warung, tetapi nama merchant di layar berbeda dengan nama warung. Apa yang sebaiknya dilakukan?",
+            "options": [
+              "Bayar dua kali supaya aman",
+              "Tetap bayar karena hanya Rp10.000",
+              "Batalkan pembayaran dan tanyakan kepada penjual",
+              "Minta teman membayarkan lewat akunnya"
+            ],
+            "correctIndex": 2,
+            "explanation": "Nama merchant yang tidak cocok bisa berarti QR palsu. Batalkan dan konfirmasi dulu."
+          }
+        ]
+      }
+    },
+    {
+      "id": "dana-darurat",
+      "levelId": "sedang",
+      "order": 1,
+      "title": "Dana Darurat: Penyelamat Saat Kepepet",
+      "description": "Apa itu dana darurat? Pelajari cara mengumpulkan jaring pengaman finansial untuk kejadian tak terduga seperti HP rusak atau ban bocor.",
+      "sections": [
+        {
+          "heading": "Apa itu dana darurat?",
+          "body": "Dana darurat adalah uang yang disiapkan khusus untuk kejadian tak terduga, seperti HP rusak, ban sepeda bocor, kebutuhan berobat, atau biaya mendadak untuk sekolah. Tujuannya supaya kamu tidak perlu berutang atau menunda hal penting saat masalah datang. Dana ini bukan untuk liburan, diskon besar, atau barang yang kamu inginkan."
+        },
+        {
+          "heading": "Seberapa besar yang perlu disiapkan?",
+          "body": "Untuk orang dewasa yang bekerja, panduan umumnya adalah 3 sampai 6 kali pengeluaran bulanan. Untuk pelajar yang kebutuhan utamanya masih ditanggung orang tua, mulailah dari target kecil dan realistis, misalnya setara satu bulan uang saku, lalu naikkan perlahan. Yang penting adalah memulai dan konsisten, bukan langsung besar."
+        },
+        {
+          "heading": "Menyimpan dan mengumpulkannya",
+          "body": "Simpan dana darurat di tempat yang mudah dicairkan tetapi tidak terlalu mudah terpakai untuk jajan, misalnya rekening tabungan terpisah atau dompet khusus di Teenancial. Cara mengumpulkannya: sisihkan 5 sampai 10 persen setiap kali menerima uang, dan buat target menabung bernama Dana Darurat agar progresnya terlihat. Hasil jualan barang bekas atau hadiah juga bisa sebagian dimasukkan."
+        },
+        {
+          "heading": "Kapan boleh dipakai dan cara mengisinya kembali",
+          "body": "Pakai tiga ujian ini: apakah kejadiannya tak terduga, mendesak, dan benar-benar diperlukan? Jika ketiganya ya, itu darurat. Diskon, tiket konser, atau barang yang sedang viral bukan darurat. Setelah dana terpakai, isi kembali secepatnya sebelum menambah tabungan untuk tujuan lain."
+        },
+        {
+          "heading": "Kasus 1: Layar HP Aldi pecah",
+          "body": "HP Aldi jatuh dan layarnya pecah, biaya servis Rp350.000. HP itu dipakai untuk belajar dan menghubungi orang tua, jadi benar-benar mendesak. Karena Aldi punya dana darurat Rp500.000, ia bisa langsung memperbaikinya tanpa berutang. Setelah itu ia mengisi kembali dana daruratnya Rp50.000 per bulan, sehingga dalam 7 bulan jumlahnya pulih. Bayangkan kalau Aldi tidak punya dana itu: ia mungkin meminjam uang atau memakai uang yang seharusnya untuk keperluan sekolah."
+        },
+        {
+          "heading": "Kasus 2: Ban motor bocor di jalan",
+          "body": "Fikri berangkat sekolah naik motor dan di jalan bannya bocor. Biaya tambal sekitar Rp40.000, sementara uang jajannya sudah habis. Kejadian ini kecil, tetapi memenuhi tiga syarat darurat: tak terduga, mendesak, dan perlu. Darurat tidak selalu besar. Dana darurat yang kecil sekalipun bisa mencegah kamu terpaksa meminjam untuk hal yang sepele."
+        },
+        {
+          "heading": "Kasus 3: Tiket konser yang menggoda",
+          "body": "Lia punya dana darurat Rp400.000. Tiba-tiba artis favoritnya mengumumkan konser dan tiketnya Rp300.000. Lia hampir mengambil dana daruratnya. Ia lalu mengetes dengan tiga pertanyaan: tak terduga? tidak, ia tahu konser itu bisa direncanakan. Mendesak? tidak, ia bisa menabung dulu. Perlu? bukan kebutuhan. Hasilnya, itu keinginan. Lia membuat target menabung Konser dan menyisihkan Rp75.000 per bulan, sehingga tiket terbeli dalam 4 bulan tanpa menyentuh dana darurat."
+        },
+        {
+          "heading": "Kasus 4: Menghitung target dan waktunya",
+          "body": "Rina mengeluarkan sekitar Rp400.000 per bulan. Targetnya satu bulan pengeluaran, yaitu Rp400.000. Kalau ia menyisihkan Rp50.000 per bulan, target itu tercapai dalam 8 bulan. Kalau Rina menambah penghasilan dari menjual barang bekas Rp100.000 per bulan dan sebagian disisihkan, waktunya bisa lebih cepat. Dengan menghitung, targetmu jadi jelas dan terukur, bukan sekadar niat."
+        },
+        {
+          "heading": "Ringkasan dan tantangan",
+          "body": "Ringkasan: dana darurat itu untuk hal tak terduga, mendesak, dan perlu. Mulai dari kecil, simpan terpisah, dan isi kembali setelah dipakai. Tantangan: buat target menabung bernama Dana Darurat di Teenancial, tentukan nominal dan batas waktunya, lalu mulai menyetor minggu ini."
+        }
+      ],
+      "references": [
+        "Otoritas Jasa Keuangan (OJK) - perencanaan keuangan dan dana darurat"
+      ],
+      "quiz": {
+        "label": "Kuis 4: Simulasi Dana Darurat",
+        "passingScore": 70,
+        "questions": [
+          {
+            "question": "Manakah yang termasuk kondisi darurat?",
+            "options": [
+              "Ada diskon besar sepatu favorit",
+              "Tiket konser sedang dijual",
+              "Ingin liburan dengan teman",
+              "HP yang dipakai untuk belajar tiba-tiba rusak dan harus segera diperbaiki"
+            ],
+            "correctIndex": 3,
+            "explanation": "Darurat berarti tak terduga, mendesak, dan penting. Perbaikan HP untuk belajar memenuhi ketiganya."
+          },
+          {
+            "question": "Panduan umum besar dana darurat untuk orang dewasa yang bekerja adalah ...",
+            "options": [
+              "3 sampai 6 kali pengeluaran bulanan",
+              "1 minggu pengeluaran",
+              "1 tahun gaji",
+              "Sama dengan uang jajan sehari"
+            ],
+            "correctIndex": 0,
+            "explanation": "Umumnya 3 sampai 6 bulan pengeluaran. Pelajar bisa memulai dari target kecil."
+          },
+          {
+            "question": "Di mana dana darurat sebaiknya disimpan?",
+            "options": [
+              "Dibelikan barang koleksi",
+              "Di tempat yang mudah dicairkan tetapi terpisah dari uang jajan",
+              "Dipinjamkan ke teman",
+              "Dikunci di instrumen yang tidak bisa diambil bertahun-tahun"
+            ],
+            "correctIndex": 1,
+            "explanation": "Dana darurat harus likuid, artinya mudah dicairkan, tetapi dipisahkan agar tidak ikut terpakai."
+          },
+          {
+            "question": "Setelah dana darurat terpakai, apa langkah terbaik?",
+            "options": [
+              "Membiarkannya kosong",
+              "Menutup rekeningnya",
+              "Mengisinya kembali secepat mungkin",
+              "Meminjam untuk belanja keinginan"
+            ],
+            "correctIndex": 2,
+            "explanation": "Dana darurat perlu selalu tersedia, jadi isi kembali setelah terpakai."
+          },
+          {
+            "question": "Rina ingin dana darurat Rp400.000 dan menyisihkan Rp50.000 per bulan dari nol. Berapa bulan sampai target tercapai?",
+            "options": [
+              "4 bulan",
+              "6 bulan",
+              "8 bulan",
+              "10 bulan"
+            ],
+            "correctIndex": 2,
+            "explanation": "Rp400.000 dibagi Rp50.000 sama dengan 8 bulan."
+          },
+          {
+            "question": "Lia tergoda memakai Rp300.000 dari dana darurat untuk tiket konser. Tindakan terbaik adalah ...",
+            "options": [
+              "Memakainya karena tiketnya terbatas",
+              "Memakai uang SPP sementara",
+              "Meminjam ke teman lalu mengembalikan nanti",
+              "Menahan diri dan menabung khusus untuk konser agar dana darurat tetap utuh"
+            ],
+            "correctIndex": 3,
+            "explanation": "Konser itu keinginan yang bisa direncanakan, jadi dana darurat tidak boleh disentuh."
+          },
+          {
+            "question": "Ban motor Fikri bocor di jalan dan ia tidak punya uang jajan. Apakah itu termasuk kondisi darurat yang boleh memakai dana darurat?",
+            "options": [
+              "Ya, karena tak terduga, mendesak, dan perlu",
+              "Tidak, karena nominalnya kecil",
+              "Tidak, dana darurat hanya untuk sakit",
+              "Ya, tetapi hanya kalau ada diskon"
+            ],
+            "correctIndex": 0,
+            "explanation": "Darurat tidak ditentukan besar kecilnya, tetapi oleh tiga syarat: tak terduga, mendesak, dan perlu."
+          }
+        ]
+      }
+    },
+    {
+      "id": "utang-dan-paylater",
+      "levelId": "sedang",
+      "order": 2,
+      "title": "Jebakan Batman: Utang dan Paylater",
+      "description": "Bedakan mana utang yang produktif dan utang yang merugikan. Pahami bahaya fitur bayar-nanti (paylater) jika tidak dikendalikan.",
+      "sections": [
+        {
+          "heading": "Utang itu tidak selalu buruk",
+          "body": "Utang produktif adalah utang yang dipakai untuk sesuatu yang menambah nilai atau penghasilan di masa depan, misalnya modal usaha yang terencana. Utang konsumtif dipakai untuk kesenangan sesaat, misalnya membeli barang yang tidak dibutuhkan. Masalah muncul ketika utang konsumtif menumpuk sementara kemampuan membayar tidak ada. Pegang prinsip: jangan berutang untuk keinginan."
+        },
+        {
+          "heading": "Bagaimana paylater bekerja",
+          "body": "Paylater memungkinkan kamu membeli sekarang dan membayar nanti, biasanya lewat cicilan. Kemudahannya membuat pengeluaran terasa ringan, padahal ada biaya tambahan seperti bunga, biaya layanan, atau denda keterlambatan. Contoh: barang Rp300.000 dicicil 3 kali Rp110.000 berarti total Rp330.000, ada tambahan Rp30.000 atau 10 persen dari harga barang. Layanan seperti ini umumnya ditujukan untuk usia dewasa (biasanya 18 tahun ke atas) dan perlu persetujuan sesuai ketentuan penyedia."
+        },
+        {
+          "heading": "Waspada pinjaman online ilegal",
+          "body": "Pinjaman online yang tidak berizin OJK sangat berbahaya. Cirinya: menawarkan lewat pesan pribadi, meminta akses ke seluruh kontak dan galeri, bunga dan denda tinggi tidak jelas, serta penagihan dengan ancaman atau mempermalukan. Selalu periksa apakah penyelenggara terdaftar dan berizin di OJK sebelum berurusan. Jika menjadi korban atau menemukan yang mencurigakan, laporkan ke OJK atau hubungi kontak resmi OJK di nomor 157."
+        },
+        {
+          "heading": "Kebiasaan sehat soal utang",
+          "body": "Catat setiap utang dan piutang, termasuk ke teman. Teenancial punya fitur Pinjaman untuk mencatat siapa, berapa, dan kapan jatuh tempo. Bayar tepat waktu karena keterlambatan merusak kepercayaan. Aturan praktis untuk orang dewasa: total cicilan sebaiknya tidak lebih dari sekitar 30 persen penghasilan. Jika sudah kesulitan, jujur kepada orang tua atau orang yang kamu percaya lebih baik daripada menutup utang dengan utang baru."
+        },
+        {
+          "heading": "Kasus 1: Fajar lupa membayar utang",
+          "body": "Fajar meminjam Rp100.000 ke temannya dan berjanji membayar hari Jumat. Karena tidak dicatat, ia lupa. Temannya sungkan menagih, tetapi mulai menjaga jarak dan pertemanan mereka jadi renggang. Setelah sadar, Fajar langsung minta maaf, membayar penuh, dan sejak itu mencatat setiap pinjaman di fitur Pinjaman Teenancial lengkap dengan tanggal jatuh tempo dan pengingat. Utang kecil kepada teman tetaplah utang, dan menepatinya menjaga kepercayaan."
+        },
+        {
+          "heading": "Kasus 2: Sinta dan sepatu paylater",
+          "body": "Sinta (19 tahun) bekerja paruh waktu dengan penghasilan Rp1.000.000 per bulan. Ia membeli sepatu Rp500.000 lewat paylater dengan cicilan 3 bulan Rp190.000 per bulan. Total bayar Rp570.000, jadi biaya tambahannya Rp70.000 atau 14 persen dari harga sepatu. Cicilan Rp190.000 itu 19 persen dari penghasilannya, masih di bawah batas wajar 30 persen. Tetapi kalau Sinta telat bayar, ada denda yang membuat biayanya makin besar. Sebelum memakai paylater, hitung dulu total yang akan dibayar, bukan hanya cicilan per bulan."
+        },
+        {
+          "heading": "Kasus 3: Tawaran pinjol cair 5 menit",
+          "body": "Dika menerima SMS: Pinjaman cair 5 menit tanpa syarat! Ia tergoda meminjam Rp1.000.000. Ternyata dana yang cair hanya Rp700.000 setelah dipotong biaya, tetapi ia harus mengembalikan Rp1.000.000 dalam 7 hari. Artinya ia membayar Rp300.000 untuk meminjam Rp700.000 selama seminggu, sekitar 43 persen. Angka ini hanya ilustrasi, tetapi pola potongan besar di depan, tenor sangat singkat, dan ancaman penagihan adalah ciri pinjol ilegal. Dika menolak tawaran itu dan memblokir nomornya."
+        },
+        {
+          "heading": "Kasus 4: Ketika temanmu yang minta pinjaman",
+          "body": "Kadang kamu yang diminta meminjamkan uang. Aturan sederhananya: pinjamkan hanya jumlah yang kamu ikhlas kalau tidak kembali. Catat jumlah dan tanggal janjinya, dan sampaikan dengan sopan saat jatuh tempo, misalnya Hai, jangan lupa ya, besok jatuh tempo pinjamannya. Kalau temanmu terus menunda, tidak apa-apa menolak pinjaman berikutnya. Menjaga batas membuat pertemanan tetap sehat."
+        },
+        {
+          "heading": "Ringkasan dan tantangan",
+          "body": "Ringkasan: utang konsumtif untuk keinginan sebaiknya dihindari, hitung total biaya paylater, jauhi pinjol ilegal, dan catat setiap utang piutang. Tantangan: buka fitur Pinjaman di Teenancial dan catat semua utang piutangmu saat ini, sekecil apa pun, lengkap dengan tanggal jatuh tempo."
+        }
+      ],
+      "references": [
+        "Otoritas Jasa Keuangan (OJK) - waspada pinjaman online ilegal dan layanan konsumen 157",
+        "Satgas Waspada Investasi / Satgas PASTI"
+      ],
+      "quiz": {
+        "label": "Kuis 5: Detektif Utang",
+        "passingScore": 70,
+        "questions": [
+          {
+            "question": "Manakah yang paling mendekati utang produktif?",
+            "options": [
+              "Berutang untuk membeli skin game",
+              "Berutang untuk traktir teman",
+              "Berutang untuk tiket konser",
+              "Berutang untuk modal usaha yang sudah direncanakan dan bisa dibayar"
+            ],
+            "correctIndex": 3,
+            "explanation": "Utang produktif dipakai untuk hal yang menambah nilai atau penghasilan dan kemampuan bayarnya jelas."
+          },
+          {
+            "question": "Barang Rp300.000 dibeli dengan cicilan 3 kali Rp110.000. Berapa biaya tambahan yang kamu bayar?",
+            "options": [
+              "Rp0",
+              "Rp10.000",
+              "Rp30.000",
+              "Rp110.000"
+            ],
+            "correctIndex": 2,
+            "explanation": "Total bayar 3 x Rp110.000 = Rp330.000. Selisih dari harga barang adalah Rp30.000."
+          },
+          {
+            "question": "Mana yang merupakan ciri pinjaman online ilegal?",
+            "options": [
+              "Meminta akses ke seluruh kontak dan menagih dengan ancaman",
+              "Terdaftar dan berizin OJK",
+              "Syarat dan biaya dijelaskan jelas",
+              "Tidak menawarkan lewat pesan pribadi"
+            ],
+            "correctIndex": 0,
+            "explanation": "Akses kontak berlebihan dan penagihan intimidatif adalah ciri khas pinjaman ilegal."
+          },
+          {
+            "question": "Apa yang sebaiknya kamu lakukan jika kesulitan membayar utang?",
+            "options": [
+              "Menutup dengan utang baru dari pinjol",
+              "Bicara jujur dengan orang tua atau orang tepercaya dan susun rencana pembayaran",
+              "Menghindar dan mengganti nomor HP",
+              "Berpura-pura tidak ada utang"
+            ],
+            "correctIndex": 1,
+            "explanation": "Terbuka dan membuat rencana pembayaran lebih aman dibanding menumpuk utang baru."
+          },
+          {
+            "question": "Sinta membeli sepatu Rp500.000 dengan cicilan 3 kali Rp190.000. Berapa biaya tambahannya?",
+            "options": [
+              "Rp0",
+              "Rp30.000",
+              "Rp70.000",
+              "Rp190.000"
+            ],
+            "correctIndex": 2,
+            "explanation": "Total bayar Rp570.000 dikurangi harga sepatu Rp500.000 sama dengan Rp70.000."
+          },
+          {
+            "question": "Fajar lupa membayar utang ke temannya. Langkah terbaiknya adalah ...",
+            "options": [
+              "Menunggu sampai temannya menagih",
+              "Meminta maaf, membayar sesegera mungkin, dan mencatat setiap pinjaman berikutnya",
+              "Menghindari temannya",
+              "Berpura-pura sudah membayar"
+            ],
+            "correctIndex": 1,
+            "explanation": "Bertanggung jawab dan mencatat utang menjaga kepercayaan dan mencegah lupa."
+          },
+          {
+            "question": "Pinjol menawarkan Rp1.000.000, tetapi dana cair hanya Rp700.000 dan harus dikembalikan Rp1.000.000 dalam 7 hari. Kesimpulannya ...",
+            "options": [
+              "Tidak ada biaya tambahan",
+              "Penawaran yang wajar",
+              "Biayanya sangat tinggi sehingga sebaiknya dihindari",
+              "Bagus karena cair cepat"
+            ],
+            "correctIndex": 2,
+            "explanation": "Selisih Rp300.000 dalam seminggu setara sekitar 43 persen dari dana yang diterima, itu sangat mahal dan ciri pinjol bermasalah."
+          }
+        ]
+      }
+    },
+    {
+      "id": "investasi-ringan",
+      "levelId": "sedang",
+      "order": 3,
+      "title": "Kenalan dengan Investasi Ringan",
+      "description": "Uangmu bisa bekerja untukmu. Temukan instrumen investasi yang cocok untuk pelajar, seperti Reksa Dana Pasar Uang dan Deposito.",
+      "sections": [
+        {
+          "heading": "Menabung vs berinvestasi",
+          "body": "Menabung bertujuan menyimpan uang dengan aman dan mudah diambil. Investasi bertujuan menumbuhkan nilai uang dalam jangka lebih panjang dengan menerima risiko. Prinsip dasarnya: semakin tinggi potensi imbal hasil, biasanya semakin tinggi risikonya. Tidak ada investasi yang untung tinggi, cepat, dan bebas risiko sekaligus. Sebelum berinvestasi, siapkan dahulu dana darurat dan pastikan uang yang diinvestasikan tidak akan dipakai dalam waktu dekat."
+        },
+        {
+          "heading": "Deposito",
+          "body": "Deposito adalah simpanan berjangka di bank. Uang disimpan untuk jangka waktu tertentu, misalnya 1, 3, atau 6 bulan, dengan bunga yang sudah diketahui di awal. Risikonya rendah dan simpanan di bank umumnya dijamin LPS sesuai ketentuan. Kekurangannya: setoran awal dan syarat berbeda di tiap bank, dan jika dicairkan sebelum jatuh tempo bisa dikenai penalti. Cocok untuk yang ingin aman dengan hasil yang pasti."
+        },
+        {
+          "heading": "Reksa dana pasar uang",
+          "body": "Reksa dana adalah wadah yang mengumpulkan dana banyak investor lalu dikelola oleh manajer investasi. Reksa dana pasar uang menempatkan dana di instrumen jangka pendek seperti deposito dan surat utang bertenor singkat, sehingga risikonya tergolong rendah di antara jenis reksa dana. Namun nilainya tetap bisa berfluktuasi dan tidak dijamin LPS. Banyak platform resmi memungkinkan mulai dari nominal kecil. Untuk membuka akun investasi, umumnya dibutuhkan KTP; yang belum berusia 17 tahun biasanya perlu didampingi orang tua atau wali."
+        },
+        {
+          "heading": "Kenali profilmu dan hindari penipuan",
+          "body": "Profil risiko menggambarkan seberapa nyaman kamu menghadapi naik turun nilai: konservatif (mengutamakan keamanan), moderat (menerima sedikit fluktuasi), atau agresif (siap menghadapi fluktuasi besar). Pemula sebaiknya mulai dari yang risikonya rendah. Pakai prinsip Legal dan Logis: pastikan penyedia berizin OJK dan imbal hasil yang dijanjikan masuk akal. Janji untung pasti dan sangat tinggi dalam waktu singkat adalah tanda investasi bodong."
+        },
+        {
+          "heading": "Kasus 1: Tiga teman, tiga profil risiko",
+          "body": "Andi tidak suka melihat nilai uangnya turun walau sedikit, jadi ia nyaman dengan deposito dan tabungan (konservatif). Beni bisa menerima naik turun kecil asalkan potensi hasilnya sedikit lebih baik, sehingga ia memilih reksa dana pasar uang dan sebagian instrumen lain (moderat). Cici sanggup menghadapi naik turun besar karena uang yang ia investasikan memang tidak akan dipakai selama bertahun-tahun (agresif). Tidak ada profil yang paling benar. Yang penting pilihanmu sesuai dengan tujuan, jangka waktu, dan seberapa tenang kamu saat nilainya turun."
+        },
+        {
+          "heading": "Kasus 2: Gambaran menabung di reksa dana pasar uang",
+          "body": "Misalkan Sari menyisihkan Rp100.000 setiap bulan selama 12 bulan, jadi total setoran Rp1.200.000. Kalau ada imbal hasil 5 persen per tahun, nilainya sekitar Rp1,23 juta setelah setahun. Perhatikan bahwa ini hanya ilustrasi, hasil nyata bisa lebih kecil atau lebih besar, dan tidak dijamin. Pelajarannya: pada jangka pendek hasilnya kecil, jadi investasi bukan jalan pintas kaya. Manfaat terbesarnya baru terasa kalau kamu konsisten dalam waktu lama."
+        },
+        {
+          "heading": "Kasus 3: Tawaran robot trading di media sosial",
+          "body": "Rio melihat unggahan temannya yang memamerkan keuntungan dari robot trading dengan janji untung 10 persen per hari. Rio hampir ikut menyetor Rp500.000. Ia lalu mengecek dua hal: apakah penyelenggaranya berizin di OJK atau lembaga berwenang, dan apakah janjinya masuk akal. Untung 10 persen per hari berarti uang berlipat berkali-kali hanya dalam sebulan, itu mustahil dan merupakan ciri investasi bodong. Rio batal ikut dan menyampaikan peringatan kepada temannya."
+        },
+        {
+          "heading": "Kasus 4: Ikut-ikutan karena viral",
+          "body": "Naya membeli sebuah koin kripto yang sedang ramai dibicarakan memakai uang tabungannya Rp1.000.000. Beberapa minggu kemudian nilainya turun 50 persen menjadi Rp500.000. Agar kembali ke Rp1.000.000, nilainya harus naik 100 persen, bukan 50 persen. Pelajaran pentingnya: jangan berinvestasi hanya karena viral atau takut ketinggalan, gunakan hanya uang dingin yang tidak dibutuhkan dalam waktu dekat, dan pelajari dulu produknya."
+        },
+        {
+          "heading": "Ringkasan dan daftar periksa sebelum berinvestasi",
+          "body": "Ringkasan: investasi menuntut kesabaran, ada risiko, dan tidak ada untung besar tanpa risiko. Daftar periksa lima pertanyaan: Apakah aku punya dana darurat? Apakah uang ini tidak dibutuhkan dalam waktu dekat? Apakah penyelenggara berizin? Apakah aku paham cara kerja produknya? Apakah imbal hasil yang dijanjikan masuk akal? Kalau ada yang dijawab tidak, tunda dulu."
+        }
+      ],
+      "references": [
+        "Otoritas Jasa Keuangan (OJK) - edukasi investasi dan kampanye Legal dan Logis",
+        "Lembaga Penjamin Simpanan (LPS)"
+      ],
+      "quiz": {
+        "label": "Kuis 6: Profil Risiko Pemula",
+        "passingScore": 70,
+        "questions": [
+          {
+            "question": "Hubungan umum antara imbal hasil dan risiko adalah ...",
+            "options": [
+              "Risiko tidak berhubungan dengan imbal hasil",
+              "Imbal hasil tinggi selalu tanpa risiko",
+              "Imbal hasil tinggi biasanya disertai risiko lebih tinggi",
+              "Imbal hasil rendah berarti risiko tinggi"
+            ],
+            "correctIndex": 2,
+            "explanation": "Semakin tinggi potensi imbal hasil, biasanya semakin tinggi risikonya."
+          },
+          {
+            "question": "Apa perbedaan penting reksa dana pasar uang dengan deposito?",
+            "options": [
+              "Reksa dana pasar uang dijamin LPS, deposito tidak",
+              "Deposito dikelola manajer investasi",
+              "Keduanya sama persis",
+              "Nilai reksa dana bisa berfluktuasi dan tidak dijamin LPS, sedangkan simpanan deposito di bank umumnya dijamin LPS"
+            ],
+            "correctIndex": 3,
+            "explanation": "Reksa dana dikelola manajer investasi dan nilainya bisa naik turun, sedangkan deposito adalah simpanan bank."
+          },
+          {
+            "question": "Sebelum mulai berinvestasi, apa yang sebaiknya disiapkan lebih dulu?",
+            "options": [
+              "Dana darurat",
+              "Utang paylater",
+              "Barang koleksi",
+              "Akun media sosial baru"
+            ],
+            "correctIndex": 0,
+            "explanation": "Dana darurat melindungi agar investasi tidak harus dicairkan saat ada kebutuhan mendadak."
+          },
+          {
+            "question": "Seseorang menawarkan investasi untung pasti 20 persen per minggu tanpa risiko. Itu ...",
+            "options": [
+              "Peluang langka yang harus diambil",
+              "Tanda kuat investasi bodong",
+              "Reksa dana resmi",
+              "Deposito berjangka"
+            ],
+            "correctIndex": 1,
+            "explanation": "Janji untung pasti dan sangat tinggi dalam waktu singkat tidak logis dan merupakan ciri penipuan."
+          },
+          {
+            "question": "Naya membeli aset yang nilainya turun 50 persen. Berapa kenaikan yang diperlukan agar nilainya kembali ke modal awal?",
+            "options": [
+              "25 persen",
+              "50 persen",
+              "75 persen",
+              "100 persen"
+            ],
+            "correctIndex": 3,
+            "explanation": "Dari 50 kembali ke 100 berarti naik 50, yaitu 100 persen dari nilai saat ini."
+          },
+          {
+            "question": "Rio ditawari robot trading dengan janji untung 10 persen per hari. Tindakan terbaik adalah ...",
+            "options": [
+              "Ikut dengan nominal kecil dulu",
+              "Mengajak banyak teman agar dapat bonus",
+              "Meminjam uang supaya modalnya besar",
+              "Menolak, karena janji tinggi dan pasti adalah ciri investasi bodong"
+            ],
+            "correctIndex": 3,
+            "explanation": "Imbal hasil setinggi itu tidak logis. Selalu cek izin dan kewajaran janji."
+          },
+          {
+            "question": "Uang yang paling tepat untuk diinvestasikan adalah ...",
+            "options": [
+              "Uang dingin, yaitu uang yang tidak dibutuhkan dalam waktu dekat",
+              "Uang SPP bulan depan",
+              "Uang hasil pinjaman paylater",
+              "Dana darurat"
+            ],
+            "correctIndex": 0,
+            "explanation": "Investasi bisa naik turun, jadi pakai uang yang tidak akan dipakai dalam waktu dekat."
+          }
+        ]
+      }
+    },
+    {
+      "id": "inflasi",
+      "levelId": "sulit",
+      "order": 1,
+      "title": "Musuh Tak Terlihat: Inflasi",
+      "description": "Kenapa harga jajan sekolah selalu naik setiap tahun? Ketahui bagaimana inflasi menggerus nilai uangmu dan cara melawannya.",
+      "sections": [
+        {
+          "heading": "Apa itu inflasi?",
+          "body": "Inflasi adalah kenaikan harga barang dan jasa secara umum dan terus-menerus dalam jangka waktu tertentu. Akibatnya, uang dengan jumlah yang sama membeli lebih sedikit dari sebelumnya. Inilah yang disebut turunnya daya beli. Inflasi yang rendah dan stabil itu normal dalam ekonomi, tetapi inflasi tinggi sangat memberatkan karena penghasilan sering naik lebih lambat dari harga."
+        },
+        {
+          "heading": "Contoh hitungannya",
+          "body": "Rumusnya: harga masa depan = harga sekarang x (1 + inflasi)^tahun. Jika jajan Rp10.000 naik 5 persen per tahun, setelah 5 tahun harganya sekitar Rp12.763. Dari sisi lain, uang Rp100.000 yang disimpan tanpa bunga saat inflasi 4 persen per tahun akan memiliki daya beli setara sekitar Rp67.556 setelah 10 tahun. Jumlah uangnya tetap Rp100.000, tetapi yang bisa dibeli semakin sedikit."
+        },
+        {
+          "heading": "Bunga riil: apakah uangmu benar-benar tumbuh?",
+          "body": "Untuk tahu apakah tabunganmu benar-benar tumbuh, bandingkan bunga dengan inflasi. Selisihnya disebut imbal hasil riil. Jika bunga tabungan 3 persen sedangkan inflasi 5 persen, imbal hasil riilnya sekitar minus 2 persen, artinya daya beli uangmu berkurang meskipun angka saldo bertambah. Karena itu, menyimpan uang jangka panjang hanya di bawah bantal atau tanpa bunga adalah cara paling pasti untuk kalah dari inflasi."
+        },
+        {
+          "heading": "Cara melawan inflasi",
+          "body": "Pertama, simpan dana jangka pendek di tempat yang aman, tetapi untuk tujuan jangka panjang pertimbangkan instrumen yang berpotensi memberi imbal hasil di atas inflasi, dengan memahami risikonya. Kedua, tingkatkan kemampuanmu supaya penghasilan di masa depan naik. Ketiga, biasakan membandingkan harga dan menunda keinginan yang tidak perlu. Keempat, jangan menunda memulai menabung dan berinvestasi karena waktu adalah sekutu terbaikmu."
+        },
+        {
+          "heading": "Kasus 1: Harga bakso yang naik",
+          "body": "Misalkan beberapa tahun lalu semangkuk bakso di dekat sekolah harganya Rp8.000, dan sekarang Rp12.000. Kenaikannya Rp4.000, atau 50 persen. Kalau uang jajanmu tidak berubah, kamu hanya mampu membeli dua pertiga dari porsi yang dulu bisa dibeli. Begitulah inflasi bekerja pada keseharian: bukan tiba-tiba, tetapi sedikit demi sedikit sampai terasa."
+        },
+        {
+          "heading": "Kasus 2: Uang saku yang tetap",
+          "body": "Ketika SMP, Gita mendapat uang saku Rp20.000 per hari dan cukup untuk makan siang plus minum. Kini di SMA nominalnya sama, tetapi harga makanan sudah naik, sehingga ia harus berhemat. Penghasilan yang tidak naik saat harga naik berarti daya beli menurun. Itulah alasan penghasilan perlu bertumbuh: lewat keterampilan, usaha kecil, atau pilihan tabungan yang menambah nilai."
+        },
+        {
+          "heading": "Kasus 3: Tabungan 5 juta dengan bunga 2 persen",
+          "body": "Pak Budi menyimpan Rp5.000.000 di tabungan dengan bunga 2 persen per tahun, sementara inflasi 4 persen. Setelah satu tahun saldonya menjadi Rp5.100.000. Tetapi barang yang tahun lalu seharga Rp5.000.000 sekarang menjadi Rp5.200.000. Meski saldo bertambah Rp100.000, ia tidak lagi mampu membeli barang yang sama persis. Saldo bertambah, tetapi daya beli berkurang."
+        },
+        {
+          "heading": "Kasus 4: Merencanakan biaya kuliah",
+          "body": "Misalkan biaya kuliah sekarang Rp10.000.000 per tahun dan naik 8 persen per tahun. Enam tahun lagi, biayanya sekitar Rp15.868.743 atau hampir Rp15,9 juta. Kalau kamu hanya menabung sebesar harga sekarang, uangnya akan kurang. Karena itu, saat merencanakan tujuan jangka panjang, selalu hitung dengan harga masa depan, bukan harga hari ini."
+        },
+        {
+          "heading": "Ringkasan dan tantangan",
+          "body": "Ringkasan: inflasi menggerus daya beli, bandingkan bunga dengan inflasi, dan hitung tujuan dengan harga masa depan. Tantangan: tanyakan kepada orang tua atau kakek-nenekmu harga satu barang yang sering kamu beli sekarang (misalnya bakso atau ongkos angkot) pada 10 sampai 20 tahun lalu, lalu hitung berapa persen naiknya."
+        }
+      ],
+      "references": [
+        "Bank Indonesia - pengendalian inflasi",
+        "Badan Pusat Statistik (BPS) - data inflasi"
+      ],
+      "quiz": {
+        "label": "Kuis 7: Hitung Efek Inflasi",
+        "passingScore": 70,
+        "questions": [
+          {
+            "question": "Inflasi adalah ...",
+            "options": [
+              "Penurunan harga barang secara umum",
+              "Naiknya gaji setiap tahun",
+              "Kenaikan harga barang dan jasa secara umum dan terus-menerus",
+              "Bunga dari bank"
+            ],
+            "correctIndex": 2,
+            "explanation": "Inflasi berarti harga secara umum naik terus-menerus sehingga daya beli uang menurun."
+          },
+          {
+            "question": "Bunga tabungan 3% per tahun, inflasi 5% per tahun. Apa yang terjadi pada daya beli uangmu?",
+            "options": [
+              "Bertambah",
+              "Tetap",
+              "Tidak bisa dihitung",
+              "Berkurang"
+            ],
+            "correctIndex": 3,
+            "explanation": "Imbal hasil riil sekitar -2%, jadi daya beli turun walaupun saldo bertambah."
+          },
+          {
+            "question": "Barang seharga Rp100.000 dengan inflasi 5% per tahun. Kira-kira berapa harganya setelah 10 tahun?",
+            "options": [
+              "Rp105.000",
+              "Rp150.000",
+              "Rp162.889",
+              "Rp200.000"
+            ],
+            "correctIndex": 2,
+            "explanation": "100.000 x 1,05^10 = sekitar Rp162.889."
+          },
+          {
+            "question": "Mana langkah yang paling membantu melawan efek inflasi jangka panjang?",
+            "options": [
+              "Meningkatkan kemampuan dan mempertimbangkan instrumen dengan imbal hasil di atas inflasi sesuai profil risiko",
+              "Menunda semua keputusan keuangan",
+              "Menyimpan seluruh uang tanpa bunga",
+              "Membeli semua barang sekarang"
+            ],
+            "correctIndex": 0,
+            "explanation": "Menaikkan penghasilan dan memilih instrumen yang sesuai membantu menjaga daya beli."
+          },
+          {
+            "question": "Bakso dulu Rp8.000 dan sekarang Rp12.000. Berapa persen kenaikan harganya?",
+            "options": [
+              "25 persen",
+              "40 persen",
+              "50 persen",
+              "150 persen"
+            ],
+            "correctIndex": 2,
+            "explanation": "Kenaikan Rp4.000 dibagi harga awal Rp8.000 sama dengan 50 persen."
+          },
+          {
+            "question": "Tabungan Rp5.000.000 berbunga 2 persen per tahun, inflasi 4 persen. Setelah setahun, pernyataan yang benar adalah ...",
+            "options": [
+              "Daya beli bertambah karena saldo naik",
+              "Saldo bertambah, tetapi daya beli berkurang",
+              "Daya beli tetap sama",
+              "Saldo dan daya beli sama-sama turun"
+            ],
+            "correctIndex": 1,
+            "explanation": "Saldo naik menjadi Rp5.100.000, tetapi harga barang naik 4 persen sehingga daya beli turun."
+          },
+          {
+            "question": "Biaya kuliah sekarang Rp10.000.000 per tahun, naik 8 persen per tahun. Kira-kira 6 tahun lagi menjadi ...",
+            "options": [
+              "Rp11 juta",
+              "Rp12 juta",
+              "Rp15,9 juta",
+              "Rp20 juta"
+            ],
+            "correctIndex": 2,
+            "explanation": "10.000.000 x 1,08^6 sama dengan sekitar Rp15,87 juta."
+          },
+          {
+            "question": "Uang saku Gita tetap Rp20.000 per hari sementara harga makanan naik. Dampaknya adalah ...",
+            "options": [
+              "Tidak ada pengaruh",
+              "Daya belinya meningkat",
+              "Daya belinya menurun",
+              "Harga makanan akan turun sendiri"
+            ],
+            "correctIndex": 2,
+            "explanation": "Penghasilan tetap tetapi harga naik berarti barang yang bisa dibeli makin sedikit."
+          },
+          {
+            "question": "Rumus yang tepat untuk memperkirakan harga di masa depan adalah ...",
+            "options": [
+              "Harga sekarang + inflasi",
+              "Harga sekarang - inflasi",
+              "Harga sekarang dibagi inflasi",
+              "Harga sekarang x (1 + inflasi) pangkat tahun"
+            ],
+            "correctIndex": 3,
+            "explanation": "Harga masa depan = harga sekarang x (1 + inflasi)^tahun."
+          },
+          {
+            "question": "Inflasi yang rendah dan stabil dalam perekonomian dianggap ...",
+            "options": [
+              "Hal yang normal, sedangkan inflasi tinggi lebih memberatkan masyarakat",
+              "Selalu buruk",
+              "Tanda uang tidak berguna",
+              "Menyebabkan semua harga turun"
+            ],
+            "correctIndex": 0,
+            "explanation": "Inflasi rendah dan stabil wajar. Masalah muncul saat inflasi tinggi dan penghasilan tidak ikut naik."
+          }
+        ]
+      }
+    },
+    {
+      "id": "bunga-majemuk",
+      "levelId": "sulit",
+      "order": 2,
+      "title": "Keajaiban Bunga Majemuk (Compound Interest)",
+      "description": "Rahasia terbesar para miliarder. Pelajari bagaimana bunga yang berbunga lagi bisa melipatgandakan asetmu dalam jangka panjang.",
+      "sections": [
+        {
+          "heading": "Bunga tunggal vs bunga majemuk",
+          "body": "Bunga tunggal dihitung hanya dari modal awal. Bunga majemuk dihitung dari modal ditambah bunga yang sudah terkumpul, sehingga bunga ikut berbunga. Contoh: Rp1.000.000 dengan bunga 6 persen per tahun selama 10 tahun menjadi Rp1.600.000 dengan bunga tunggal, tetapi sekitar Rp1.790.848 dengan bunga majemuk. Rumusnya: nilai akhir = modal x (1 + bunga)^tahun."
+        },
+        {
+          "heading": "Waktu adalah kunci",
+          "body": "Efek bunga majemuk makin besar seiring waktu. Dengan Rp1.000.000 pada bunga 6 persen per tahun, setelah 20 tahun nilainya sekitar Rp3.207.135 pada bunga majemuk, dibanding Rp2.200.000 pada bunga tunggal. Selisihnya melebar karena pertumbuhan menumpuk di atas pertumbuhan sebelumnya. Itulah mengapa memulai lebih awal, walaupun jumlahnya kecil, sering mengalahkan memulai lebih besar tetapi terlambat."
+        },
+        {
+          "heading": "Menabung rutin + bunga majemuk",
+          "body": "Jika kamu menyisihkan Rp100.000 setiap bulan dengan imbal hasil 6 persen per tahun yang dimajemukkan tiap bulan, setelah 10 tahun terkumpul sekitar Rp16,4 juta dari total setoran Rp12 juta. Setelah 20 tahun terkumpul sekitar Rp46,2 juta dari setoran Rp24 juta. Perhatikan bagaimana bagian dari bunga makin besar di tahun-tahun akhir. Angka ini hanya ilustrasi, hasil investasi nyata bisa naik turun dan tidak pasti."
+        },
+        {
+          "heading": "Aturan 72 dan sisi gelapnya",
+          "body": "Aturan 72 adalah cara cepat memperkirakan waktu uang berlipat dua: bagi 72 dengan persentase bunga tahunan. Pada bunga 6 persen, uang berlipat dua kira-kira dalam 12 tahun. Bunga majemuk juga berlaku untuk utang: bunga yang belum dibayar ikut berbunga, sehingga utang berbunga tinggi bisa membengkak dengan cepat. Gunakan kekuatan ini untuk menabung, jauhi untuk berutang."
+        },
+        {
+          "heading": "Kasus 1: Ayu mulai lebih awal, Bayu menyusul",
+          "body": "Misalkan keduanya menabung Rp100.000 per bulan dengan imbal hasil 6 persen per tahun yang dimajemukkan tiap bulan. Ayu mulai di usia 17 dan berhenti menyetor di usia 27 (10 tahun, total setoran Rp12 juta), lalu uangnya dibiarkan tumbuh sampai usia 37. Bayu baru mulai di usia 27 dan menyetor sampai 37 (10 tahun, total setoran juga Rp12 juta). Di usia 37, Ayu memiliki sekitar Rp29,8 juta, sedangkan Bayu sekitar Rp16,4 juta. Setorannya sama, tetapi Ayu menang karena uangnya punya waktu 10 tahun lebih lama untuk tumbuh. Angka ini ilustrasi, bukan jaminan."
+        },
+        {
+          "heading": "Kasus 2: Utang yang tidak dibayar",
+          "body": "Bunga majemuk juga bekerja pada utang. Misalkan utang Rp1.000.000 berbunga 3 persen per bulan dan tidak pernah dibayar. Setelah 12 bulan, jumlahnya menjadi sekitar Rp1.425.761. Dalam setahun utang membengkak lebih dari Rp425.000 padahal kamu tidak meminjam sepeser pun lagi. Inilah mengapa utang berbunga tinggi harus segera dilunasi, dan mengapa membayar telat membuat beban makin berat."
+        },
+        {
+          "heading": "Kasus 3: Aturan 72 dalam praktik",
+          "body": "Dengan aturan 72, uang Rp2.000.000 yang tumbuh 6 persen per tahun kira-kira menjadi dua kali lipat dalam 72 dibagi 6 sama dengan 12 tahun. Kalau dihitung dengan rumus, nilainya setelah 12 tahun sekitar Rp4.024.393, hampir sama dengan perkiraan Rp4.000.000. Aturan 72 berguna sebagai perkiraan cepat di kepala saat kamu membandingkan dua pilihan bunga."
+        },
+        {
+          "heading": "Kasus 4: Menyisihkan Rp5.000 setiap hari",
+          "body": "Kalau kamu menyisihkan Rp5.000 per hari, kira-kira Rp150.000 per bulan. Dengan imbal hasil 6 persen per tahun yang dimajemukkan bulanan, setelah 10 tahun terkumpul sekitar Rp24,6 juta dari setoran total Rp18 juta. Uang sebesar Rp5.000 itu setara harga satu gorengan atau satu minuman kecil. Kebiasaan kecil yang konsisten, dikombinasikan dengan waktu, bisa menghasilkan jumlah yang tidak kamu sangka."
+        },
+        {
+          "heading": "Ringkasan dan tantangan",
+          "body": "Ringkasan: bunga majemuk membuat bunga ikut berbunga, waktu adalah faktor terbesarnya, dan efek yang sama merugikan jika kamu berutang. Tantangan: pilih jumlah yang ringan, misalnya Rp5.000 per hari, lalu buat target menabung di Teenancial dan setor secara rutin selama 30 hari berturut-turut."
+        }
+      ],
+      "references": [
+        "Otoritas Jasa Keuangan (OJK) - materi dasar investasi",
+        "Rumus bunga majemuk (matematika keuangan dasar)"
+      ],
+      "quiz": {
+        "label": "Kuis 8: Kekuatan Waktu",
+        "passingScore": 70,
+        "questions": [
+          {
+            "question": "Apa perbedaan utama bunga majemuk dengan bunga tunggal?",
+            "options": [
+              "Bunga majemuk dihitung hanya dari modal awal",
+              "Bunga majemuk dihitung dari modal ditambah bunga yang sudah terkumpul",
+              "Bunga tunggal selalu lebih besar",
+              "Tidak ada perbedaan"
+            ],
+            "correctIndex": 1,
+            "explanation": "Pada bunga majemuk, bunga ikut berbunga sehingga pertumbuhan makin cepat."
+          },
+          {
+            "question": "Menurut aturan 72, dengan bunga 8% per tahun uang berlipat dua dalam kira-kira ...",
+            "options": [
+              "6 tahun",
+              "9 tahun",
+              "12 tahun",
+              "72 tahun"
+            ],
+            "correctIndex": 1,
+            "explanation": "72 dibagi 8 sama dengan 9 tahun."
+          },
+          {
+            "question": "Mengapa memulai menabung lebih awal menguntungkan?",
+            "options": [
+              "Karena bank memberi hadiah",
+              "Karena inflasi berhenti",
+              "Karena waktu yang lebih lama memberi bunga majemuk lebih banyak kesempatan menumpuk",
+              "Karena pajak hilang"
+            ],
+            "correctIndex": 2,
+            "explanation": "Semakin lama waktu, semakin besar efek bunga berbunga."
+          },
+          {
+            "question": "Bagaimana bunga majemuk berlaku pada utang berbunga tinggi?",
+            "options": [
+              "Utang justru mengecil sendiri",
+              "Utang otomatis lunas",
+              "Tidak berlaku pada utang",
+              "Bunga yang belum dibayar ikut berbunga sehingga utang bisa membengkak"
+            ],
+            "correctIndex": 3,
+            "explanation": "Prinsip yang sama bisa merugikan jika kamu berutang dan tidak membayar tepat waktu."
+          },
+          {
+            "question": "Ayu menabung Rp100.000 per bulan dari usia 17 sampai 27 lalu berhenti, Bayu baru menabung dari usia 27 sampai 37 dengan jumlah sama. Di usia 37, siapa yang uangnya lebih banyak (imbal hasil sama)?",
+            "options": [
+              "Bayu",
+              "Ayu",
+              "Sama persis",
+              "Tidak bisa dibandingkan"
+            ],
+            "correctIndex": 1,
+            "explanation": "Uang Ayu punya waktu lebih lama untuk tumbuh, hasilnya sekitar Rp29,8 juta dibanding sekitar Rp16,4 juta."
+          },
+          {
+            "question": "Utang Rp1.000.000 berbunga 3 persen per bulan tidak dibayar selama 12 bulan. Kira-kira jumlahnya menjadi ...",
+            "options": [
+              "Rp1,03 juta",
+              "Rp1,2 juta",
+              "Rp1,43 juta",
+              "Rp2 juta"
+            ],
+            "correctIndex": 2,
+            "explanation": "1.000.000 x 1,03^12 sama dengan sekitar Rp1.425.761."
+          },
+          {
+            "question": "Uang Rp2.000.000 tumbuh 6 persen per tahun. Menurut aturan 72, kira-kira berlipat dua dalam ...",
+            "options": [
+              "6 tahun",
+              "9 tahun",
+              "12 tahun",
+              "24 tahun"
+            ],
+            "correctIndex": 2,
+            "explanation": "72 dibagi 6 sama dengan 12 tahun."
+          },
+          {
+            "question": "Rp1.000.000 dengan bunga majemuk 6 persen per tahun selama 10 tahun menjadi sekitar ...",
+            "options": [
+              "Rp1.600.000",
+              "Rp1.790.848",
+              "Rp2.000.000",
+              "Rp2.600.000"
+            ],
+            "correctIndex": 1,
+            "explanation": "1.000.000 x 1,06^10 sama dengan sekitar Rp1.790.848. Rp1.600.000 adalah hasil bunga tunggal."
+          },
+          {
+            "question": "Menyisihkan Rp150.000 per bulan selama 10 tahun dengan imbal hasil 6 persen per tahun (majemuk bulanan) menghasilkan sekitar ...",
+            "options": [
+              "Rp18 juta",
+              "Rp20 juta",
+              "Rp24,6 juta",
+              "Rp40 juta"
+            ],
+            "correctIndex": 2,
+            "explanation": "Total setoran Rp18 juta, nilai akhirnya sekitar Rp24,6 juta."
+          },
+          {
+            "question": "Mana faktor yang membuat efek bunga majemuk makin besar?",
+            "options": [
+              "Berhenti menabung di tengah jalan",
+              "Menarik semua bunga setiap bulan",
+              "Waktu yang lebih lama dan setoran rutin",
+              "Memilih menunda mulai menabung"
+            ],
+            "correctIndex": 2,
+            "explanation": "Waktu dan konsistensi memberi kesempatan bunga untuk terus berbunga."
+          }
+        ]
+      }
+    },
+    {
+      "id": "passive-income-pelajar",
+      "levelId": "sulit",
+      "order": 3,
+      "title": "Membangun Passive Income Sebagai Pelajar",
+      "description": "Jangan hanya bergantung pada uang saku. Mulai eksplorasi cara menciptakan sumber pendapatan otomatis dari hobi dan keahlianmu.",
+      "sections": [
+        {
+          "heading": "Apa itu passive income?",
+          "body": "Passive income adalah penghasilan yang terus mengalir dengan kerja rutin yang jauh lebih sedikit setelah kamu menyiapkannya di awal. Bedanya dengan active income, yaitu uang yang didapat langsung dari waktu dan tenaga yang kamu tukar, seperti gaji atau upah jam kerja. Jangan salah paham: passive income bukan uang instan tanpa usaha. Biasanya dibutuhkan kerja keras, waktu, dan kesabaran di awal."
+        },
+        {
+          "heading": "Ide yang realistis untuk pelajar",
+          "body": "Beberapa contoh: menjual karya digital seperti desain stiker, template presentasi, atau preset foto; membuat konten edukasi atau tulisan yang bisa menghasilkan seiring waktu; menjual jasa kecil sesuai keahlian seperti desain poster atau penyuntingan video; atau menjadi reseller produk dengan stok terbatas. Pilih berdasarkan hobi dan keahlianmu supaya konsisten. Hasilnya di awal biasanya kecil, jadi anggap ini latihan membangun keterampilan dan kebiasaan usaha."
+        },
+        {
+          "heading": "Aturan main dan waspada penipuan",
+          "body": "Utamakan sekolah dan jangan sampai nilai turun. Diskusikan dengan orang tua, terlebih jika melibatkan uang atau akun pembayaran. Waspadai tawaran penghasilan besar tanpa kerja, skema yang meminta kamu menyetor uang lalu merekrut anggota, atau janji untung pasti. Itu ciri money game atau investasi bodong. Jangan pernah membayar biaya pendaftaran besar untuk sekadar bisa menghasilkan uang."
+        },
+        {
+          "heading": "Langkah memulai dalam 30 hari",
+          "body": "Minggu 1: tulis tiga keahlian atau hobi yang bisa dimanfaatkan dan pilih satu. Minggu 2: buat satu produk atau karya contoh sederhana. Minggu 3: tawarkan ke lingkungan terdekat dan kumpulkan masukan. Minggu 4: perbaiki lalu catat hasilnya. Catat setiap pemasukan dan biaya di Teenancial, pisahkan modal dan keuntungan, dan sisihkan sebagian untuk tabungan atau target menabungmu."
+        },
+        {
+          "heading": "Kasus 1: Dina menjual stiker digital",
+          "body": "Dina suka menggambar dan membuat 20 desain stiker digital. Ia menjualnya di marketplace seharga Rp15.000 per paket. Bulan pertama hanya 6 paket terjual, jadi ia mendapat Rp90.000 sebelum dipotong biaya platform. Ia lalu mempelajari desain yang paling laku, menambah desain baru, dan memperbaiki foto produknya. Bulan-bulan berikutnya penjualannya perlahan naik. Hasil awal kecil itu wajar, dan karya yang sudah dibuat bisa dijual berulang tanpa membuat ulang dari nol. Itulah contoh pendapatan yang mendekati passive."
+        },
+        {
+          "heading": "Kasus 2: Reza dan jasa edit video",
+          "body": "Reza menerima pesanan edit video dan dibayar Rp50.000 per video. Kalau ia berhenti mengedit, penghasilannya berhenti. Itu active income, karena uang didapat dari waktu dan tenaga langsung. Agar sebagian menjadi lebih pasif, Reza membuat paket template video siap pakai yang dijual berkali-kali. Ia tetap bekerja di awal, tetapi template yang sama bisa dibeli banyak orang. Kamu bisa mulai dari active income untuk belajar dan modal, lalu mengembangkannya."
+        },
+        {
+          "heading": "Kasus 3: Ajakan paket member get member",
+          "body": "Salsa diajak temannya ikut paket Rp500.000 dengan janji bonus besar jika berhasil mengajak 3 orang lain. Hampir tidak ada produk yang jelas, uang justru berasal dari setoran anggota baru. Kalau setiap orang harus merekrut 3 orang, di level ke-10 dibutuhkan 59.049 orang, jumlah yang akan cepat habis. Akibatnya, anggota yang masuk belakangan hampir pasti rugi. Ini ciri skema piramida atau money game. Salsa menolak dan tidak membayar sepeser pun."
+        },
+        {
+          "heading": "Kasus 4: Mengatur hasil usaha pertamamu",
+          "body": "Dari usaha kecilnya, Mira mendapat Rp300.000. Rp100.000 adalah pengembalian modal, jadi labanya Rp200.000. Ia membagi laba: 50 persen untuk tabungan (Rp100.000), 30 persen untuk modal tambahan (Rp60.000), dan 20 persen untuk menghargai diri sendiri (Rp40.000). Dengan begitu usahanya tumbuh, tabungannya bertambah, dan ia tetap menikmati hasil kerjanya."
+        },
+        {
+          "heading": "Ringkasan dan tantangan",
+          "body": "Ringkasan: passive income butuh kerja di awal, mulailah dari keahlian yang kamu punya, pisahkan modal dan laba, dan waspadai skema janji manis. Tantangan: tuliskan satu ide produk atau jasa, lalu hitung modal, harga jual, dan berapa yang bisa kamu tabung dari tiap penjualan."
+        }
+      ],
+      "references": [
+        "Otoritas Jasa Keuangan (OJK) - waspada investasi bodong dan penipuan keuangan",
+        "Kementerian terkait - kewirausahaan pelajar (rujukan umum)"
+      ],
+      "quiz": {
+        "label": "Kuis 9: Strategi Income Tambahan",
+        "passingScore": 70,
+        "questions": [
+          {
+            "question": "Pernyataan yang paling tepat tentang passive income adalah ...",
+            "options": [
+              "Penghasilan yang berjalan dengan kerja rutin lebih sedikit setelah persiapan awal yang membutuhkan usaha",
+              "Uang datang tanpa usaha sama sekali",
+              "Selalu bernilai besar sejak hari pertama",
+              "Hanya untuk orang dewasa"
+            ],
+            "correctIndex": 0,
+            "explanation": "Passive income biasanya butuh kerja dan waktu di awal sebelum berjalan dengan usaha lebih ringan."
+          },
+          {
+            "question": "Mana contoh ide yang realistis untuk pelajar?",
+            "options": [
+              "Ikut skema yang meminta setoran lalu merekrut anggota",
+              "Menjual desain stiker atau template digital buatan sendiri",
+              "Meminjam uang untuk modal besar tanpa izin",
+              "Membolos demi bekerja"
+            ],
+            "correctIndex": 1,
+            "explanation": "Menjual karya digital sesuai keahlian memiliki risiko rendah dan melatih keterampilan."
+          },
+          {
+            "question": "Mana yang merupakan tanda penipuan atau money game?",
+            "options": [
+              "Penjelasan produk dan sumber untung yang jelas",
+              "Izin usaha yang bisa diperiksa",
+              "Janji untung pasti dan tinggi serta keharusan merekrut anggota",
+              "Tidak ada setoran awal"
+            ],
+            "correctIndex": 2,
+            "explanation": "Janji untung pasti dan sistem rekrut anggota adalah ciri khas skema bermasalah."
+          },
+          {
+            "question": "Apa yang sebaiknya kamu lakukan dengan hasil usaha kecilmu?",
+            "options": [
+              "Habiskan semua untuk jajan",
+              "Pinjamkan semuanya ke teman",
+              "Sembunyikan dari catatan",
+              "Catat pemasukan dan biaya, pisahkan modal dan keuntungan, lalu sisihkan sebagian untuk menabung"
+            ],
+            "correctIndex": 3,
+            "explanation": "Pencatatan dan menyisihkan sebagian keuntungan membangun kebiasaan keuangan yang sehat."
+          },
+          {
+            "question": "Reza menerima pesanan edit video dan dibayar per video. Jenis penghasilannya adalah ...",
+            "options": [
+              "Bunga deposito",
+              "Passive income murni",
+              "Dividen",
+              "Active income"
+            ],
+            "correctIndex": 3,
+            "explanation": "Uangnya didapat langsung dari waktu dan tenaga yang ia tukar untuk tiap pesanan."
+          },
+          {
+            "question": "Jika setiap anggota harus merekrut 3 orang, di level ke-10 dibutuhkan berapa orang?",
+            "options": [
+              "30",
+              "300",
+              "59.049",
+              "590"
+            ],
+            "correctIndex": 2,
+            "explanation": "3 pangkat 10 sama dengan 59.049, jumlah yang tidak realistis, itu sebabnya skema ini tidak berkelanjutan."
+          },
+          {
+            "question": "Mira mendapat laba Rp200.000 dan membagi 50 persen untuk tabungan. Berapa tabungannya?",
+            "options": [
+              "Rp40.000",
+              "Rp60.000",
+              "Rp100.000",
+              "Rp150.000"
+            ],
+            "correctIndex": 2,
+            "explanation": "50 persen dari Rp200.000 adalah Rp100.000."
+          },
+          {
+            "question": "Hal pertama yang sebaiknya dilakukan pelajar sebelum membuka usaha online adalah ...",
+            "options": [
+              "Membicarakan dengan orang tua dan memastikan tidak mengganggu sekolah",
+              "Membolos agar fokus berjualan",
+              "Memakai uang SPP sebagai modal",
+              "Mengikuti skema rekrut anggota"
+            ],
+            "correctIndex": 0,
+            "explanation": "Izin orang tua dan prioritas sekolah menjaga usaha tetap sehat dan aman."
+          },
+          {
+            "question": "Dina menjual stiker Rp15.000 per paket dan platform mengambil biaya 10 persen. Berapa yang ia terima per paket?",
+            "options": [
+              "Rp1.500",
+              "Rp12.000",
+              "Rp13.500",
+              "Rp14.000"
+            ],
+            "correctIndex": 2,
+            "explanation": "10 persen dari Rp15.000 adalah Rp1.500, jadi yang diterima Rp13.500."
+          },
+          {
+            "question": "Mengapa sumber penghasilan pasif butuh kesabaran?",
+            "options": [
+              "Karena langsung kaya tanpa usaha",
+              "Karena di awal perlu menyiapkan karya atau sistem, hasilnya baru terasa seiring waktu",
+              "Karena tidak butuh keterampilan",
+              "Karena selalu berisiko tinggi"
+            ],
+            "correctIndex": 1,
+            "explanation": "Persiapan awal membutuhkan waktu dan usaha sebelum hasilnya terasa lebih ringan."
+          }
+        ]
+      }
+    }
+  ]
+}

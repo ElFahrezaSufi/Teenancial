@@ -1,0 +1,13 @@
+{
+  "name": "teenancial-seed-belajar",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Seed materi dan kuis Ruang Belajar ke Firestore",
+  "scripts": {
+    "seed": "node seed.js",
+    "validate": "node seed.js --dry-run"
+  },
+  "dependencies": {
+    "firebase-admin": "^13.0.0"
+  }
+}
