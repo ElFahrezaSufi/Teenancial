@@ -1,3 +1,5 @@
+// === FILE: lib/services/firestore_service.dart ===
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../config/app_constants.dart';
 
@@ -33,4 +35,10 @@ class FirestoreService {
 
   CollectionReference<Map<String, dynamic>> targetsCol(String uid) =>
       userDoc(uid).collection(AppConstants.targetsSubcollection);
+
+  CollectionReference<Map<String, dynamic>> get belajarLevelsCol =>
+      db.collection(AppConstants.belajarLevelsCollection);
+
+  CollectionReference<Map<String, dynamic>> get belajarModulesCol =>
+      db.collection(AppConstants.belajarModulesCollection);
 }
