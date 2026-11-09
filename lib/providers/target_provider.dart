@@ -23,7 +23,7 @@ class TargetProvider extends ChangeNotifier {
     for (final item in _items) {
       if (item.isPinned) return item;
     }
-    return null;
+    return _items.isNotEmpty ? _items.first : null;
   }
 
   /// Total dana yang sudah dialokasikan ke seluruh target menabung.
@@ -73,8 +73,21 @@ class TargetProvider extends ChangeNotifier {
     }
 
     try {
-      final fetched = await _repository.getTargets(targetUid);
+      var fetched = await _repository.getTargets(targetUid);
       if (_uid != targetUid) return;
+      if (fetched.isNotEmpty && !fetched.any((item) => item.isPinned)) {
+        final firstId = fetched.first.id;
+        await _repository.togglePinTarget(
+          uid: targetUid,
+          targetId: firstId,
+          shouldPin: true,
+        );
+        if (_uid != targetUid) return;
+        fetched = [
+          fetched.first.copyWith(isPinned: true),
+          ...fetched.skip(1),
+        ];
+      }
       _items = fetched;
       _errorMessage = null;
     } catch (e) {
@@ -97,11 +110,14 @@ class TargetProvider extends ChangeNotifier {
     if (targetUid == null) {
       throw Exception('Sesi pengguna tidak ditemukan');
     }
+    final bool shouldAutoPin =
+        _items.isEmpty || !_items.any((item) => item.isPinned);
     final created = await _repository.createTarget(
       uid: targetUid,
       nama: nama,
       targetAmount: targetAmount,
       imageFile: imageFile,
+      isPinned: shouldAutoPin,
     );
     await loadTargets(silent: true);
     return created;
@@ -160,11 +176,11 @@ class TargetProvider extends ChangeNotifier {
     if (targetUid == null) {
       throw Exception('Sesi pengguna tidak ditemukan');
     }
-    final bool shouldPin = !item.isPinned;
+    if (item.isPinned) return;
     await _repository.togglePinTarget(
       uid: targetUid,
       targetId: item.id,
-      shouldPin: shouldPin,
+      shouldPin: true,
     );
     await loadTargets(silent: true);
   }

@@ -63,12 +63,15 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _handleRefresh() async {
+    final belajarProvider = context.read<BelajarProvider>();
     await Future.wait([
       context.read<UserProvider>().loadProfile(silent: true),
       context.read<DompetProvider>().loadDompets(silent: true),
       context.read<TransactionProvider>().loadTransactions(silent: true),
       context.read<TargetProvider>().loadTargets(silent: true),
-      context.read<BelajarProvider>().loadProgress(silent: true),
+      belajarProvider.levels.isEmpty
+          ? belajarProvider.loadAll(silent: true)
+          : belajarProvider.loadProgress(silent: true),
     ]);
   }
 
