@@ -235,8 +235,6 @@ class BelajarProgressModel {
     this.completedQuizzes = const {},
   });
 
-  static bool isLegacyKey(String key) => RegExp(r'^\d+_\d+$').hasMatch(key);
-
   Map<String, dynamic> toMap() {
     return {
       'completedModules': completedModules.toList()..sort(),

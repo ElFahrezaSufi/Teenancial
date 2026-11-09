@@ -9,12 +9,30 @@ class BelajarCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final current = context.watch<BelajarProvider>().currentModule;
+    final provider = context.watch<BelajarProvider>();
+    final current = provider.currentModule;
 
-    final String judulModul = current?.module.title ?? 'Semua modul selesai!';
-    final String labelTingkat =
-        current != null ? 'Tingkat: ${current.level.tingkat}' : '';
-    final double progress = current?.levelProgress ?? 1.0;
+    late final String judulModul;
+    late final String labelTingkat;
+    late final double progress;
+
+    if (provider.isLoading) {
+      judulModul = 'Memuat materi belajar...';
+      labelTingkat = '';
+      progress = 0.0;
+    } else if (provider.levels.isEmpty) {
+      judulModul = 'Ketuk untuk memuat materi belajar';
+      labelTingkat = '';
+      progress = 0.0;
+    } else if (current != null) {
+      judulModul = current.module.title;
+      labelTingkat = 'Tingkat: ${current.level.tingkat}';
+      progress = current.levelProgress;
+    } else {
+      judulModul = 'Semua modul selesai!';
+      labelTingkat = '';
+      progress = 1.0;
+    }
 
     return CustomCard(
       backgroundColor: cardBg,

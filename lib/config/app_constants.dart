@@ -1,5 +1,3 @@
-// === FILE: lib/config/app_constants.dart ===
-
 class AppConstants {
   AppConstants._();
 

@@ -73,24 +73,24 @@ class _FakeBelajarRepository extends BelajarRepository {
 
   // Minimal in-memory catalog: 2 levels, 2 modules each.
   static final List<LevelData> _levels = [
-    LevelData(
+    const LevelData(
       id: 'level_1',
       tingkat: 'Dasar',
       subtitle: 'Level dasar',
       order: 0,
-      modules: const [],
+      modules: [],
     ),
-    LevelData(
+    const LevelData(
       id: 'level_2',
       tingkat: 'Sedang',
       subtitle: 'Level sedang',
       order: 1,
-      modules: const [],
+      modules: [],
     ),
   ];
 
   static final List<ModuleData> _modules = [
-    ModuleData(
+    const ModuleData(
       id: 'mod_1_1',
       levelId: 'level_1',
       order: 0,
@@ -98,7 +98,7 @@ class _FakeBelajarRepository extends BelajarRepository {
       description: 'Deskripsi 1.1',
       quiz: QuizData(label: 'Kuis 1.1'),
     ),
-    ModuleData(
+    const ModuleData(
       id: 'mod_1_2',
       levelId: 'level_1',
       order: 1,
@@ -106,7 +106,7 @@ class _FakeBelajarRepository extends BelajarRepository {
       description: 'Deskripsi 1.2',
       quiz: QuizData(label: 'Kuis 1.2'),
     ),
-    ModuleData(
+    const ModuleData(
       id: 'mod_2_1',
       levelId: 'level_2',
       order: 0,
@@ -114,7 +114,7 @@ class _FakeBelajarRepository extends BelajarRepository {
       description: 'Deskripsi 2.1',
       quiz: QuizData(label: 'Kuis 2.1'),
     ),
-    ModuleData(
+    const ModuleData(
       id: 'mod_2_2',
       levelId: 'level_2',
       order: 1,
@@ -245,6 +245,18 @@ void main() {
         provider.levels[0].modules[0].quiz.status,
         ModuleStatus.completed,
       );
+    });
+
+    test('updateUser(null) mereset daftar level dan progres saat logout',
+        () async {
+      expect(provider.levels, isNotEmpty);
+
+      provider.updateUser(null);
+      await Future<void>.delayed(Duration.zero);
+
+      expect(provider.levels, isEmpty);
+      expect(provider.isLoading, isFalse);
+      expect(provider.currentModule, isNull);
     });
   });
 }

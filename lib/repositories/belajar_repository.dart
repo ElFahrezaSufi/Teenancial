@@ -31,16 +31,6 @@ class BelajarRepository {
         .toList();
   }
 
-  Future<List<ModuleData>> getModulesByLevel(String levelId) async {
-    final snap = await _fs.belajarModulesCol
-        .where('levelId', isEqualTo: levelId)
-        .orderBy('order')
-        .get();
-    return snap.docs
-        .map((doc) => ModuleData.fromMap(doc.data(), docId: doc.id))
-        .toList();
-  }
-
   Future<List<ModuleData>> getAllModules() async {
     final snap = await _fs.belajarModulesCol.orderBy('order').get();
     return snap.docs

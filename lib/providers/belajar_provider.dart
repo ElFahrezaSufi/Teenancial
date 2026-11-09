@@ -53,14 +53,16 @@ class BelajarProvider extends ChangeNotifier {
     _completedQuizzes = {};
     _expandedModules = {};
     _errorMessage = null;
-    _recomputeLocks();
 
     if (newUid == null) {
+      _baseLevels = const [];
+      _levels = const [];
       _isLoading = false;
       Future.microtask(notifyListeners);
       return;
     }
 
+    _recomputeLocks();
     _isLoading = true;
     Future.microtask(() {
       if (_uid == newUid) loadAll();

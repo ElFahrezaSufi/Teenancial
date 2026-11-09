@@ -20,7 +20,7 @@ class RuangBelajarScreen extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: scaffoldBg,
-      appBar: const CustomAppBar(title: 'Ruang Belajar', showBackButton: false),
+      appBar: const CustomAppBar(title: 'Ruang Belajar'),
       body: Stack(
         fit: StackFit.expand,
         children: [
@@ -73,24 +73,24 @@ class RuangBelajarScreen extends StatelessWidget {
   }
 
   Widget _buildLoading() {
-    return SafeArea(
+    return const SafeArea(
       child: Padding(
-        padding: const EdgeInsets.all(24),
+        padding: EdgeInsets.all(24),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Skeleton(width: double.infinity, height: 100),
-            const SizedBox(height: 12),
+            SizedBox(height: 12),
             Skeleton(width: double.infinity, height: 60),
-            const SizedBox(height: 10),
+            SizedBox(height: 10),
             Skeleton(width: double.infinity, height: 60),
-            const SizedBox(height: 10),
+            SizedBox(height: 10),
             Skeleton(width: double.infinity, height: 60),
-            const SizedBox(height: 24),
+            SizedBox(height: 24),
             Skeleton(width: double.infinity, height: 100),
-            const SizedBox(height: 12),
+            SizedBox(height: 12),
             Skeleton(width: double.infinity, height: 60),
-            const SizedBox(height: 10),
+            SizedBox(height: 10),
             Skeleton(width: double.infinity, height: 60),
           ],
         ),

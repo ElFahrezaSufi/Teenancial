@@ -42,7 +42,7 @@ class _MateriScreenState extends State<MateriScreen> {
 
     return Scaffold(
       backgroundColor: scaffoldBg,
-      appBar: CustomAppBar(
+      appBar: const CustomAppBar(
         title: 'Materi',
         showBackButton: true,
       ),
@@ -156,13 +156,13 @@ class _MateriScreenState extends State<MateriScreen> {
                           ),
                         ),
                         const SizedBox(height: 12),
-                        Skeleton(width: double.infinity, height: 20, radius: 8),
+                        const Skeleton(width: double.infinity, height: 20, radius: 8),
                         const SizedBox(height: 8),
-                        Skeleton(width: double.infinity, height: 80, radius: 8),
+                        const Skeleton(width: double.infinity, height: 80, radius: 8),
                         const SizedBox(height: 8),
-                        Skeleton(width: double.infinity, height: 20, radius: 8),
+                        const Skeleton(width: double.infinity, height: 20, radius: 8),
                         const SizedBox(height: 8),
-                        Skeleton(width: double.infinity, height: 80, radius: 8),
+                        const Skeleton(width: double.infinity, height: 80, radius: 8),
                       ] else ...[
                         ...module.sections.map(
                           (section) => Padding(
@@ -265,9 +265,9 @@ class _MateriScreenState extends State<MateriScreen> {
               if (isAvailable || isCompleted)
                 Container(
                   padding: const EdgeInsets.fromLTRB(24, 12, 24, 24),
-                  decoration: BoxDecoration(
+                  decoration: const BoxDecoration(
                     color: appBarBg,
-                    border: const Border(
+                    border: Border(
                       top: BorderSide(color: lightGreen, width: 1),
                     ),
                   ),

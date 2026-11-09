@@ -44,6 +44,8 @@ class _QuizScreenState extends State<QuizScreen> {
 
   bool get _isLulus => _scorePercent >= widget.module.quiz.passingScore;
 
+  String _optionLabel(int index) => String.fromCharCode(65 + index);
+
   void _pilihJawaban(int optionIndex) {
     if (_showResult) return;
     setState(() => _selectedAnswers[_currentIndex] = optionIndex);
@@ -242,7 +244,6 @@ class _QuizScreenState extends State<QuizScreen> {
                     final i = entry.key;
                     final opt = entry.value;
                     final isSelected = selected == i;
-                    final labels = ['A', 'B', 'C', 'D'];
 
                     return Padding(
                       padding: const EdgeInsets.only(bottom: 10),
@@ -273,7 +274,7 @@ class _QuizScreenState extends State<QuizScreen> {
                                 ),
                                 child: Center(
                                   child: Text(
-                                    labels[i],
+                                    _optionLabel(i),
                                     style: TextStyle(
                                       color: isSelected
                                           ? Colors.white
@@ -430,7 +431,6 @@ class _QuizScreenState extends State<QuizScreen> {
             final q = _questions[i];
             final userAns = _selectedAnswers[i];
             final isCorrect = userAns == q.correctIndex;
-            final labels = ['A', 'B', 'C', 'D'];
 
             return Padding(
               padding: const EdgeInsets.only(bottom: 12),
@@ -474,7 +474,7 @@ class _QuizScreenState extends State<QuizScreen> {
                     const SizedBox(height: 8),
                     if (userAns != null && !isCorrect)
                       Text(
-                        'Jawaban kamu: ${labels[userAns]}. ${q.options[userAns]}',
+                        'Jawaban kamu: ${_optionLabel(userAns)}. ${q.options[userAns]}',
                         style: const TextStyle(
                           color: Colors.red,
                           fontSize: 12,
@@ -482,7 +482,7 @@ class _QuizScreenState extends State<QuizScreen> {
                         ),
                       ),
                     Text(
-                      'Jawaban benar: ${labels[q.correctIndex]}. ${q.options[q.correctIndex]}',
+                      'Jawaban benar: ${_optionLabel(q.correctIndex)}. ${q.options[q.correctIndex]}',
                       style: const TextStyle(
                         color: primaryGreen,
                         fontSize: 12,
