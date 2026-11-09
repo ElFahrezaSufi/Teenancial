@@ -58,7 +58,7 @@ class TargetMenabungScreen extends StatelessWidget {
                     context.read<TargetProvider>().loadTargets(silent: true),
                 child: SingleChildScrollView(
                   physics: const AlwaysScrollableScrollPhysics(),
-                  padding: const EdgeInsets.fromLTRB(24, 24, 24, 160),
+                  padding: const EdgeInsets.fromLTRB(24, 24, 24, 100),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
@@ -91,17 +91,14 @@ class TargetMenabungScreen extends StatelessWidget {
         ],
       ),
       floatingActionButton: items.isNotEmpty
-          ? Padding(
-              padding: const EdgeInsets.only(bottom: 140.0),
-              child: FloatingActionButton(
-                onPressed: () => _navigasiDanTambahData(context),
-                backgroundColor: primaryGreen,
-                elevation: 4,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(100),
-                ),
-                child: const Icon(Icons.add, color: Colors.white, size: 30),
+          ? FloatingActionButton(
+              onPressed: () => _navigasiDanTambahData(context),
+              backgroundColor: primaryGreen,
+              elevation: 4,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(100),
               ),
+              child: const Icon(Icons.add, color: Colors.white, size: 30),
             )
           : null,
     );
@@ -430,22 +427,24 @@ class TargetMenabungScreen extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 GestureDetector(
-                  onTap: () async {
-                    try {
-                      await context.read<TargetProvider>().togglePin(item);
-                    } catch (e) {
-                      if (context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(
-                              'Gagal mengubah pin target: ${ErrorMapper.message(e)}',
-                            ),
-                            backgroundColor: Colors.red,
-                          ),
-                        );
-                      }
-                    }
-                  },
+                  onTap: item.isPinned
+                      ? null
+                      : () async {
+                          try {
+                            await context.read<TargetProvider>().togglePin(item);
+                          } catch (e) {
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(
+                                    'Gagal mengubah pin target: ${ErrorMapper.message(e)}',
+                                  ),
+                                  backgroundColor: Colors.red,
+                                ),
+                              );
+                            }
+                          }
+                        },
                   child: Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(

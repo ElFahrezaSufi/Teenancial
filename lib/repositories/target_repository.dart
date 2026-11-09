@@ -30,6 +30,7 @@ class TargetRepository {
     required String nama,
     required double targetAmount,
     required File imageFile,
+    bool isPinned = false,
   }) async {
     final secureUrl = await _cloudinaryService.uploadImage(imageFile);
     final docRef = _firestoreService.targetsCol(uid).doc();
@@ -39,7 +40,7 @@ class TargetRepository {
       targetAmount: targetAmount,
       savedAmount: 0.0,
       imageUrl: secureUrl,
-      isPinned: false,
+      isPinned: isPinned,
     );
 
     await docRef.set(item.toMap());

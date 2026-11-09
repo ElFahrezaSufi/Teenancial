@@ -26,6 +26,7 @@ class _FakeTargetRepository extends TargetRepository {
     required String nama,
     required double targetAmount,
     required File imageFile,
+    bool isPinned = false,
   }) async {
     final item = TargetItem(
       id: 'tg_${store.length + 1}',
@@ -33,6 +34,7 @@ class _FakeTargetRepository extends TargetRepository {
       targetAmount: targetAmount,
       savedAmount: 0,
       imageUrl: 'https://example.com/${imageFile.path}',
+      isPinned: isPinned,
     );
     store.add(item);
     return item;
@@ -195,6 +197,36 @@ void main() {
         ),
         throwsException,
       );
+    });
+
+    test(
+        'target pertama otomatis di-pin dan pin tidak bisa dimatikan sendiri melainkan hanya berpindah ke target lain',
+        () async {
+      // Target pertama di setUp ('tg_1') otomatis di-pin saat loadTargets
+      expect(provider.items.first.isPinned, isTrue);
+      expect(provider.pinnedItem?.id, 'tg_1');
+
+      // Menekan togglePin pada target yang sudah ter-pin tidak mematikan pin
+      await provider.togglePin(provider.items.first);
+      expect(provider.items.first.isPinned, isTrue);
+
+      // Membuat target kedua tidak menggeser pin dari target pertama
+      await provider.createTarget(
+        nama: 'Sepeda',
+        targetAmount: 1500000,
+        imageFile: File('sepeda.jpg'),
+      );
+      expect(provider.pinnedItem?.id, 'tg_1');
+
+      // Memindahkan pin ke target kedua
+      final secondTarget = provider.items.firstWhere((t) => t.id == 'tg_2');
+      await provider.togglePin(secondTarget);
+      expect(provider.pinnedItem?.id, 'tg_2');
+
+      // Menghapus target yang sedang di-pin ('tg_2') otomatis memindahkan pin ke 'tg_1'
+      await provider.deleteTarget('tg_2');
+      expect(provider.pinnedItem?.id, 'tg_1');
+      expect(provider.items.first.isPinned, isTrue);
     });
   });
 
