@@ -258,12 +258,25 @@ final GoRouter appRouter = GoRouter(
       parentNavigatorKey: rootNavigatorKey,
       path: AppRoutes.semuaAktivitas,
       pageBuilder: (context, state) {
-        final filterIndex = state.extra is int
-            ? state.extra as int
-            : LocalStorageService.instance.riwayatFilterIndex;
+        final extra = state.extra;
+        late final int filterIndex;
+        late final bool autoFocusSearch;
+        if (extra is SemuaAktivitasArgs) {
+          filterIndex = extra.filterIndex;
+          autoFocusSearch = extra.autoFocusSearch;
+        } else if (extra is int) {
+          filterIndex = extra;
+          autoFocusSearch = false;
+        } else {
+          filterIndex = LocalStorageService.instance.riwayatFilterIndex;
+          autoFocusSearch = false;
+        }
         return AppTransitions.slideHorizontal(
           key: state.pageKey,
-          child: SemuaAktivitasScreen(filterIndex: filterIndex),
+          child: SemuaAktivitasScreen(
+            filterIndex: filterIndex,
+            autoFocusSearch: autoFocusSearch,
+          ),
         );
       },
     ),

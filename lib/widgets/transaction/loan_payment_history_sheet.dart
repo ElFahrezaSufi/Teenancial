@@ -63,7 +63,7 @@ class _LoanPaymentHistorySheetState extends State<LoanPaymentHistorySheet> {
       message: isDebt
           ? 'Cicilan ${Formatters.rupiah(payment.amount)} pada ${DateHelper.formatShort(payment.date)} akan dihapus dan saldo catatan di "$walletName" dikembalikan.'
           : 'Penerimaan cicilan ${Formatters.rupiah(payment.amount)} pada ${DateHelper.formatShort(payment.date)} akan dibatalkan dan mengurangi saldo catatan di "$walletName".',
-      confirmText: 'Batalkan Cicilan',
+      confirmLabel: 'Batalkan Cicilan',
       confirmColor: Colors.redAccent,
     );
 

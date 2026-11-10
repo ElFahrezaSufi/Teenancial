@@ -18,6 +18,7 @@ import '../widgets/common/custom_filter_chip.dart';
 import '../widgets/common/skeleton.dart';
 import '../widgets/transaction/transaction_group.dart';
 import '../widgets/transaction/trend_chart_painter.dart';
+import 'semua_aktivitas_screen.dart';
 
 class RiwayatScreen extends StatefulWidget {
   const RiwayatScreen({super.key});
@@ -206,6 +207,56 @@ class _RiwayatScreenState extends State<RiwayatScreen> {
                             onTap: () => _setFilter(2),
                           ),
                         ],
+                      ),
+                      const SizedBox(height: 14),
+                      GestureDetector(
+                        onTap: () => context.push(
+                          AppRoutes.semuaAktivitas,
+                          extra: SemuaAktivitasArgs(
+                            filterIndex: _selectedFilter,
+                            autoFocusSearch: true,
+                          ),
+                        ),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 14,
+                            vertical: 12,
+                          ),
+                          decoration: BoxDecoration(
+                            color: inputBg,
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(
+                              color: primaryGreen,
+                              width: 1.5,
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              const Icon(
+                                Icons.search_rounded,
+                                color: primaryGreen,
+                                size: 20,
+                              ),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Text(
+                                  'Cari transaksi, kategori, atau nominal...',
+                                  style: TextStyle(
+                                    color: primaryGreen.withValues(alpha: 0.6),
+                                    fontSize: 13,
+                                    fontFamily: 'Inter',
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ),
+                              const Icon(
+                                Icons.tune_rounded,
+                                color: primaryGreen,
+                                size: 18,
+                              ),
+                            ],
+                          ),
+                        ),
                       ),
                       if (filteredGroups.isEmpty)
                         Padding(

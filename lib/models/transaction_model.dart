@@ -60,7 +60,7 @@ class TransactionModel {
   /// Kompatibel mundur dengan dokumen pinjaman lunas lama yang belum memiliki `payments`.
   double get paidAmount {
     if (payments.isNotEmpty) {
-      return payments.fold(0.0, (sum, p) => sum + p.amount);
+      return payments.fold(0.0, (double total, p) => total + p.amount);
     }
     return isPaid ? amount : 0.0;
   }
@@ -95,7 +95,7 @@ class TransactionModel {
     final updatedPayments = [...payments, normalizedPayment]
       ..sort((a, b) => a.date.compareTo(b.date));
     final double totalPaid =
-        updatedPayments.fold(0.0, (sum, p) => sum + p.amount);
+        updatedPayments.fold(0.0, (double total, p) => total + p.amount);
     final bool nowPaid = totalPaid + 0.0001 >= amount;
 
     return copyWith(
@@ -121,7 +121,7 @@ class TransactionModel {
       ...payments.sublist(index + 1),
     ];
     final double totalPaid =
-        updatedPayments.fold(0.0, (sum, p) => sum + p.amount);
+        updatedPayments.fold(0.0, (double total, p) => total + p.amount);
     final bool stillPaid = amount > 0 && totalPaid + 0.0001 >= amount;
 
     return copyWith(
