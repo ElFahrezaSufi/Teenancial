@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 
 import '../config/app_routes.dart';
 import '../models/dompet_model.dart';
+import '../models/target_model.dart';
 import '../models/transaction_model.dart';
 import '../providers/auth_provider.dart';
 import '../services/local_storage_service.dart';
@@ -226,10 +227,14 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       parentNavigatorKey: rootNavigatorKey,
       path: AppRoutes.buatTarget,
-      pageBuilder: (context, state) => AppTransitions.slideHorizontal(
-        key: state.pageKey,
-        child: const BuatTargetScreen(),
-      ),
+      pageBuilder: (context, state) {
+        final target =
+            state.extra is TargetItem ? state.extra as TargetItem : null;
+        return AppTransitions.slideHorizontal(
+          key: state.pageKey,
+          child: BuatTargetScreen(targetToEdit: target),
+        );
+      },
     ),
     GoRoute(
       parentNavigatorKey: rootNavigatorKey,

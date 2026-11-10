@@ -43,6 +43,30 @@ class _FakeTargetRepository extends TargetRepository {
   }
 
   @override
+  Future<void> updateTarget({
+    required String uid,
+    required String targetId,
+    required String nama,
+    required double targetAmount,
+    File? newImageFile,
+    DateTime? deadline,
+    bool clearDeadline = false,
+  }) async {
+    final index = store.indexWhere((t) => t.id == targetId);
+    if (index != -1) {
+      store[index] = store[index].copyWith(
+        nama: nama,
+        targetAmount: targetAmount,
+        imageUrl: newImageFile != null
+            ? 'https://example.com/${newImageFile.path}'
+            : store[index].imageUrl,
+        deadline: deadline,
+        clearDeadline: clearDeadline,
+      );
+    }
+  }
+
+  @override
   Future<void> updateSavedAmount({
     required String uid,
     required String targetId,
@@ -229,6 +253,43 @@ void main() {
       await provider.deleteTarget('tg_2');
       expect(provider.pinnedItem?.id, 'tg_1');
       expect(provider.items.first.isPinned, isTrue);
+    });
+
+    test(
+        'updateTarget memperbarui nama, nominal, dan tenggat serta menolak nominal di bawah dana terkumpul',
+        () async {
+      final deadline = DateTime(2026, 12, 31);
+      await provider.updateTarget(
+        targetId: 'tg_1',
+        nama: 'Headphone Pro',
+        targetAmount: 450000,
+        deadline: deadline,
+      );
+
+      final updated = provider.items.first;
+      expect(updated.nama, 'Headphone Pro');
+      expect(updated.targetAmount, 450000);
+      expect(updated.savedAmount, 50000);
+      expect(updated.deadline, deadline);
+
+      // Menolak nominal target di bawah savedAmount (Rp 50.000)
+      await expectLater(
+        () => provider.updateTarget(
+          targetId: 'tg_1',
+          nama: 'Headphone Murah',
+          targetAmount: 40000,
+        ),
+        throwsException,
+      );
+
+      // Menghapus tenggat dengan clearDeadline: true
+      await provider.updateTarget(
+        targetId: 'tg_1',
+        nama: 'Headphone Pro',
+        targetAmount: 450000,
+        clearDeadline: true,
+      );
+      expect(provider.items.first.deadline, isNull);
     });
   });
 

@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/target_model.dart';
 import '../services/cloudinary_service.dart';
 import '../services/firestore_service.dart';
@@ -48,6 +49,33 @@ class TargetRepository {
     await docRef.set(item.toMap());
 
     return item;
+  }
+
+  Future<void> updateTarget({
+    required String uid,
+    required String targetId,
+    required String nama,
+    required double targetAmount,
+    File? newImageFile,
+    DateTime? deadline,
+    bool clearDeadline = false,
+  }) async {
+    String? newImageUrl;
+    if (newImageFile != null) {
+      newImageUrl = await _cloudinaryService.uploadImage(newImageFile);
+    }
+
+    final data = <String, dynamic>{
+      'nama': nama.trim(),
+      'targetAmount': targetAmount,
+      if (newImageUrl != null) 'imageUrl': newImageUrl,
+      if (clearDeadline)
+        'deadline': FieldValue.delete()
+      else if (deadline != null)
+        'deadline': Timestamp.fromDate(deadline),
+    };
+
+    await _firestoreService.targetsCol(uid).doc(targetId).update(data);
   }
 
   Future<void> updateSavedAmount({

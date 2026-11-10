@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import '../models/target_model.dart';
 import '../repositories/target_repository.dart';
+import '../utils/currency_formatter.dart';
 import '../utils/error_mapper.dart';
 
 class TargetProvider extends ChangeNotifier {
@@ -105,6 +106,7 @@ class TargetProvider extends ChangeNotifier {
     required String nama,
     required double targetAmount,
     required File imageFile,
+    DateTime? deadline,
   }) async {
     final targetUid = _uid;
     if (targetUid == null) {
@@ -118,9 +120,53 @@ class TargetProvider extends ChangeNotifier {
       targetAmount: targetAmount,
       imageFile: imageFile,
       isPinned: shouldAutoPin,
+      deadline: deadline,
     );
     await loadTargets(silent: true);
     return created;
+  }
+
+  Future<void> updateTarget({
+    required String targetId,
+    required String nama,
+    required double targetAmount,
+    File? newImageFile,
+    DateTime? deadline,
+    bool clearDeadline = false,
+  }) async {
+    final targetUid = _uid;
+    if (targetUid == null) {
+      throw Exception('Sesi pengguna tidak ditemukan');
+    }
+    final trimmedName = nama.trim();
+    if (trimmedName.isEmpty) {
+      throw Exception('Nama target tidak boleh kosong.');
+    }
+    if (targetAmount <= 0) {
+      throw Exception('Nominal target harus lebih dari Rp 0.');
+    }
+
+    final index = _items.indexWhere((t) => t.id == targetId);
+    if (index == -1) {
+      throw Exception('Target menabung tidak ditemukan');
+    }
+    final existing = _items[index];
+    if (targetAmount + 0.0001 < existing.savedAmount) {
+      throw Exception(
+        'Nominal target tidak boleh di bawah dana terkumpul (${Formatters.rupiah(existing.savedAmount)}). Tarik sebagian dana terlebih dahulu.',
+      );
+    }
+
+    await _repository.updateTarget(
+      uid: targetUid,
+      targetId: targetId,
+      nama: trimmedName,
+      targetAmount: targetAmount,
+      newImageFile: newImageFile,
+      deadline: deadline,
+      clearDeadline: clearDeadline,
+    );
+    await loadTargets(silent: true);
   }
 
   Future<void> allocateTargetFunds({

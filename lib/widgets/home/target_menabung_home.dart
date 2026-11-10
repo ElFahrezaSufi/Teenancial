@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import '../../models/target_model.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_text_styles.dart';
+import '../../utils/loan_helper.dart';
+import '../../utils/saving_planner.dart';
 import '../common/custom_card.dart';
 import '../common/target_image.dart';
 
@@ -23,6 +25,12 @@ class TargetMenabungHome extends StatelessWidget {
   Widget build(BuildContext context) {
     if (currentTarget != null) {
       final double progress = currentTarget!.progress;
+      final SavingPlan? plan = SavingPlanner.plan(currentTarget!);
+      final Color planColor = plan == null
+          ? primaryGreen
+          : (plan.isOverdue
+              ? LoanHelper.overdueColor
+              : (plan.isUrgent ? orangeText : primaryGreen));
 
       return Column(
         children: [
@@ -75,10 +83,10 @@ class TargetMenabungHome extends StatelessWidget {
                   ),
                 ),
                 Padding(
-                  padding: const EdgeInsets.only(
+                  padding: EdgeInsets.only(
                     left: 16,
                     right: 16,
-                    bottom: 20,
+                    bottom: plan != null ? 10 : 20,
                   ),
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(100),
@@ -90,6 +98,50 @@ class TargetMenabungHome extends StatelessWidget {
                     ),
                   ),
                 ),
+                if (plan != null)
+                  Padding(
+                    padding: const EdgeInsets.only(
+                      left: 16,
+                      right: 16,
+                      bottom: 16,
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Expanded(
+                          child: Row(
+                            children: [
+                              Icon(Icons.event, size: 13, color: planColor),
+                              const SizedBox(width: 4),
+                              Flexible(
+                                child: Text(
+                                  'Tenggat ${plan.deadlineLabel}',
+                                  style: TextStyle(
+                                    color: planColor,
+                                    fontSize: 11,
+                                    fontFamily: 'Inter',
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          plan.shortSuggestionText ?? plan.badgeText,
+                          style: TextStyle(
+                            color: planColor,
+                            fontSize: 11,
+                            fontFamily: 'Inter',
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
               ],
             ),
           ),
