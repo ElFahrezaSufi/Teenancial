@@ -39,6 +39,26 @@ void main() {
       expect(item.savedAmount, 0.0);
       expect(item.progress, 0.0);
       expect(item.isPinned, isTrue);
+      expect(item.deadline, isNull);
+    });
+
+    test('deadline opsional terserialisasi dan dapat dihapus lewat copyWith(clearDeadline: true)', () {
+      final deadlineDate = DateTime(2026, 12, 31);
+      final target = TargetItem(
+        id: 'tg_dl',
+        nama: 'Laptop',
+        targetAmount: 5000000,
+        savedAmount: 1000000,
+        imageUrl: 'https://example.com/laptop.jpg',
+        deadline: deadlineDate,
+      );
+
+      final restored = TargetItem.fromMap(target.toMap(), docId: 'tg_dl');
+      expect(restored.deadline, deadlineDate);
+      expect(restored.remainingAmount, 4000000);
+
+      final cleared = restored.copyWith(clearDeadline: true);
+      expect(cleared.deadline, isNull);
     });
   });
 

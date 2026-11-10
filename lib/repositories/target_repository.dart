@@ -31,6 +31,7 @@ class TargetRepository {
     required double targetAmount,
     required File imageFile,
     bool isPinned = false,
+    DateTime? deadline,
   }) async {
     final secureUrl = await _cloudinaryService.uploadImage(imageFile);
     final docRef = _firestoreService.targetsCol(uid).doc();
@@ -41,6 +42,7 @@ class TargetRepository {
       savedAmount: 0.0,
       imageUrl: secureUrl,
       isPinned: isPinned,
+      deadline: deadline,
     );
 
     await docRef.set(item.toMap());

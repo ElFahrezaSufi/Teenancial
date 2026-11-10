@@ -27,6 +27,7 @@ class _FakeTargetRepository extends TargetRepository {
     required double targetAmount,
     required File imageFile,
     bool isPinned = false,
+    DateTime? deadline,
   }) async {
     final item = TargetItem(
       id: 'tg_${store.length + 1}',
@@ -35,6 +36,7 @@ class _FakeTargetRepository extends TargetRepository {
       savedAmount: 0,
       imageUrl: 'https://example.com/${imageFile.path}',
       isPinned: isPinned,
+      deadline: deadline,
     );
     store.add(item);
     return item;

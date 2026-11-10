@@ -8,6 +8,7 @@ class TargetItem {
   final String imageUrl;
   final bool isPinned;
   final DateTime createdAt;
+  final DateTime? deadline;
 
   TargetItem({
     required this.id,
@@ -17,6 +18,7 @@ class TargetItem {
     required this.imageUrl,
     this.isPinned = false,
     DateTime? createdAt,
+    this.deadline,
   }) : createdAt = createdAt ?? DateTime.now();
 
   double get progress => targetAmount > 0
@@ -24,6 +26,9 @@ class TargetItem {
       : 0.0;
 
   bool get isAchieved => targetAmount > 0 && savedAmount >= targetAmount;
+
+  double get remainingAmount =>
+      (targetAmount - savedAmount).clamp(0.0, double.infinity);
 
   Map<String, dynamic> toMap() {
     return {
@@ -34,20 +39,24 @@ class TargetItem {
       'imageUrl': imageUrl,
       'isPinned': isPinned,
       'createdAt': Timestamp.fromDate(createdAt),
+      'deadline': deadline != null ? Timestamp.fromDate(deadline!) : null,
     };
+  }
+
+  static DateTime? _parseDateTime(dynamic raw) {
+    if (raw == null) return null;
+    if (raw is Timestamp) return raw.toDate();
+    if (raw is DateTime) return raw;
+    if (raw is String) return DateTime.tryParse(raw);
+    if (raw is int) return DateTime.fromMillisecondsSinceEpoch(raw);
+    return null;
   }
 
   factory TargetItem.fromMap(
     Map<String, dynamic> map, {
     String? docId,
   }) {
-    final rawCreatedAt = map['createdAt'];
-    DateTime parsedCreatedAt = DateTime.now();
-    if (rawCreatedAt is Timestamp) {
-      parsedCreatedAt = rawCreatedAt.toDate();
-    } else if (rawCreatedAt is String) {
-      parsedCreatedAt = DateTime.tryParse(rawCreatedAt) ?? DateTime.now();
-    }
+    final parsedCreatedAt = _parseDateTime(map['createdAt']) ?? DateTime.now();
 
     return TargetItem(
       id: docId ?? (map['id'] as String?) ?? '',
@@ -57,6 +66,7 @@ class TargetItem {
       imageUrl: (map['imageUrl'] as String?) ?? '',
       isPinned: map['isPinned'] == true,
       createdAt: parsedCreatedAt,
+      deadline: _parseDateTime(map['deadline']),
     );
   }
 
@@ -68,6 +78,8 @@ class TargetItem {
     String? imageUrl,
     bool? isPinned,
     DateTime? createdAt,
+    DateTime? deadline,
+    bool clearDeadline = false,
   }) {
     return TargetItem(
       id: id ?? this.id,
@@ -77,6 +89,7 @@ class TargetItem {
       imageUrl: imageUrl ?? this.imageUrl,
       isPinned: isPinned ?? this.isPinned,
       createdAt: createdAt ?? this.createdAt,
+      deadline: clearDeadline ? null : (deadline ?? this.deadline),
     );
   }
 }
