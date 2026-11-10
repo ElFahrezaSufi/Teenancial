@@ -43,6 +43,20 @@ class DateHelper {
     );
   }
 
+  /// Mengembalikan awal hari (`00:00:00`) untuk batas bawah filter periode Riwayat:
+  /// - `0` (Mingguan): hari ini + 6 hari kalender sebelumnya (total 7 hari)
+  /// - `1` (Bulanan): hari ini + 29 hari kalender sebelumnya (total 30 hari)
+  /// - `2` (Tahunan): hari ini + 364 hari kalender sebelumnya (total 365 hari)
+  static DateTime periodStartForFilter(int filterIndex, {DateTime? now}) {
+    final today = dateOnly(now ?? DateTime.now());
+    if (filterIndex == 0) {
+      return today.subtract(const Duration(days: 6));
+    } else if (filterIndex == 1) {
+      return today.subtract(const Duration(days: 29));
+    }
+    return today.subtract(const Duration(days: 364));
+  }
+
   /// Format tanggal panjang Bahasa Indonesia (mis. `31 Desember 2026`).
   static String formatLong(DateTime date) {
     return _formatSafe('dd MMMM yyyy', date);

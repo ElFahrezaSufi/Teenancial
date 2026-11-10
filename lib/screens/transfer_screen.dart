@@ -9,9 +9,11 @@ import '../providers/dompet_provider.dart';
 import '../providers/transaction_provider.dart';
 import '../theme/app_colors.dart';
 import '../utils/currency_formatter.dart';
+import '../utils/date_helper.dart';
 import '../utils/error_mapper.dart';
 import '../widgets/common/custom_dropdown_field.dart';
 import '../widgets/common/custom_text_field.dart';
+import '../widgets/common/date_picker_field.dart';
 import '../widgets/common/primary_button.dart';
 import '../widgets/transaction/contact_selection_autocomplete.dart';
 import '../widgets/transaction/dompet_selection_dropdown.dart';
@@ -34,6 +36,7 @@ class _TransferScreenState extends State<TransferScreen> {
   String? _selectedSourceDompetId;
   String? _selectedDestDompetId;
   String? _selectedCategoryId;
+  DateTime _selectedTransactionDate = DateTime.now();
   bool _simpanKeDaftar = false;
   bool _isLoading = false;
 
@@ -141,7 +144,7 @@ class _TransferScreenState extends State<TransferScreen> {
                 ? 'Transfer ke $recipientName'
                 : cat.name),
         amount: amount,
-        date: DateTime.now(),
+        date: DateHelper.withCurrentTime(_selectedTransactionDate),
         notes: _catatanController.text,
         categoryId: categoryId,
         type: TransactionType.transfer,
@@ -281,6 +284,27 @@ class _TransferScreenState extends State<TransferScreen> {
                         label: 'Catatan',
                         hint: 'Tambah catatan (opsional)',
                         controller: _catatanController,
+                      ),
+                      DatePickerField(
+                        label: 'Tanggal Transaksi',
+                        hint: 'Pilih tanggal transaksi',
+                        value: _selectedTransactionDate,
+                        lastDate: DateTime.now(),
+                        onChanged: (picked) {
+                          if (picked != null) {
+                            setState(() => _selectedTransactionDate = picked);
+                          }
+                        },
+                        validator: (value) {
+                          if (value == null) {
+                            return 'Tanggal transaksi harus dipilih';
+                          }
+                          if (DateHelper.daysBetween(DateTime.now(), value) >
+                              0) {
+                            return 'Tanggal transaksi tidak boleh di masa depan';
+                          }
+                          return null;
+                        },
                       ),
                       AnimatedSize(
                         duration: const Duration(milliseconds: 300),

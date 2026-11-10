@@ -10,6 +10,7 @@ import '../providers/transaction_provider.dart';
 import '../services/notification_service.dart';
 import '../theme/app_colors.dart';
 import '../utils/currency_formatter.dart';
+import '../utils/date_helper.dart';
 import '../utils/error_mapper.dart';
 import '../widgets/common/custom_dropdown_field.dart';
 import '../widgets/common/custom_text_field.dart';
@@ -37,6 +38,7 @@ class _PinjamanScreenState extends State<PinjamanScreen> {
   String? _selectedDompetId;
   String? _selectedCategoryId;
 
+  DateTime _selectedTransactionDate = DateTime.now();
   DateTime? _selectedDateObj;
   bool _simpanKeDaftar = false;
   bool _isLoading = false;
@@ -139,7 +141,7 @@ class _PinjamanScreenState extends State<PinjamanScreen> {
         id: '',
         title: '${isDebt ? 'Hutang dari' : 'Piutang ke'} $friendName',
         amount: amount,
-        date: DateTime.now(),
+        date: DateHelper.withCurrentTime(_selectedTransactionDate),
         notes: _catatanController.text.trim(),
         categoryId: categoryId,
         type: isDebt ? TransactionType.debt : TransactionType.receivable,
@@ -347,14 +349,43 @@ class _PinjamanScreenState extends State<PinjamanScreen> {
                         controller: _catatanController,
                       ),
                       DatePickerField(
+                        label: 'Tanggal Pinjaman',
+                        hint: 'Pilih tanggal pinjaman',
+                        value: _selectedTransactionDate,
+                        lastDate: DateTime.now(),
+                        onChanged: (picked) {
+                          if (picked != null) {
+                            setState(() => _selectedTransactionDate = picked);
+                          }
+                        },
+                        validator: (value) {
+                          if (value == null) {
+                            return 'Tanggal pinjaman harus dipilih';
+                          }
+                          if (DateHelper.daysBetween(DateTime.now(), value) >
+                              0) {
+                            return 'Tanggal pinjaman tidak boleh di masa depan';
+                          }
+                          return null;
+                        },
+                      ),
+                      DatePickerField(
                         label: 'Batas Waktu',
                         hint: 'Pilih tanggal',
                         value: _selectedDateObj,
+                        firstDate: _selectedTransactionDate,
                         onChanged: (picked) =>
                             setState(() => _selectedDateObj = picked),
                         validator: (value) {
                           if (value == null) {
                             return 'Batas waktu harus dipilih';
+                          }
+                          if (DateHelper.daysBetween(
+                                _selectedTransactionDate,
+                                value,
+                              ) <
+                              0) {
+                            return 'Batas waktu tidak boleh sebelum tanggal pinjaman';
                           }
                           return null;
                         },

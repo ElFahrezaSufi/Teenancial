@@ -48,5 +48,24 @@ void main() {
         expect(result, DateTime(2026, 11, 8, 9, 15, 45));
       },
     );
+
+    test(
+      'periodStartForFilter mengembalikan pukul 00:00:00 untuk batas Mingguan, Bulanan, dan Tahunan',
+      () {
+        final now = DateTime(2026, 11, 10, 18, 45);
+        expect(
+          DateHelper.periodStartForFilter(0, now: now),
+          DateTime(2026, 11, 4),
+        );
+        expect(
+          DateHelper.periodStartForFilter(1, now: now),
+          DateTime(2026, 10, 12),
+        );
+        expect(
+          DateHelper.periodStartForFilter(2, now: now),
+          DateTime(2025, 11, 11),
+        );
+      },
+    );
   });
 }

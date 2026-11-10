@@ -10,6 +10,7 @@ import '../services/local_storage_service.dart';
 import '../theme/app_colors.dart';
 import '../utils/confirm_dialog.dart';
 import '../utils/currency_formatter.dart';
+import '../utils/date_helper.dart';
 import '../utils/error_mapper.dart';
 import '../widgets/common/async_state_view.dart';
 import '../widgets/common/custom_app_bar.dart';
@@ -23,13 +24,7 @@ class RiwayatScreen extends StatefulWidget {
   const RiwayatScreen({super.key});
 
   static DateTime cutoffForFilter(int filterIndex) {
-    final now = DateTime.now();
-    if (filterIndex == 0) {
-      return now.subtract(const Duration(days: 7));
-    } else if (filterIndex == 1) {
-      return now.subtract(const Duration(days: 30));
-    }
-    return now.subtract(const Duration(days: 365));
+    return DateHelper.periodStartForFilter(filterIndex);
   }
 
   static List<TransactionGroupData> buildFilteredGroups(
@@ -38,7 +33,7 @@ class RiwayatScreen extends StatefulWidget {
   ) {
     final cutoff = cutoffForFilter(filterIndex);
     final filtered =
-        allTransactions.where((t) => t.date.isAfter(cutoff)).toList();
+        allTransactions.where((t) => !t.date.isBefore(cutoff)).toList();
     if (filtered.isEmpty) return [];
 
     final Map<String, List<TransactionModel>> groups = {};
@@ -176,7 +171,7 @@ class _RiwayatScreenState extends State<RiwayatScreen> {
 
     final cutoff = RiwayatScreen.cutoffForFilter(_selectedFilter);
     final filteredAsc =
-        allTransactions.where((t) => t.date.isAfter(cutoff)).toList()
+        allTransactions.where((t) => !t.date.isBefore(cutoff)).toList()
           ..sort((a, b) => a.date.compareTo(b.date));
 
     final double currentTotalSaldo = dompetProvider.totalSaldo;
