@@ -183,10 +183,15 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       parentNavigatorKey: rootNavigatorKey,
       path: AppRoutes.pinjaman,
-      pageBuilder: (context, state) => AppTransitions.slideHorizontal(
-        key: state.pageKey,
-        child: const PinjamanScreen(),
-      ),
+      pageBuilder: (context, state) {
+        final tx = state.extra is TransactionModel
+            ? state.extra as TransactionModel
+            : null;
+        return AppTransitions.slideHorizontal(
+          key: state.pageKey,
+          child: PinjamanScreen(loanToEdit: tx),
+        );
+      },
     ),
     GoRoute(
       parentNavigatorKey: rootNavigatorKey,

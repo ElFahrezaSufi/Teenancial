@@ -306,5 +306,33 @@ void main() {
       expect(events[1].date, p1Date);
       expect(events[1].delta, -30000);
     });
+
+    test('isEditable bernilai true untuk transaksi reguler dan pinjaman belum lunas, false untuk pinjaman lunas', () {
+      final transfer = TransactionModel(
+        id: 'tr_1',
+        title: 'Transfer',
+        amount: 20000,
+        date: loanDate,
+        categoryId: 'c10',
+        type: TransactionType.transfer,
+        dompetId: 'd1',
+      );
+      expect(transfer.isEditable, isTrue);
+
+      final unpaidLoan = TransactionModel(
+        id: 'ln_1',
+        title: 'Hutang',
+        amount: 50000,
+        date: loanDate,
+        categoryId: 'c11',
+        type: TransactionType.debt,
+        dompetId: 'd1',
+        isPaid: false,
+      );
+      expect(unpaidLoan.isEditable, isTrue);
+
+      final paidLoan = unpaidLoan.copyWith(isPaid: true);
+      expect(paidLoan.isEditable, isFalse);
+    });
   });
 }

@@ -42,11 +42,19 @@ class TransactionModel {
     List<LoanPayment> payments = const [],
   }) : payments = List<LoanPayment>.unmodifiable(payments);
 
-  /// Menentukan apakah transaksi ini dapat diedit dari Riwayat.
-  bool get isEditable =>
-      type == TransactionType.income ||
-      type == TransactionType.expense ||
-      type == TransactionType.transfer;
+  /// Menentukan apakah transaksi ini dapat diedit dari Riwayat maupun Daftar Pinjaman.
+  /// Pinjaman yang sudah lunas tidak dapat diedit (hanya dapat dihapus).
+  bool get isEditable {
+    switch (type) {
+      case TransactionType.income:
+      case TransactionType.expense:
+      case TransactionType.transfer:
+        return true;
+      case TransactionType.debt:
+      case TransactionType.receivable:
+        return !isPaid;
+    }
+  }
 
   /// Total nominal yang sudah dibayar/diterima untuk transaksi pinjaman.
   /// Kompatibel mundur dengan dokumen pinjaman lunas lama yang belum memiliki `payments`.

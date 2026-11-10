@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
+import '../config/app_routes.dart';
 import '../models/transaction_model.dart';
 import '../providers/dompet_provider.dart';
 import '../providers/transaction_provider.dart';
@@ -351,6 +353,12 @@ class _DaftarPinjamanScreenState extends State<DaftarPinjamanScreen> {
                                   settleFull: true,
                                 ),
                                 onShowHistory: () => _showPaymentHistory(item),
+                                onEdit: item.isPaid
+                                    ? null
+                                    : () => context.push(
+                                          AppRoutes.pinjaman,
+                                          extra: item,
+                                        ),
                                 onDelete: () => _deleteLoan(item),
                               );
                             },
