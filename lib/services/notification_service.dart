@@ -107,7 +107,7 @@ class NotificationService {
       final days = LoanHelper.daysUntilDue(due);
       final isDebt = loan.type == TransactionType.debt;
       final counterparty = LoanHelper.counterpartyName(loan);
-      final formattedAmount = Formatters.rupiah(loan.amount);
+      final formattedAmount = Formatters.rupiah(loan.remainingAmount);
       final formattedDate = LoanHelper.formatDueDate(due);
 
       late final String title;
@@ -189,6 +189,7 @@ class NotificationService {
         (t) =>
             LoanHelper.isLoan(t) &&
             !t.isPaid &&
+            t.remainingAmount > 0 &&
             t.dueDate != null &&
             t.id.isNotEmpty,
       );
@@ -203,7 +204,7 @@ class NotificationService {
         final due = loan.dueDate!;
         final isDebt = loan.type == TransactionType.debt;
         final counterparty = LoanHelper.counterpartyName(loan);
-        final formattedAmount = Formatters.rupiah(loan.amount);
+        final formattedAmount = Formatters.rupiah(loan.remainingAmount);
         final formattedDate = LoanHelper.formatDueDate(due);
 
         // Pengingat H-1 pukul 09:00 waktu lokal
