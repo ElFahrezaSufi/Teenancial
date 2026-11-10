@@ -197,4 +197,114 @@ void main() {
       expect(cleared.paidDompetId, isNull);
     });
   });
+
+  group('Cicilan Pinjaman (LoanPayment, withPayment, withoutPayment, balanceEvents)', () {
+    final loanDate = DateTime(2026, 11, 1, 10, 0);
+
+    test('cicilan bertahap memperbarui paidAmount, remainingAmount, walletEffects, dan otomatis lunas saat penuh', () {
+      final debt = TransactionModel(
+        id: 'loan_debt_1',
+        title: 'Hutang dari Budi',
+        amount: 100000,
+        date: loanDate,
+        categoryId: 'c11',
+        type: TransactionType.debt,
+        dompetId: 'd_cash',
+      );
+
+      expect(debt.paidAmount, 0);
+      expect(debt.remainingAmount, 100000);
+      expect(debt.isPaid, isFalse);
+
+      // Cicilan 1: Rp 40.000 dari d_cash
+      final afterFirst = debt.withPayment(
+        LoanPayment(
+          id: 'p1',
+          amount: 40000,
+          date: DateTime(2026, 11, 3, 12, 0),
+          dompetId: 'd_cash',
+        ),
+      );
+      expect(afterFirst.paidAmount, 40000);
+      expect(afterFirst.remainingAmount, 60000);
+      expect(afterFirst.isPaid, isFalse);
+      expect(afterFirst.walletEffects(), {'d_cash': 60000.0});
+
+      // Cicilan 2: Rp 60.000 dari d_bank (melunasi sisa)
+      final afterSecond = afterFirst.withPayment(
+        LoanPayment(
+          id: 'p2',
+          amount: 60000,
+          date: DateTime(2026, 11, 5, 15, 0),
+          dompetId: 'd_bank',
+        ),
+      );
+      expect(afterSecond.paidAmount, 100000);
+      expect(afterSecond.remainingAmount, 0);
+      expect(afterSecond.isPaid, isTrue);
+      expect(afterSecond.paidDompetId, 'd_bank');
+      expect(afterSecond.walletEffects(), {
+        'd_cash': 60000.0,
+        'd_bank': -60000.0,
+      });
+
+      // Membatalkan cicilan ke-2 membuka kembali status lunas
+      final reverted = afterSecond.withoutPayment('p2');
+      expect(reverted.isPaid, isFalse);
+      expect(reverted.paidAmount, 40000);
+      expect(reverted.remainingAmount, 60000);
+      expect(reverted.paidDompetId, isNull);
+    });
+
+    test('withPayment menolak cicilan yang melebihi sisa tagihan', () {
+      final receivable = TransactionModel(
+        id: 'loan_rec_1',
+        title: 'Piutang ke Rina',
+        amount: 50000,
+        date: loanDate,
+        categoryId: 'c15',
+        type: TransactionType.receivable,
+        dompetId: 'd1',
+      );
+
+      expect(
+        () => receivable.withPayment(
+          LoanPayment(
+            id: 'p_over',
+            amount: 60000,
+            date: DateTime(2026, 11, 2),
+            dompetId: 'd1',
+          ),
+        ),
+        throwsException,
+      );
+    });
+
+    test('balanceEvents memisahkan tanggal pokok pinjaman dan tanggal cicilan', () {
+      final p1Date = DateTime(2026, 11, 4, 9, 0);
+      final loan = TransactionModel(
+        id: 'loan_ev',
+        title: 'Hutang dari Andi',
+        amount: 80000,
+        date: loanDate,
+        categoryId: 'c11',
+        type: TransactionType.debt,
+        dompetId: 'd1',
+      ).withPayment(
+        LoanPayment(
+          id: 'p1',
+          amount: 30000,
+          date: p1Date,
+          dompetId: 'd1',
+        ),
+      );
+
+      final events = loan.balanceEvents();
+      expect(events.length, 2);
+      expect(events[0].date, loanDate);
+      expect(events[0].delta, 80000);
+      expect(events[1].date, p1Date);
+      expect(events[1].delta, -30000);
+    });
+  });
 }

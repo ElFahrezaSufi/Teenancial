@@ -48,10 +48,6 @@ class RiwayatScreen extends StatefulWidget {
     return result;
   }
 
-  static double _netWalletDelta(TransactionModel t) {
-    return t.walletEffects().values.fold(0.0, (sum, delta) => sum + delta);
-  }
-
   @override
   State<RiwayatScreen> createState() => _RiwayatScreenState();
 }
@@ -124,21 +120,27 @@ class _RiwayatScreenState extends State<RiwayatScreen> {
     final visibleGroups = filteredGroups.take(5).toList();
 
     final cutoff = RiwayatScreen.cutoffForFilter(_selectedFilter);
-    final filteredAsc =
-        allTransactions.where((t) => !t.date.isBefore(cutoff)).toList()
-          ..sort((a, b) => a.date.compareTo(b.date));
+    final periodEvents = <({DateTime date, double delta})>[];
+    for (final t in allTransactions) {
+      for (final ev in t.balanceEvents()) {
+        if (!ev.date.isBefore(cutoff)) {
+          periodEvents.add(ev);
+        }
+      }
+    }
+    periodEvents.sort((a, b) => a.date.compareTo(b.date));
 
     final double currentTotalSaldo = dompetProvider.totalSaldo;
-    final double periodNetDelta = filteredAsc.fold(
+    final double periodNetDelta = periodEvents.fold(
       0.0,
-      (sum, t) => sum + RiwayatScreen._netWalletDelta(t),
+      (sum, ev) => sum + ev.delta,
     );
     final double openingBalance = currentTotalSaldo - periodNetDelta;
 
     double runningBalance = openingBalance;
     final List<double> trendData = [openingBalance];
-    for (final t in filteredAsc) {
-      runningBalance += RiwayatScreen._netWalletDelta(t);
+    for (final ev in periodEvents) {
+      runningBalance += ev.delta;
       trendData.add(runningBalance);
     }
 

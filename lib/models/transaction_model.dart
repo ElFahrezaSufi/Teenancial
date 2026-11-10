@@ -1,7 +1,9 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../data/category_catalog.dart';
+import 'loan_payment.dart';
 
 export 'category_model.dart';
+export 'loan_payment.dart';
 
 enum TransactionType { income, expense, transfer, debt, receivable }
 
@@ -20,6 +22,7 @@ class TransactionModel {
   final String? counterpartyName; // Nama pihak terkait untuk hutang/piutang
   final bool isPaid; // Status pelunasan (khusus hutang/piutang)
   final String? paidDompetId; // Dompet yang digunakan saat pelunasan pinjaman
+  final List<LoanPayment> payments; // Riwayat cicilan pinjaman/piutang
 
   TransactionModel({
     required this.id,
@@ -36,7 +39,8 @@ class TransactionModel {
     this.counterpartyName,
     this.isPaid = false,
     this.paidDompetId,
-  });
+    List<LoanPayment> payments = const [],
+  }) : payments = List<LoanPayment>.unmodifiable(payments);
 
   /// Menentukan apakah transaksi ini dapat diedit dari Riwayat.
   bool get isEditable =>
@@ -44,8 +48,86 @@ class TransactionModel {
       type == TransactionType.expense ||
       type == TransactionType.transfer;
 
+  /// Total nominal yang sudah dibayar/diterima untuk transaksi pinjaman.
+  /// Kompatibel mundur dengan dokumen pinjaman lunas lama yang belum memiliki `payments`.
+  double get paidAmount {
+    if (payments.isNotEmpty) {
+      return payments.fold(0.0, (sum, p) => sum + p.amount);
+    }
+    return isPaid ? amount : 0.0;
+  }
+
+  /// Sisa tagihan pinjaman yang belum dibayar/diterima.
+  double get remainingAmount {
+    if (isPaid && payments.isEmpty) return 0.0;
+    return (amount - paidAmount).clamp(0.0, double.infinity);
+  }
+
+  /// Menambahkan satu pembayaran cicilan baru dan memperbarui status `isPaid`
+  /// secara otomatis apabila total cicilan telah mencapai `amount`.
+  TransactionModel withPayment(LoanPayment payment) {
+    if (type != TransactionType.debt && type != TransactionType.receivable) {
+      throw Exception('Cicilan hanya berlaku untuk transaksi pinjaman');
+    }
+    if (isPaid || remainingAmount <= 0.0001) {
+      throw Exception('Pinjaman ini sudah lunas');
+    }
+    if (payment.amount <= 0) {
+      throw Exception('Nominal cicilan harus lebih dari Rp 0');
+    }
+    if (payment.amount > remainingAmount + 0.0001) {
+      throw Exception('Nominal cicilan melebihi sisa tagihan');
+    }
+
+    final double normalizedAmount = payment.amount > remainingAmount
+        ? remainingAmount
+        : payment.amount;
+    final normalizedPayment = payment.copyWith(amount: normalizedAmount);
+
+    final updatedPayments = [...payments, normalizedPayment]
+      ..sort((a, b) => a.date.compareTo(b.date));
+    final double totalPaid =
+        updatedPayments.fold(0.0, (sum, p) => sum + p.amount);
+    final bool nowPaid = totalPaid + 0.0001 >= amount;
+
+    return copyWith(
+      payments: updatedPayments,
+      isPaid: nowPaid,
+      paidDompetId: nowPaid ? normalizedPayment.dompetId : paidDompetId,
+    );
+  }
+
+  /// Membatalkan/menghapus satu cicilan berdasarkan [paymentId] dan membuka
+  /// kembali status pinjaman menjadi belum lunas bila total cicilan < `amount`.
+  TransactionModel withoutPayment(String paymentId) {
+    if (type != TransactionType.debt && type != TransactionType.receivable) {
+      throw Exception('Operasi ini hanya berlaku untuk transaksi pinjaman');
+    }
+    final index = payments.indexWhere((p) => p.id == paymentId);
+    if (index == -1) {
+      throw Exception('Data cicilan tidak ditemukan');
+    }
+
+    final updatedPayments = [
+      ...payments.sublist(0, index),
+      ...payments.sublist(index + 1),
+    ];
+    final double totalPaid =
+        updatedPayments.fold(0.0, (sum, p) => sum + p.amount);
+    final bool stillPaid = amount > 0 && totalPaid + 0.0001 >= amount;
+
+    return copyWith(
+      payments: updatedPayments,
+      isPaid: stillPaid,
+      paidDompetId: stillPaid && updatedPayments.isNotEmpty
+          ? updatedPayments.last.dompetId
+          : null,
+      clearPaidDompetId: !stillPaid,
+    );
+  }
+
   /// Menghitung kontribusi bersih transaksi ini terhadap masing-masing dompet.
-  /// Memastikan sinkronisasi saldo tetap konsisten saat tambah, ubah, hapus, & pelunasan.
+  /// Memastikan sinkronisasi saldo tetap konsisten saat tambah, ubah, hapus, & pelunasan/cicilan.
   Map<String, double> walletEffects() {
     final effects = <String, double>{};
 
@@ -69,19 +151,67 @@ class TransactionModel {
         break;
       case TransactionType.debt:
         addDelta(dompetId, amount);
-        if (isPaid) {
+        if (payments.isNotEmpty) {
+          for (final p in payments) {
+            addDelta(p.dompetId, -p.amount);
+          }
+        } else if (isPaid) {
           addDelta(paidDompetId ?? dompetId, -amount);
         }
         break;
       case TransactionType.receivable:
         addDelta(dompetId, -amount);
-        if (isPaid) {
+        if (payments.isNotEmpty) {
+          for (final p in payments) {
+            addDelta(p.dompetId, p.amount);
+          }
+        } else if (isPaid) {
           addDelta(paidDompetId ?? dompetId, amount);
         }
         break;
     }
 
     return effects;
+  }
+
+  /// Mengembalikan daftar peristiwa perubahan saldo gabungan seluruh dompet
+  /// beserta tanggal terjadinya (untuk grafik Tren Saldo di Riwayat).
+  List<({DateTime date, double delta})> balanceEvents() {
+    switch (type) {
+      case TransactionType.income:
+        return [(date: date, delta: amount)];
+      case TransactionType.expense:
+        return [(date: date, delta: -amount)];
+      case TransactionType.transfer:
+        if (destinationDompetId != null && destinationDompetId!.isNotEmpty) {
+          return [(date: date, delta: 0.0)];
+        }
+        return [(date: date, delta: -amount)];
+      case TransactionType.debt:
+        final events = <({DateTime date, double delta})>[
+          (date: date, delta: amount),
+        ];
+        if (payments.isNotEmpty) {
+          for (final p in payments) {
+            events.add((date: p.date, delta: -p.amount));
+          }
+        } else if (isPaid) {
+          events.add((date: date, delta: -amount));
+        }
+        return events;
+      case TransactionType.receivable:
+        final events = <({DateTime date, double delta})>[
+          (date: date, delta: -amount),
+        ];
+        if (payments.isNotEmpty) {
+          for (final p in payments) {
+            events.add((date: p.date, delta: p.amount));
+          }
+        } else if (isPaid) {
+          events.add((date: date, delta: amount));
+        }
+        return events;
+    }
   }
 
   Map<String, dynamic> toMap() {
@@ -100,6 +230,7 @@ class TransactionModel {
       'counterpartyName': counterpartyName,
       'isPaid': isPaid,
       'paidDompetId': paidDompetId,
+      'payments': payments.map((p) => p.toMap()).toList(),
     };
   }
 
@@ -123,6 +254,19 @@ class TransactionModel {
     );
     final rawCategoryId = (map['categoryId'] as String?)?.trim() ?? '';
 
+    final rawPayments = map['payments'];
+    final List<LoanPayment> parsedPayments = [];
+    if (rawPayments is Iterable) {
+      for (final item in rawPayments) {
+        if (item is Map) {
+          parsedPayments.add(
+            LoanPayment.fromMap(Map<String, dynamic>.from(item)),
+          );
+        }
+      }
+      parsedPayments.sort((a, b) => a.date.compareTo(b.date));
+    }
+
     return TransactionModel(
       id: docId ?? (map['id'] as String?) ?? '',
       title: (map['title'] as String?) ?? '',
@@ -140,6 +284,7 @@ class TransactionModel {
       counterpartyName: map['counterpartyName'] as String?,
       isPaid: map['isPaid'] == true,
       paidDompetId: map['paidDompetId'] as String?,
+      payments: parsedPayments,
     );
   }
 
@@ -163,6 +308,7 @@ class TransactionModel {
     bool? isPaid,
     String? paidDompetId,
     bool clearPaidDompetId = false,
+    List<LoanPayment>? payments,
   }) {
     return TransactionModel(
       id: id ?? this.id,
@@ -184,6 +330,7 @@ class TransactionModel {
       isPaid: isPaid ?? this.isPaid,
       paidDompetId:
           clearPaidDompetId ? null : (paidDompetId ?? this.paidDompetId),
+      payments: payments ?? this.payments,
     );
   }
 }
