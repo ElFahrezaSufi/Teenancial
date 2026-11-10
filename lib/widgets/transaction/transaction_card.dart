@@ -42,8 +42,7 @@ class TransactionCard extends StatelessWidget {
         ? primaryGreen
         : (isExpense ? Colors.red : primaryGreen);
 
-    final bool canEdit = item.type == TransactionType.income ||
-        item.type == TransactionType.expense;
+    final bool canEdit = item.isEditable;
 
     return CustomCard(
       backgroundColor: cardBg,

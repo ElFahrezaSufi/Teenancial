@@ -199,10 +199,15 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       parentNavigatorKey: rootNavigatorKey,
       path: AppRoutes.transfer,
-      pageBuilder: (context, state) => AppTransitions.slideHorizontal(
-        key: state.pageKey,
-        child: const TransferScreen(),
-      ),
+      pageBuilder: (context, state) {
+        final tx = state.extra is TransactionModel
+            ? state.extra as TransactionModel
+            : null;
+        return AppTransitions.slideHorizontal(
+          key: state.pageKey,
+          child: TransferScreen(transactionToEdit: tx),
+        );
+      },
     ),
     GoRoute(
       parentNavigatorKey: rootNavigatorKey,

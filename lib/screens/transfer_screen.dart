@@ -20,7 +20,12 @@ import '../widgets/transaction/dompet_selection_dropdown.dart';
 import '../widgets/transaction/transaction_scaffold.dart';
 
 class TransferScreen extends StatefulWidget {
-  const TransferScreen({super.key});
+  final TransactionModel? transactionToEdit;
+
+  const TransferScreen({
+    super.key,
+    this.transactionToEdit,
+  });
 
   @override
   State<TransferScreen> createState() => _TransferScreenState();
@@ -42,20 +47,71 @@ class _TransferScreenState extends State<TransferScreen> {
 
   late final List<CategoryModel> _transferCategories;
 
+  bool get _isEdit => widget.transactionToEdit != null;
+
   @override
   void initState() {
     super.initState();
-    _transferCategories = CategoryCatalog.getByType(TransactionType.transfer);
+    final baseCategories = CategoryCatalog.getByType(TransactionType.transfer);
+    final editing = widget.transactionToEdit;
 
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    if (editing != null &&
+        !baseCategories.any((c) => c.id == editing.categoryId)) {
+      _transferCategories = [
+        ...baseCategories,
+        CategoryCatalog.getById(
+          editing.categoryId,
+          fallbackType: TransactionType.transfer,
+        ),
+      ];
+    } else {
+      _transferCategories = baseCategories;
+    }
+
+    if (editing != null) {
+      _isSelfTransfer = editing.destinationDompetId != null &&
+          editing.destinationDompetId!.isNotEmpty;
+      _selectedSourceDompetId = editing.dompetId;
+      _selectedDestDompetId = editing.destinationDompetId;
+      _selectedCategoryId = editing.categoryId;
+      _jumlahController.text = CurrencyInputFormatter.formatValue(
+        editing.amount.toStringAsFixed(0),
+      );
+      _catatanController.text = editing.notes;
+      _selectedTransactionDate = editing.date;
+
+      if (!_isSelfTransfer) {
+        if (editing.counterpartyName != null &&
+            editing.counterpartyName!.trim().isNotEmpty) {
+          _untukController.text = editing.counterpartyName!.trim();
+        } else if (editing.title.startsWith('Transfer ke ')) {
+          _untukController.text =
+              editing.title.substring('Transfer ke '.length).trim();
+        }
+      }
+    }
+
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (!mounted) return;
       final dompetProvider = context.read<DompetProvider>();
       final contactProvider = context.read<ContactProvider>();
       if (dompetProvider.items.isEmpty && !dompetProvider.isLoading) {
-        dompetProvider.loadDompets();
+        await dompetProvider.loadDompets();
       }
       if (contactProvider.contacts.isEmpty && !contactProvider.isLoading) {
-        contactProvider.loadContacts();
+        await contactProvider.loadContacts();
+      }
+      if (!mounted) return;
+      if (editing != null &&
+          !_isSelfTransfer &&
+          _untukController.text.isEmpty &&
+          editing.contactId != null) {
+        final contact = contactProvider.getContactById(editing.contactId);
+        if (contact != null) {
+          setState(() {
+            _untukController.text = contact.name;
+          });
+        }
       }
     });
   }
@@ -124,41 +180,55 @@ class _TransferScreenState extends State<TransferScreen> {
       String? contactId;
       final recipientName = _untukController.text.trim();
 
-      if (!_isSelfTransfer && _simpanKeDaftar && recipientName.isNotEmpty) {
-        final newContact = await contactProvider.addContact(recipientName);
-        contactId = newContact.id;
-      } else if (!_isSelfTransfer && recipientName.isNotEmpty) {
+      if (!_isSelfTransfer && recipientName.isNotEmpty) {
         final existing = contactProvider.contacts.where(
-          (c) => c.name.toLowerCase() == recipientName.toLowerCase(),
+          (c) => c.name.trim().toLowerCase() == recipientName.toLowerCase(),
         );
         if (existing.isNotEmpty) {
           contactId = existing.first.id;
+        } else if (_simpanKeDaftar) {
+          final newContact = await contactProvider.addContact(recipientName);
+          contactId = newContact.id;
         }
       }
 
       final transaction = TransactionModel(
-        id: '',
+        id: widget.transactionToEdit?.id ?? '',
         title: _isSelfTransfer
             ? 'Transfer Internal'
             : (recipientName.isNotEmpty
                 ? 'Transfer ke $recipientName'
                 : cat.name),
         amount: amount,
-        date: DateHelper.withCurrentTime(_selectedTransactionDate),
+        date: DateHelper.withCurrentTime(
+          _selectedTransactionDate,
+          original: widget.transactionToEdit?.date,
+        ),
         notes: _catatanController.text,
         categoryId: categoryId,
         type: TransactionType.transfer,
         dompetId: _selectedSourceDompetId!,
         destinationDompetId: _isSelfTransfer ? _selectedDestDompetId : null,
         contactId: contactId,
+        counterpartyName: !_isSelfTransfer && recipientName.isNotEmpty
+            ? recipientName
+            : null,
       );
 
-      await txProvider.addTransaction(transaction);
+      if (_isEdit) {
+        await txProvider.updateTransaction(transaction);
+      } else {
+        await txProvider.addTransaction(transaction);
+      }
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('✅ Transfer berhasil disimpan!'),
+          SnackBar(
+            content: Text(
+              _isEdit
+                  ? '✅ Transfer berhasil diperbarui!'
+                  : '✅ Transfer berhasil disimpan!',
+            ),
             backgroundColor: primaryGreen,
           ),
         );
@@ -197,7 +267,7 @@ class _TransferScreenState extends State<TransferScreen> {
         : null;
 
     return TransactionScaffold(
-      title: 'Transfer',
+      title: _isEdit ? 'Edit Transfer' : 'Transfer',
       child: SafeArea(
         child: dompetProvider.isLoading && dompets.isEmpty
             ? const Center(
@@ -320,7 +390,8 @@ class _TransferScreenState extends State<TransferScreen> {
                                     contacts: contacts,
                                     validator: (value) {
                                       if (!_isSelfTransfer &&
-                                          (value == null || value.isEmpty)) {
+                                          (value == null ||
+                                              value.trim().isEmpty)) {
                                         return 'Nama tujuan tidak boleh kosong';
                                       }
                                       return null;

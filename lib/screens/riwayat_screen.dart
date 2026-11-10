@@ -8,10 +8,9 @@ import '../providers/dompet_provider.dart';
 import '../providers/transaction_provider.dart';
 import '../services/local_storage_service.dart';
 import '../theme/app_colors.dart';
-import '../utils/confirm_dialog.dart';
 import '../utils/currency_formatter.dart';
 import '../utils/date_helper.dart';
-import '../utils/error_mapper.dart';
+import '../utils/transaction_actions.dart';
 import '../widgets/common/async_state_view.dart';
 import '../widgets/common/custom_app_bar.dart';
 import '../widgets/common/custom_card.dart';
@@ -70,51 +69,6 @@ class _RiwayatScreenState extends State<RiwayatScreen> {
     if (_selectedFilter == index) return;
     setState(() => _selectedFilter = index);
     LocalStorageService.instance.setRiwayatFilterIndex(index);
-  }
-
-  Future<void> _deleteTransaction(String id) async {
-    final bool confirm = await showConfirmDialog(
-      context,
-      title: 'Hapus Transaksi',
-      message:
-          'Apakah Anda yakin ingin menghapus data ini? Aksi ini tidak dapat dibatalkan.',
-    );
-
-    if (!confirm || !mounted) return;
-
-    try {
-      await context.read<TransactionProvider>().deleteTransaction(id);
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('✅ Data berhasil dihapus!'),
-            backgroundColor: primaryGreen,
-          ),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              '❌ Gagal menghapus: ${ErrorMapper.message(e)}',
-            ),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    }
-  }
-
-  Future<void> _editTransaction(TransactionModel item) async {
-    if (item.type != TransactionType.income &&
-        item.type != TransactionType.expense) {
-      return;
-    }
-    final route = item.type == TransactionType.income
-        ? AppRoutes.pemasukan
-        : AppRoutes.pengeluaran;
-    await context.push(route, extra: item);
   }
 
   Widget _buildLoading() {
@@ -347,8 +301,10 @@ class _RiwayatScreenState extends State<RiwayatScreen> {
                           (group) => TransactionGroupList(
                             group: group,
                             formatCurrency: Formatters.rupiah,
-                            onEdit: _editTransaction,
-                            onDelete: _deleteTransaction,
+                            onEdit: (item) =>
+                                TransactionActions.edit(context, item),
+                            onDelete: (id) =>
+                                TransactionActions.delete(context, id),
                           ),
                         ),
                       ],

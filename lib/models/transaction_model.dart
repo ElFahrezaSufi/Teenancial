@@ -38,6 +38,12 @@ class TransactionModel {
     this.paidDompetId,
   });
 
+  /// Menentukan apakah transaksi ini dapat diedit dari Riwayat.
+  bool get isEditable =>
+      type == TransactionType.income ||
+      type == TransactionType.expense ||
+      type == TransactionType.transfer;
+
   /// Menghitung kontribusi bersih transaksi ini terhadap masing-masing dompet.
   /// Memastikan sinkronisasi saldo tetap konsisten saat tambah, ubah, hapus, & pelunasan.
   Map<String, double> walletEffects() {

@@ -1,13 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
-import '../config/app_routes.dart';
-import '../models/transaction_model.dart';
 import '../providers/transaction_provider.dart';
 import '../theme/app_colors.dart';
-import '../utils/confirm_dialog.dart';
 import '../utils/currency_formatter.dart';
-import '../utils/error_mapper.dart';
+import '../utils/transaction_actions.dart';
 import '../widgets/common/custom_app_bar.dart';
 import '../widgets/transaction/transaction_group.dart';
 import 'riwayat_screen.dart';
@@ -19,54 +16,6 @@ class SemuaAktivitasScreen extends StatelessWidget {
     super.key,
     this.filterIndex = 0,
   });
-
-  Future<void> _deleteTransaction(BuildContext context, String id) async {
-    final bool confirm = await showConfirmDialog(
-      context,
-      title: 'Hapus Transaksi',
-      message:
-          'Apakah Anda yakin ingin menghapus data ini? Aksi ini tidak dapat dibatalkan.',
-    );
-
-    if (!confirm || !context.mounted) return;
-
-    try {
-      await context.read<TransactionProvider>().deleteTransaction(id);
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('✅ Data berhasil dihapus!'),
-            backgroundColor: primaryGreen,
-          ),
-        );
-      }
-    } catch (e) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              '❌ Gagal menghapus: ${ErrorMapper.message(e)}',
-            ),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    }
-  }
-
-  Future<void> _editTransaction(
-    BuildContext context,
-    TransactionModel item,
-  ) async {
-    if (item.type != TransactionType.income &&
-        item.type != TransactionType.expense) {
-      return;
-    }
-    final route = item.type == TransactionType.income
-        ? AppRoutes.pemasukan
-        : AppRoutes.pengeluaran;
-    await context.push(route, extra: item);
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -113,8 +62,10 @@ class SemuaAktivitasScreen extends StatelessWidget {
                           (group) => TransactionGroupList(
                             group: group,
                             formatCurrency: Formatters.rupiah,
-                            onEdit: (item) => _editTransaction(context, item),
-                            onDelete: (id) => _deleteTransaction(context, id),
+                            onEdit: (item) =>
+                                TransactionActions.edit(context, item),
+                            onDelete: (id) =>
+                                TransactionActions.delete(context, id),
                           ),
                         ),
                         const SizedBox(height: 24),
