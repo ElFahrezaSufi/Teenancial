@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../data/category_catalog.dart';
 import '../models/dompet_model.dart';
@@ -14,6 +13,7 @@ import '../utils/currency_formatter.dart';
 import '../utils/error_mapper.dart';
 import '../widgets/common/custom_dropdown_field.dart';
 import '../widgets/common/custom_text_field.dart';
+import '../widgets/common/date_picker_field.dart';
 import '../widgets/common/primary_button.dart';
 import '../widgets/transaction/contact_selection_autocomplete.dart';
 import '../widgets/transaction/dompet_selection_dropdown.dart';
@@ -31,7 +31,6 @@ class _PinjamanScreenState extends State<PinjamanScreen> {
   final _jumlahController = TextEditingController();
   final _catatanController = TextEditingController();
   final _temanController = TextEditingController();
-  final _tanggalController = TextEditingController();
 
   int _selectedTab = 0; // 0 = Hutang (Debt), 1 = Piutang (Receivable)
 
@@ -70,7 +69,6 @@ class _PinjamanScreenState extends State<PinjamanScreen> {
     _jumlahController.dispose();
     _catatanController.dispose();
     _temanController.dispose();
-    _tanggalController.dispose();
     super.dispose();
   }
 
@@ -79,35 +77,6 @@ class _PinjamanScreenState extends State<PinjamanScreen> {
     if (_selectedDompetId == null ||
         !dompets.any((d) => d.id == _selectedDompetId)) {
       _selectedDompetId = dompets.first.id;
-    }
-  }
-
-  Future<void> _selectDate(BuildContext context) async {
-    final now = DateTime.now();
-    final DateTime? picked = await showDatePicker(
-      context: context,
-      initialDate: _selectedDateObj ?? now,
-      firstDate: DateTime(2020),
-      lastDate: DateTime(now.year + 10, 12, 31),
-      builder: (context, child) {
-        return Theme(
-          data: Theme.of(context).copyWith(
-            colorScheme: const ColorScheme.light(
-              primary: primaryGreen,
-              onPrimary: Colors.white,
-              onSurface: primaryGreen,
-            ),
-          ),
-          child: child!,
-        );
-      },
-    );
-    if (picked != null) {
-      setState(() {
-        _selectedDateObj = picked;
-        _tanggalController.text =
-            DateFormat('dd MMMM yyyy', 'id_ID').format(picked);
-      });
     }
   }
 
@@ -377,20 +346,14 @@ class _PinjamanScreenState extends State<PinjamanScreen> {
                         hint: 'Tambah catatan (opsional)',
                         controller: _catatanController,
                       ),
-                      CustomTextField(
+                      DatePickerField(
                         label: 'Batas Waktu',
                         hint: 'Pilih tanggal',
-                        controller: _tanggalController,
-                        readOnly: true,
-                        onTap: () => _selectDate(context),
-                        suffixIcon: const Icon(
-                          Icons.calendar_today,
-                          color: primaryGreen,
-                        ),
+                        value: _selectedDateObj,
+                        onChanged: (picked) =>
+                            setState(() => _selectedDateObj = picked),
                         validator: (value) {
-                          if (_selectedDateObj == null ||
-                              value == null ||
-                              value.isEmpty) {
+                          if (value == null) {
                             return 'Batas waktu harus dipilih';
                           }
                           return null;
