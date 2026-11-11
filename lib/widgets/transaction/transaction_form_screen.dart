@@ -8,9 +8,11 @@ import '../../providers/dompet_provider.dart';
 import '../../providers/transaction_provider.dart';
 import '../../theme/app_colors.dart';
 import '../../utils/currency_formatter.dart';
+import '../../utils/date_helper.dart';
 import '../../utils/error_mapper.dart';
 import '../common/custom_dropdown_field.dart';
 import '../common/custom_text_field.dart';
+import '../common/date_picker_field.dart';
 import '../common/primary_button.dart';
 import 'dompet_selection_dropdown.dart';
 import 'transaction_scaffold.dart';
@@ -36,6 +38,7 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
 
   String? _selectedDompetId;
   String? _selectedCategoryId;
+  DateTime _selectedTransactionDate = DateTime.now();
   bool _isLoading = false;
 
   late final List<CategoryModel> _categories;
@@ -55,6 +58,7 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
       _catatanController.text = t.notes;
       _selectedCategoryId = t.categoryId;
       _selectedDompetId = t.dompetId;
+      _selectedTransactionDate = t.date;
     }
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -111,7 +115,10 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
             ? _catatanController.text
             : cat.name,
         amount: amount,
-        date: widget.transactionToEdit?.date ?? DateTime.now(),
+        date: DateHelper.withCurrentTime(
+          _selectedTransactionDate,
+          original: widget.transactionToEdit?.date,
+        ),
         notes: _catatanController.text,
         categoryId: categoryId,
         type: widget.type,
@@ -231,6 +238,27 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
                         validator: (value) {
                           if (value != null && value.length > 50) {
                             return 'Catatan maksimal 50 karakter';
+                          }
+                          return null;
+                        },
+                      ),
+                      DatePickerField(
+                        label: 'Tanggal Transaksi',
+                        hint: 'Pilih tanggal transaksi',
+                        value: _selectedTransactionDate,
+                        lastDate: DateTime.now(),
+                        onChanged: (picked) {
+                          if (picked != null) {
+                            setState(() => _selectedTransactionDate = picked);
+                          }
+                        },
+                        validator: (value) {
+                          if (value == null) {
+                            return 'Tanggal transaksi harus dipilih';
+                          }
+                          if (DateHelper.daysBetween(DateTime.now(), value) >
+                              0) {
+                            return 'Tanggal transaksi tidak boleh di masa depan';
                           }
                           return null;
                         },

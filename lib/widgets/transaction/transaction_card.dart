@@ -42,8 +42,7 @@ class TransactionCard extends StatelessWidget {
         ? primaryGreen
         : (isExpense ? Colors.red : primaryGreen);
 
-    final bool canEdit = item.type == TransactionType.income ||
-        item.type == TransactionType.expense;
+    final bool canEdit = item.isEditable;
 
     return CustomCard(
       backgroundColor: cardBg,
@@ -121,7 +120,11 @@ class TransactionCard extends StatelessWidget {
                           ],
                         ),
                       _LoanBadge(
-                        label: item.isPaid ? 'Lunas' : 'Belum Lunas',
+                        label: item.isPaid
+                            ? 'Lunas'
+                            : (item.paidAmount > 0
+                                ? 'Sisa ${formatCurrency(item.remainingAmount)}'
+                                : 'Belum Lunas'),
                         color: item.isPaid
                             ? primaryGreen
                             : (dueInfo?.isOverdue == true

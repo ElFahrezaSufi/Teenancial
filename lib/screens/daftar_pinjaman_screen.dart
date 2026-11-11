@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
-import '../models/dompet_model.dart';
+import '../config/app_routes.dart';
 import '../models/transaction_model.dart';
 import '../providers/dompet_provider.dart';
 import '../providers/transaction_provider.dart';
@@ -10,8 +11,9 @@ import '../utils/currency_formatter.dart';
 import '../utils/error_mapper.dart';
 import '../widgets/common/async_state_view.dart';
 import '../widgets/common/custom_filter_chip.dart';
-import '../widgets/transaction/dompet_selection_dropdown.dart';
 import '../widgets/transaction/loan_card.dart';
+import '../widgets/transaction/loan_payment_dialog.dart';
+import '../widgets/transaction/loan_payment_history_sheet.dart';
 import '../widgets/transaction/transaction_scaffold.dart';
 
 enum _LoanFilter { all, unpaid, paid }
@@ -63,31 +65,41 @@ class _DaftarPinjamanScreenState extends State<DaftarPinjamanScreen> {
         _selectedTab == 0 ? txProvider.debts : txProvider.receivables;
     return source
         .where((t) => !t.isPaid)
-        .fold(0.0, (sum, t) => sum + t.amount);
+        .fold(0.0, (sum, t) => sum + t.remainingAmount);
   }
 
-  Future<void> _markAsPaid(TransactionModel item) async {
+  Future<void> _recordPayment(
+    TransactionModel item, {
+    required bool settleFull,
+  }) async {
     if (_isProcessing) return;
 
-    final String? dompetId = await showDialog<String>(
+    final LoanPayment? payment = await showDialog<LoanPayment>(
       context: context,
-      builder: (_) => _SettleDialog(
+      builder: (_) => LoanPaymentDialog(
         item: item,
-        formatCurrency: Formatters.rupiah,
+        settleFull: settleFull,
       ),
     );
-    if (dompetId == null || !mounted) return;
+    if (payment == null || !mounted) return;
 
     setState(() => _isProcessing = true);
     try {
-      await context.read<TransactionProvider>().markAsPaid(item.id, dompetId);
+      await context.read<TransactionProvider>().addLoanPayment(
+            item.id,
+            payment,
+          );
       if (mounted) {
+        final bool nowFullyPaid =
+            payment.amount + 0.0001 >= item.remainingAmount;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              item.type == TransactionType.debt
-                  ? '✅ Hutang berhasil dilunasi!'
-                  : '✅ Piutang berhasil dilunasi!',
+              nowFullyPaid
+                  ? (item.type == TransactionType.debt
+                      ? '✅ Hutang berhasil dilunasi!'
+                      : '✅ Piutang berhasil dilunasi!')
+                  : '✅ Cicilan ${Formatters.rupiah(payment.amount)} berhasil dicatat!',
             ),
             backgroundColor: primaryGreen,
           ),
@@ -107,14 +119,20 @@ class _DaftarPinjamanScreenState extends State<DaftarPinjamanScreen> {
     }
   }
 
+  Future<void> _showPaymentHistory(TransactionModel item) async {
+    await LoanPaymentHistorySheet.show(context, item.id);
+  }
+
   Future<void> _deleteLoan(TransactionModel item) async {
     if (_isProcessing) return;
 
+    final bool hasPayments = item.payments.isNotEmpty || item.isPaid;
     final bool confirmed = await showConfirmDialog(
       context,
       title: 'Hapus Pinjaman?',
-      message:
-          'Menghapus catatan "${item.title}" sebesar ${Formatters.rupiah(item.amount)} juga akan mengembalikan perubahan saldonya pada dompet terkait.',
+      message: hasPayments
+          ? 'Menghapus catatan "${item.title}" sebesar ${Formatters.rupiah(item.amount)} juga akan membalik perubahan saldo pokok beserta seluruh cicilannya pada dompet terkait.'
+          : 'Menghapus catatan "${item.title}" sebesar ${Formatters.rupiah(item.amount)} juga akan mengembalikan perubahan saldonya pada dompet terkait.',
       confirmColor: Colors.redAccent,
     );
 
@@ -202,7 +220,7 @@ class _DaftarPinjamanScreenState extends State<DaftarPinjamanScreen> {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(
-            isDebt ? 'Total hutang belum lunas' : 'Total piutang belum lunas',
+            isDebt ? 'Total sisa hutang' : 'Total sisa piutang',
             style: const TextStyle(
               color: primaryGreen,
               fontSize: 12,
@@ -326,7 +344,21 @@ class _DaftarPinjamanScreenState extends State<DaftarPinjamanScreen> {
                                 key: ValueKey(item.id),
                                 item: item,
                                 formatCurrency: Formatters.rupiah,
-                                onMarkPaid: () => _markAsPaid(item),
+                                onPayInstallment: () => _recordPayment(
+                                  item,
+                                  settleFull: false,
+                                ),
+                                onMarkPaid: () => _recordPayment(
+                                  item,
+                                  settleFull: true,
+                                ),
+                                onShowHistory: () => _showPaymentHistory(item),
+                                onEdit: item.isPaid
+                                    ? null
+                                    : () => context.push(
+                                          AppRoutes.pinjaman,
+                                          extra: item,
+                                        ),
                                 onDelete: () => _deleteLoan(item),
                               );
                             },
@@ -336,109 +368,6 @@ class _DaftarPinjamanScreenState extends State<DaftarPinjamanScreen> {
           ),
         ),
       ),
-    );
-  }
-}
-
-class _SettleDialog extends StatefulWidget {
-  final TransactionModel item;
-  final String Function(double) formatCurrency;
-
-  const _SettleDialog({required this.item, required this.formatCurrency});
-
-  @override
-  State<_SettleDialog> createState() => _SettleDialogState();
-}
-
-class _SettleDialogState extends State<_SettleDialog> {
-  String? _selectedDompetId;
-
-  @override
-  void initState() {
-    super.initState();
-    final dompets = context.read<DompetProvider>().items;
-    final hasOriginal = dompets.any((d) => d.id == widget.item.dompetId);
-    _selectedDompetId = hasOriginal
-        ? widget.item.dompetId
-        : (dompets.isNotEmpty ? dompets.first.id : null);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final dompets = context.watch<DompetProvider>().items;
-    final isDebt = widget.item.type == TransactionType.debt;
-    final selected = dompets.where((d) => d.id == _selectedDompetId);
-    final DompetItem? selectedDompet =
-        selected.isNotEmpty ? selected.first : null;
-    final bool insufficient = isDebt &&
-        selectedDompet != null &&
-        selectedDompet.jumlah < widget.item.amount;
-
-    return AlertDialog(
-      backgroundColor: scaffoldBg,
-      insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
-      contentPadding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
-      title: Text(
-        isDebt ? 'Bayar Hutang' : 'Terima Pelunasan',
-        style: const TextStyle(
-          color: primaryGreen,
-          fontWeight: FontWeight.w800,
-        ),
-      ),
-      content: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              isDebt
-                  ? 'Kamu akan melunasi ${widget.formatCurrency(widget.item.amount)}. Uang keluar dari dompet mana?'
-                  : 'Kamu menerima pelunasan ${widget.formatCurrency(widget.item.amount)}. Uang masuk ke dompet mana?',
-              style: const TextStyle(color: primaryGreen, fontSize: 13),
-            ),
-            const SizedBox(height: 16),
-            DompetSelectionDropdown(
-              label: isDebt ? 'Bayar dari' : 'Masuk ke',
-              hint: 'Pilih dompet',
-              dompets: dompets,
-              selectedDompetId: _selectedDompetId,
-              onChanged: (val) => setState(() => _selectedDompetId = val),
-            ),
-            if (selectedDompet != null)
-              Text(
-                'Saldo dompet: ${widget.formatCurrency(selectedDompet.jumlah)}',
-                style: TextStyle(
-                  color: insufficient ? Colors.red : primaryGreen,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            if (insufficient)
-              const Padding(
-                padding: EdgeInsets.only(top: 4),
-                child: Text(
-                  'Saldo tidak mencukupi, pilih dompet lain.',
-                  style: TextStyle(color: Colors.red, fontSize: 12),
-                ),
-              ),
-          ],
-        ),
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: const Text('Batal', style: TextStyle(color: Colors.grey)),
-        ),
-        TextButton(
-          onPressed: (_selectedDompetId == null || insufficient)
-              ? null
-              : () => Navigator.pop(context, _selectedDompetId),
-          child: const Text(
-            'Konfirmasi',
-            style: TextStyle(color: primaryGreen, fontWeight: FontWeight.w800),
-          ),
-        ),
-      ],
     );
   }
 }

@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 
 import '../config/app_routes.dart';
 import '../models/dompet_model.dart';
+import '../models/target_model.dart';
 import '../models/transaction_model.dart';
 import '../providers/auth_provider.dart';
 import '../services/local_storage_service.dart';
@@ -182,10 +183,15 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       parentNavigatorKey: rootNavigatorKey,
       path: AppRoutes.pinjaman,
-      pageBuilder: (context, state) => AppTransitions.slideHorizontal(
-        key: state.pageKey,
-        child: const PinjamanScreen(),
-      ),
+      pageBuilder: (context, state) {
+        final tx = state.extra is TransactionModel
+            ? state.extra as TransactionModel
+            : null;
+        return AppTransitions.slideHorizontal(
+          key: state.pageKey,
+          child: PinjamanScreen(loanToEdit: tx),
+        );
+      },
     ),
     GoRoute(
       parentNavigatorKey: rootNavigatorKey,
@@ -198,10 +204,15 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       parentNavigatorKey: rootNavigatorKey,
       path: AppRoutes.transfer,
-      pageBuilder: (context, state) => AppTransitions.slideHorizontal(
-        key: state.pageKey,
-        child: const TransferScreen(),
-      ),
+      pageBuilder: (context, state) {
+        final tx = state.extra is TransactionModel
+            ? state.extra as TransactionModel
+            : null;
+        return AppTransitions.slideHorizontal(
+          key: state.pageKey,
+          child: TransferScreen(transactionToEdit: tx),
+        );
+      },
     ),
     GoRoute(
       parentNavigatorKey: rootNavigatorKey,
@@ -226,10 +237,14 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       parentNavigatorKey: rootNavigatorKey,
       path: AppRoutes.buatTarget,
-      pageBuilder: (context, state) => AppTransitions.slideHorizontal(
-        key: state.pageKey,
-        child: const BuatTargetScreen(),
-      ),
+      pageBuilder: (context, state) {
+        final target =
+            state.extra is TargetItem ? state.extra as TargetItem : null;
+        return AppTransitions.slideHorizontal(
+          key: state.pageKey,
+          child: BuatTargetScreen(targetToEdit: target),
+        );
+      },
     ),
     GoRoute(
       parentNavigatorKey: rootNavigatorKey,
@@ -243,12 +258,25 @@ final GoRouter appRouter = GoRouter(
       parentNavigatorKey: rootNavigatorKey,
       path: AppRoutes.semuaAktivitas,
       pageBuilder: (context, state) {
-        final filterIndex = state.extra is int
-            ? state.extra as int
-            : LocalStorageService.instance.riwayatFilterIndex;
+        final extra = state.extra;
+        late final int filterIndex;
+        late final bool autoFocusSearch;
+        if (extra is SemuaAktivitasArgs) {
+          filterIndex = extra.filterIndex;
+          autoFocusSearch = extra.autoFocusSearch;
+        } else if (extra is int) {
+          filterIndex = extra;
+          autoFocusSearch = false;
+        } else {
+          filterIndex = LocalStorageService.instance.riwayatFilterIndex;
+          autoFocusSearch = false;
+        }
         return AppTransitions.slideHorizontal(
           key: state.pageKey,
-          child: SemuaAktivitasScreen(filterIndex: filterIndex),
+          child: SemuaAktivitasScreen(
+            filterIndex: filterIndex,
+            autoFocusSearch: autoFocusSearch,
+          ),
         );
       },
     ),

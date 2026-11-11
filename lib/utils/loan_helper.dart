@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 import '../models/transaction_model.dart';
 import '../theme/app_colors.dart';
+import 'date_helper.dart';
 
 /// Informasi status jatuh tempo suatu pinjaman (label + warna).
 class LoanDueInfo {
@@ -22,16 +22,13 @@ class LoanHelper {
   static bool isLoan(TransactionModel t) =>
       t.type == TransactionType.debt || t.type == TransactionType.receivable;
 
-  static String formatDueDate(DateTime date) =>
-      DateFormat('dd MMM yyyy', 'id_ID').format(date);
+  static String formatDueDate(DateTime date) => DateHelper.formatShort(date);
 
   /// Selisih hari dari hari ini ke batas waktu (negatif = terlambat).
   /// Dibandingkan berdasarkan tanggal saja (tanpa jam).
-  static int daysUntilDue(DateTime dueDate) {
-    final now = DateTime.now();
-    final today = DateTime(now.year, now.month, now.day);
-    final due = DateTime(dueDate.year, dueDate.month, dueDate.day);
-    return due.difference(today).inDays;
+  static int daysUntilDue(DateTime dueDate, {DateTime? now}) {
+    final current = now ?? DateTime.now();
+    return DateHelper.daysBetween(current, dueDate);
   }
 
   /// Mengembalikan null jika transaksi bukan pinjaman atau tidak punya batas waktu

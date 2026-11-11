@@ -10,6 +10,8 @@ import '../theme/app_colors.dart';
 import '../utils/confirm_dialog.dart';
 import '../utils/currency_formatter.dart';
 import '../utils/error_mapper.dart';
+import '../utils/loan_helper.dart';
+import '../utils/saving_planner.dart';
 import '../widgets/common/custom_app_bar.dart';
 import '../widgets/common/custom_card.dart';
 import '../widgets/common/target_image.dart';
@@ -293,6 +295,12 @@ class TargetMenabungScreen extends StatelessWidget {
     final String targetStr = Formatters.rupiah(item.targetAmount);
     final bool canDeposit = !item.isAchieved && availableSaldo > 0;
     final bool canWithdraw = item.savedAmount > 0;
+    final SavingPlan? plan = SavingPlanner.plan(item);
+    final Color planBadgeColor = plan == null
+        ? primaryGreen
+        : (plan.isOverdue
+            ? LoanHelper.overdueColor
+            : (plan.isUrgent ? orangeText : primaryGreen));
 
     return CustomCard(
       backgroundColor: cardBg,
@@ -370,7 +378,9 @@ class TargetMenabungScreen extends StatelessWidget {
                       borderRadius: BorderRadius.circular(12),
                     ),
                     onSelected: (value) async {
-                      if (value == 'delete') {
+                      if (value == 'edit') {
+                        await context.push(AppRoutes.buatTarget, extra: item);
+                      } else if (value == 'delete') {
                         final bool confirm = await showConfirmDialog(
                           context,
                           title: 'Hapus Target',
@@ -399,6 +409,22 @@ class TargetMenabungScreen extends StatelessWidget {
                       }
                     },
                     itemBuilder: (context) => [
+                      const PopupMenuItem(
+                        value: 'edit',
+                        child: Row(
+                          children: [
+                            Icon(Icons.edit_outlined, color: primaryGreen),
+                            SizedBox(width: 8),
+                            Text(
+                              'Edit Target',
+                              style: TextStyle(
+                                color: primaryGreen,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
                       const PopupMenuItem(
                         value: 'delete',
                         child: Row(
@@ -524,6 +550,88 @@ class TargetMenabungScreen extends StatelessWidget {
               ],
             ),
           ),
+          if (plan != null)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.event,
+                        size: 14,
+                        color: planBadgeColor,
+                      ),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: Text(
+                          'Tenggat ${plan.deadlineLabel}',
+                          style: TextStyle(
+                            color: planBadgeColor,
+                            fontSize: 12,
+                            fontFamily: 'Inter',
+                            fontWeight: FontWeight.w600,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 3,
+                        ),
+                        decoration: BoxDecoration(
+                          color: planBadgeColor.withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(100),
+                          border: Border.all(color: planBadgeColor, width: 1),
+                        ),
+                        child: Text(
+                          plan.badgeText,
+                          style: TextStyle(
+                            color: planBadgeColor,
+                            fontSize: 11,
+                            fontFamily: 'Inter',
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  if (plan.suggestionText != null) ...[
+                    const SizedBox(height: 6),
+                    Row(
+                      children: [
+                        Icon(
+                          plan.isOverdue
+                              ? Icons.warning_amber_rounded
+                              : Icons.tips_and_updates_outlined,
+                          size: 14,
+                          color: plan.isOverdue
+                              ? LoanHelper.overdueColor
+                              : primaryGreen,
+                        ),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: Text(
+                            plan.suggestionText!,
+                            style: TextStyle(
+                              color: plan.isOverdue
+                                  ? LoanHelper.overdueColor
+                                  : primaryGreen,
+                              fontSize: 12,
+                              fontFamily: 'Inter',
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ],
+              ),
+            ),
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
             child: Row(
