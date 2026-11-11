@@ -216,6 +216,8 @@ class _PinjamanScreenState extends State<PinjamanScreen> {
         await txProvider.updateTransaction(transaction);
       } else {
         await txProvider.addTransaction(transaction);
+      }
+      if (!transaction.isPaid) {
         await NotificationService.instance.showLoanCreatedNotification(
           transaction,
         );

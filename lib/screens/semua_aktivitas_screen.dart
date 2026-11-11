@@ -410,6 +410,7 @@ class _SemuaAktivitasScreenState extends State<SemuaAktivitasScreen> {
                         )
                       : PagedTransactionList(
                           transactions: filteredTransactions,
+                          filterKey: _filter.signature,
                           formatCurrency: Formatters.rupiah,
                           onEdit: (item) =>
                               TransactionActions.edit(context, item),

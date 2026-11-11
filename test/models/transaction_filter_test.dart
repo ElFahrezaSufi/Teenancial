@@ -130,6 +130,10 @@ void main() {
       expect(result.map((t) => t.id), ['t2']);
       expect(filter.activeFilterCount, 2);
       expect(filter.isActive, isTrue);
+      expect(
+        filter.signature,
+        isNot(equals(filter.copyWith(query: 'saku').signature)),
+      );
     });
   });
 }

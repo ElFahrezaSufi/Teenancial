@@ -6,7 +6,7 @@ import '../../theme/app_colors.dart';
 import 'transaction_card.dart';
 
 /// Daftar transaksi yang dikelompokkan per tanggal dan dimuat secara bertahap
-/// (paginasi sisi klien, default 20 transaksi per batch) saat pengguna menggulir.
+/// (paginasi sisi klien, default 20 transaksi per batch).
 class PagedTransactionList extends StatefulWidget {
   final List<TransactionModel> transactions;
   final String Function(double) formatCurrency;
@@ -14,6 +14,7 @@ class PagedTransactionList extends StatefulWidget {
   final ValueChanged<String> onDelete;
   final Future<void> Function()? onRefresh;
   final int pageSize;
+  final Object? filterKey;
 
   const PagedTransactionList({
     super.key,
@@ -23,6 +24,7 @@ class PagedTransactionList extends StatefulWidget {
     required this.onDelete,
     this.onRefresh,
     this.pageSize = 20,
+    this.filterKey,
   });
 
   @override
@@ -58,13 +60,19 @@ class _PagedTransactionListState extends State<PagedTransactionList> {
   void initState() {
     super.initState();
     _visibleCount = math.min(widget.pageSize, widget.transactions.length);
-    _scrollController.addListener(_onScroll);
   }
 
   @override
   void didUpdateWidget(covariant PagedTransactionList oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.transactions != widget.transactions) {
+    if (oldWidget.filterKey != widget.filterKey) {
+      _visibleCount = math.min(widget.pageSize, widget.transactions.length);
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && _scrollController.hasClients) {
+          _scrollController.jumpTo(0);
+        }
+      });
+    } else if (oldWidget.transactions != widget.transactions) {
       final target = math.max(_visibleCount, widget.pageSize);
       _visibleCount = math.min(target, widget.transactions.length);
     }
@@ -72,17 +80,8 @@ class _PagedTransactionListState extends State<PagedTransactionList> {
 
   @override
   void dispose() {
-    _scrollController.removeListener(_onScroll);
     _scrollController.dispose();
     super.dispose();
-  }
-
-  void _onScroll() {
-    if (!_scrollController.hasClients) return;
-    final pos = _scrollController.position;
-    if (pos.pixels >= pos.maxScrollExtent - 200) {
-      _loadMore();
-    }
   }
 
   void _loadMore() {
@@ -171,6 +170,10 @@ class _PagedTransactionListState extends State<PagedTransactionList> {
             );
           case _FooterEntry():
             final hasMore = entry.shownCount < entry.totalCount;
+            final nextBatch = math.min(
+              widget.pageSize,
+              entry.totalCount - entry.shownCount,
+            );
             return Padding(
               padding: const EdgeInsets.only(top: 12, bottom: 8),
               child: Column(
@@ -185,21 +188,35 @@ class _PagedTransactionListState extends State<PagedTransactionList> {
                     ),
                   ),
                   if (hasMore) ...[
-                    const SizedBox(height: 8),
-                    TextButton.icon(
+                    const SizedBox(height: 10),
+                    OutlinedButton.icon(
                       onPressed: _loadMore,
                       icon: const Icon(
                         Icons.expand_more_rounded,
                         color: primaryGreen,
-                        size: 18,
+                        size: 20,
                       ),
-                      label: const Text(
-                        'Muat Lebih Banyak',
-                        style: TextStyle(
+                      label: Text(
+                        'Muat Lebih Banyak ($nextBatch lagi)',
+                        style: const TextStyle(
                           color: primaryGreen,
                           fontSize: 13,
                           fontFamily: 'Inter',
                           fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      style: OutlinedButton.styleFrom(
+                        backgroundColor: cardBg,
+                        side: const BorderSide(
+                          color: primaryGreen,
+                          width: 1.5,
+                        ),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 18,
+                          vertical: 10,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(100),
                         ),
                       ),
                     ),

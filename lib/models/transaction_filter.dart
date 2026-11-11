@@ -64,6 +64,18 @@ class TransactionFilter {
   /// Bernilai `true` apabila kata kunci pencarian atau minimal satu filter aktif.
   bool get isActive => query.trim().isNotEmpty || activeFilterCount > 0;
 
+  /// Kunci unik representasi state filter & kata kunci untuk mendeteksi
+  /// perubahan filter pada komponen paginasi.
+  String get signature {
+    final sortedTypes = types.map((e) => e.name).toList()..sort();
+    final sortedCats = categoryIds.toList()..sort();
+    final sortedDompets = dompetIds.toList()..sort();
+    final rangeStr = customRange == null
+        ? ''
+        : '${customRange!.start.millisecondsSinceEpoch}-${customRange!.end.millisecondsSinceEpoch}';
+    return '${query.trim().toLowerCase()}|${periodPreset.name}|$rangeStr|${sortedTypes.join(",")}|${sortedCats.join(",")}|${sortedDompets.join(",")}';
+  }
+
   TransactionFilter copyWith({
     String? query,
     Set<TransactionType>? types,
