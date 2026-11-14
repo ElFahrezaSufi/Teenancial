@@ -92,17 +92,20 @@ class DompetRepository {
     }
 
     final txCol = _firestoreService.transactionsCol(uid);
+    final recCol = _firestoreService.recurringCol(uid);
     final results = await Future.wait([
       txCol.where('dompetId', isEqualTo: dompetId).limit(1).get(),
       txCol.where('destinationDompetId', isEqualTo: dompetId).limit(1).get(),
       txCol.where('paidDompetId', isEqualTo: dompetId).limit(1).get(),
+      recCol.where('dompetId', isEqualTo: dompetId).limit(1).get(),
+      recCol.where('destinationDompetId', isEqualTo: dompetId).limit(1).get(),
     ]);
 
     final bool hasReferencedTransactions =
         results.any((snap) => snap.docs.isNotEmpty);
     if (hasReferencedTransactions) {
       throw Exception(
-        'Dompet tidak dapat dihapus karena masih memiliki riwayat transaksi atau pinjaman.',
+        'Dompet tidak dapat dihapus karena masih memiliki riwayat transaksi, pinjaman, atau jadwal transaksi berulang.',
       );
     }
 

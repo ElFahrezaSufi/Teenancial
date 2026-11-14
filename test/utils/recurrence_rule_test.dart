@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:teenancial/models/recurring_model.dart';
 import 'package:teenancial/models/transaction_model.dart';
+import 'package:teenancial/repositories/recurring_repository.dart';
 
 void main() {
   group('RecurrenceRule & RecurringModel', () {
@@ -125,5 +126,36 @@ void main() {
       expect(restored.destinationDompetId, 'w2');
       expect(restored.scheduleLabel, 'Setiap Bulan');
     });
+
+    test(
+      'validasi RecurringRepository menolak transfer internal ke dompet yang sama atau jenis pinjaman',
+      () {
+        final sameWalletTransfer = RecurringModel(
+          id: 'r2',
+          title: 'Transfer Salah',
+          amount: 50000,
+          categoryId: 'c7',
+          type: TransactionType.transfer,
+          dompetId: 'w1',
+          destinationDompetId: 'w1',
+          frequency: RecurrenceFrequency.monthly,
+          startDate: DateTime(2026, 11, 1),
+          nextRunDate: DateTime(2026, 11, 1),
+        );
+        expect(
+          () => RecurringRepository.validateTemplate(sameWalletTransfer),
+          throwsException,
+        );
+
+        final invalidLoanType = sameWalletTransfer.copyWith(
+          type: TransactionType.debt,
+          clearDestinationDompetId: true,
+        );
+        expect(
+          () => RecurringRepository.validateTemplate(invalidLoanType),
+          throwsException,
+        );
+      },
+    );
   });
 }
