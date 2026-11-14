@@ -50,13 +50,20 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
                 ),
               ),
             Center(
-              child: Text(
-                title,
-                style: const TextStyle(
-                  color: primaryGreen,
-                  fontSize: 25,
-                  fontFamily: 'Inter',
-                  fontWeight: FontWeight.w700,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 52.0),
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(
+                    title,
+                    maxLines: 1,
+                    style: const TextStyle(
+                      color: primaryGreen,
+                      fontSize: 25,
+                      fontFamily: 'Inter',
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
                 ),
               ),
             ),

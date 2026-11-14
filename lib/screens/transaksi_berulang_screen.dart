@@ -15,7 +15,6 @@ import '../utils/date_helper.dart';
 import '../utils/error_mapper.dart';
 import '../widgets/common/custom_app_bar.dart';
 import '../widgets/common/custom_card.dart';
-import '../widgets/common/custom_filter_chip.dart';
 import '../widgets/common/primary_button.dart';
 import 'buat_berulang_screen.dart';
 
@@ -225,7 +224,7 @@ class _TransaksiBerulangScreenState extends State<TransaksiBerulangScreen> {
         activeItems.isNotEmpty || inactiveItems.isNotEmpty;
 
     final String appBarTitle = _isLockedToType
-        ? 'Jadwal ${_typeLabel(widget.initialType!)} Berulang'
+        ? '${_typeLabel(widget.initialType!)} Berulang'
         : 'Transaksi Berulang';
 
     return Scaffold(
@@ -250,25 +249,25 @@ class _TransaksiBerulangScreenState extends State<TransaksiBerulangScreen> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 if (!_isLockedToType)
-                  SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
+                  Padding(
                     padding: const EdgeInsets.fromLTRB(24, 16, 24, 4),
                     child: Row(
-                      children: _riwayatTabs.map((tabType) {
-                        final label = tabType == null
-                            ? 'Semua'
-                            : _typeLabel(tabType);
-                        return Padding(
-                          padding: const EdgeInsets.only(right: 8),
-                          child: CustomFilterChip(
-                            label: label,
-                            selected: _selectedFilterType == tabType,
-                            onTap: () => setState(
-                              () => _selectedFilterType = tabType,
+                      children: [
+                        for (int i = 0; i < _riwayatTabs.length; i++) ...[
+                          if (i > 0) const SizedBox(width: 6),
+                          Expanded(
+                            child: _buildProportionalFilterTab(
+                              label: _riwayatTabs[i] == null
+                                  ? 'Semua'
+                                  : _typeLabel(_riwayatTabs[i]!),
+                              selected: _selectedFilterType == _riwayatTabs[i],
+                              onTap: () => setState(
+                                () => _selectedFilterType = _riwayatTabs[i],
+                              ),
                             ),
                           ),
-                        );
-                      }).toList(),
+                        ],
+                      ],
                     ),
                   ),
                 Expanded(
@@ -390,6 +389,39 @@ class _TransaksiBerulangScreenState extends State<TransaksiBerulangScreen> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildProportionalFilterTab({
+    required String label,
+    required bool selected,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+        decoration: BoxDecoration(
+          color: selected ? primaryGreen : Colors.transparent,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: primaryGreen, width: 1.5),
+        ),
+        alignment: Alignment.center,
+        child: FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Text(
+            label,
+            maxLines: 1,
+            style: TextStyle(
+              color: selected ? Colors.white : primaryGreen,
+              fontSize: 12.5,
+              fontFamily: 'Inter',
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
       ),
     );
   }

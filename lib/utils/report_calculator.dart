@@ -45,18 +45,27 @@ class MonthlyReportSummary {
     return ((netCashflow / totalIncome) * 100.0).clamp(-999.0, 100.0);
   }
 
+  /// Apakah bulan laporan ini adalah bulan berjalan saat ini.
+  bool isCurrentMonth({DateTime? now}) {
+    final ref = now ?? DateTime.now();
+    return ref.year == month.year && ref.month == month.month;
+  }
+
+  /// Jumlah hari pembagi untuk rata-rata harian (hari berjalan jika bulan ini,
+  /// atau total hari penuh dalam bulan tersebut jika bulan lain).
+  int elapsedDaysInMonth({DateTime? now}) {
+    final ref = now ?? DateTime.now();
+    if (ref.year == month.year && ref.month == month.month) {
+      return ref.day < 1 ? 1 : ref.day;
+    }
+    return DateTime(month.year, month.month + 1, 0).day;
+  }
+
   /// Rata-rata pengeluaran per hari (dibagi jumlah hari berjalan jika bulan ini,
   /// atau jumlah hari penuh dalam bulan tersebut jika bulan yang sudah lewat).
   double dailyAverageExpense({DateTime? now}) {
     if (totalExpense <= 0) return 0.0;
-    final ref = now ?? DateTime.now();
-    final int daysDivisor;
-    if (ref.year == month.year && ref.month == month.month) {
-      daysDivisor = ref.day < 1 ? 1 : ref.day;
-    } else {
-      daysDivisor = DateTime(month.year, month.month + 1, 0).day;
-    }
-    return totalExpense / daysDivisor;
+    return totalExpense / elapsedDaysInMonth(now: now);
   }
 }
 
@@ -464,25 +473,36 @@ class ReportCalculator {
 
     // 2. Rata-rata pengeluaran harian
     if (summary.totalExpense > 0) {
+      final int days = summary.elapsedDaysInMonth(now: now);
+      final String daysLabel = summary.isCurrentMonth(now: now)
+          ? '$days hari berjalan'
+          : '$days hari';
       highlights.add(
-        'Rata-rata pengeluaran harian: ${formatCurrency(dailyAvg)} per hari.',
+        'Rata-rata pengeluaran harian: ${formatCurrency(dailyAvg)}/hari ($daysLabel).',
       );
     }
 
-    // 3. Rasio tabungan
-    if (savingRate != null) {
-      if (savingRate >= 0) {
+    // 3. Rasio pengeluaran & sisa pemasukan
+    if (summary.totalIncome > 0) {
+      if (summary.netCashflow >= 0) {
+        final int expensePct =
+            ((summary.totalExpense / summary.totalIncome) * 100.0)
+                .round()
+                .clamp(0, 100);
+        final int remainingPct = 100 - expensePct;
         highlights.add(
-          'Rasio tabungan: kamu menyisihkan ${savingRate.toStringAsFixed(0)}% dari pemasukan bulan ini (${formatCurrency(summary.netCashflow)}).',
+          'Rasio arus kas: pengeluaran memakai $expensePct% dari pemasukan, menyisakan $remainingPct% (${formatCurrency(summary.netCashflow)}) surplus bulan ini.',
         );
       } else {
+        final int expensePct =
+            ((summary.totalExpense / summary.totalIncome) * 100.0).round();
         highlights.add(
-          'Rasio tabungan: 0% (pengeluaran melebihi pemasukan sebesar ${formatCurrency(summary.netCashflow.abs())}).',
+          'Rasio arus kas: pengeluaran mencapai $expensePct% dari pemasukan (defisit ${formatCurrency(summary.netCashflow.abs())} bulan ini).',
         );
       }
     } else {
       highlights.add(
-        'Rasio tabungan: belum dapat dihitung karena belum ada pemasukan tercatat bulan ini.',
+        'Rasio arus kas: belum dapat dihitung karena belum ada pemasukan tercatat bulan ini.',
       );
     }
 
@@ -505,6 +525,14 @@ class ReportCalculator {
     } else {
       highlights.add(
         'Tren bulanan: belum ada data pengeluaran pada bulan sebelumnya sebagai pembanding.',
+      );
+    }
+
+    // 5. Sumber pemasukan utama
+    if (incomeBreakdown.fullItems.isNotEmpty) {
+      final topIncome = incomeBreakdown.fullItems.first;
+      highlights.add(
+        'Sumber pemasukan utama berasal dari ${topIncome.categoryName} (${formatCurrency(topIncome.amount)}).',
       );
     }
 

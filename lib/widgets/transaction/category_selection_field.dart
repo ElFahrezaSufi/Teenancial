@@ -74,6 +74,14 @@ class CategorySelectionField extends StatelessWidget {
     final categoryProvider = Provider.of<CategoryProvider?>(context);
     final categories = _resolveCategories(categoryProvider);
     final dropdownItems = categories.map((c) => c.name).toList();
+    final itemLeading = <String, Widget>{
+      for (final c in categories)
+        c.name: Icon(
+          c.icon,
+          size: 19,
+          color: c.color,
+        ),
+    };
 
     String? selectedName;
     if (selectedCategoryId != null && categories.isNotEmpty) {
@@ -91,6 +99,7 @@ class CategorySelectionField extends StatelessWidget {
           hint: hint,
           value: selectedName,
           items: dropdownItems,
+          itemLeading: itemLeading,
           onChanged: (value) {
             if (value == null) return;
             final match = categories.where((c) => c.name == value);

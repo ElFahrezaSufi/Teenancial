@@ -215,7 +215,7 @@ void main() {
     );
 
     test(
-      'generateInsight menampilkan 4 poin lengkap (kategori terbesar, rata-rata harian, rasio tabungan, dan tren bulan lalu) serta warna asli kategori',
+      'generateInsight menampilkan 5 poin lengkap (kategori terbesar, rata-rata harian, rasio arus kas, tren bulan lalu, dan sumber pemasukan utama) serta warna asli kategori',
       () {
         final txs = <TransactionModel>[
           TransactionModel(
@@ -273,13 +273,15 @@ void main() {
           now: DateTime(2026, 11, 15),
         );
 
-        expect(insight.highlights.length, 4);
+        expect(insight.highlights.length, 5);
         expect(insight.highlights[0], contains('Hiburan'));
         expect(insight.highlights[1], contains('Rata-rata pengeluaran harian'));
-        expect(insight.highlights[1], contains('Rp 10.000')); // 150.000 / 15 hari
-        expect(insight.highlights[2], contains('Rasio tabungan'));
-        expect(insight.highlights[2], contains('70%')); // 350.000 / 500.000
+        expect(insight.highlights[1], contains('Rp 10.000/hari (15 hari berjalan)'));
+        expect(insight.highlights[2], contains('Rasio arus kas'));
+        expect(insight.highlights[2], contains('30%'));
+        expect(insight.highlights[2], contains('70%'));
         expect(insight.highlights[3], contains('dibandingkan bulan lalu'));
+        expect(insight.highlights[4], contains('Sumber pemasukan utama berasal dari Uang Jajan'));
       },
     );
   });
