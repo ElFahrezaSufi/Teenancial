@@ -239,6 +239,7 @@ class _SemuaAktivitasScreenState extends State<SemuaAktivitasScreen> {
                           child: TextField(
                             controller: _searchController,
                             focusNode: _searchFocusNode,
+                            textAlignVertical: TextAlignVertical.center,
                             onChanged: (value) {
                               setState(() {
                                 _filter = _filter.copyWith(query: value);
@@ -251,6 +252,7 @@ class _SemuaAktivitasScreenState extends State<SemuaAktivitasScreen> {
                               fontWeight: FontWeight.w600,
                             ),
                             decoration: InputDecoration(
+                              isDense: true,
                               hintText: 'Cari judul, catatan, kategori, nominal...',
                               hintStyle: TextStyle(
                                 color: primaryGreen.withValues(alpha: 0.5),
@@ -262,6 +264,10 @@ class _SemuaAktivitasScreenState extends State<SemuaAktivitasScreen> {
                                 Icons.search_rounded,
                                 color: primaryGreen,
                                 size: 20,
+                              ),
+                              prefixIconConstraints: const BoxConstraints(
+                                minWidth: 42,
+                                minHeight: 44,
                               ),
                               suffixIcon: _searchController.text.isNotEmpty
                                   ? IconButton(
@@ -349,20 +355,17 @@ class _SemuaAktivitasScreenState extends State<SemuaAktivitasScreen> {
                   ),
                 ),
                 if (activeChips.isNotEmpty)
-                  SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
+                  Padding(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 24,
                       vertical: 4,
                     ),
-                    child: Row(
+                    child: Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      crossAxisAlignment: WrapCrossAlignment.center,
                       children: [
-                        ...activeChips.map(
-                          (chip) => Padding(
-                            padding: const EdgeInsets.only(right: 8),
-                            child: chip,
-                          ),
-                        ),
+                        ...activeChips,
                         if (activeChips.length > 1)
                           GestureDetector(
                             onTap: _clearAllFilters,

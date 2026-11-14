@@ -627,6 +627,7 @@ class _EksporScreenState extends State<EksporScreen> {
                                 ),
                                 child: TextField(
                                   controller: _queryController,
+                                  textAlignVertical: TextAlignVertical.center,
                                   onChanged: (val) {
                                     setState(() {
                                       _filter = _filter.copyWith(query: val);
@@ -639,6 +640,7 @@ class _EksporScreenState extends State<EksporScreen> {
                                     fontWeight: FontWeight.w600,
                                   ),
                                   decoration: InputDecoration(
+                                    isDense: true,
                                     hintText:
                                         'Filter judul, catatan, pihak terkait...',
                                     hintStyle: TextStyle(
@@ -652,10 +654,14 @@ class _EksporScreenState extends State<EksporScreen> {
                                       color: primaryGreen,
                                       size: 18,
                                     ),
+                                    prefixIconConstraints: const BoxConstraints(
+                                      minWidth: 40,
+                                      minHeight: 40,
+                                    ),
                                     border: InputBorder.none,
                                     contentPadding: const EdgeInsets.symmetric(
-                                      vertical: 10,
-                                      horizontal: 10,
+                                      vertical: 12,
+                                      horizontal: 12,
                                     ),
                                   ),
                                 ),

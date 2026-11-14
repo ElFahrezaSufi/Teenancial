@@ -43,6 +43,20 @@ class _TransaksiBerulangScreenState extends State<TransaksiBerulangScreen> {
     TransactionType.transfer,
   ];
 
+  static int _tabFlex(TransactionType? type) {
+    if (type == null) return 7; // Semua
+    switch (type) {
+      case TransactionType.income:
+        return 10; // Pemasukan
+      case TransactionType.expense:
+        return 11; // Pengeluaran
+      case TransactionType.transfer:
+        return 8; // Transfer
+      default:
+        return 8;
+    }
+  }
+
   static String _typeLabel(TransactionType type) {
     switch (type) {
       case TransactionType.income:
@@ -256,6 +270,7 @@ class _TransaksiBerulangScreenState extends State<TransaksiBerulangScreen> {
                         for (int i = 0; i < _riwayatTabs.length; i++) ...[
                           if (i > 0) const SizedBox(width: 6),
                           Expanded(
+                            flex: _tabFlex(_riwayatTabs[i]),
                             child: _buildProportionalFilterTab(
                               label: _riwayatTabs[i] == null
                                   ? 'Semua'
@@ -402,7 +417,7 @@ class _TransaksiBerulangScreenState extends State<TransaksiBerulangScreen> {
       onTap: onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
         decoration: BoxDecoration(
           color: selected ? primaryGreen : Colors.transparent,
           borderRadius: BorderRadius.circular(20),
@@ -416,7 +431,7 @@ class _TransaksiBerulangScreenState extends State<TransaksiBerulangScreen> {
             maxLines: 1,
             style: TextStyle(
               color: selected ? Colors.white : primaryGreen,
-              fontSize: 12.5,
+              fontSize: 12,
               fontFamily: 'Inter',
               fontWeight: FontWeight.w600,
             ),
