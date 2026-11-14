@@ -137,4 +137,28 @@ class TransactionProvider extends ChangeNotifier {
     unawaited(NotificationService.instance.cancelLoanReminder(transactionId));
     await _refreshAfterMutation();
   }
+
+  Future<void> addLoanPayment(
+    String transactionId,
+    LoanPayment payment,
+  ) async {
+    final targetUid = _uid;
+    if (targetUid == null) {
+      throw Exception('Sesi pengguna tidak ditemukan');
+    }
+    await _repository.addLoanPayment(targetUid, transactionId, payment);
+    await _refreshAfterMutation();
+  }
+
+  Future<void> removeLoanPayment(
+    String transactionId,
+    String paymentId,
+  ) async {
+    final targetUid = _uid;
+    if (targetUid == null) {
+      throw Exception('Sesi pengguna tidak ditemukan');
+    }
+    await _repository.removeLoanPayment(targetUid, transactionId, paymentId);
+    await _refreshAfterMutation();
+  }
 }

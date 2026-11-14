@@ -4,7 +4,9 @@ import 'package:provider/provider.dart';
 import '../config/app_routes.dart';
 import '../models/target_model.dart';
 import '../providers/belajar_provider.dart';
+import '../providers/category_provider.dart';
 import '../providers/dompet_provider.dart';
+import '../providers/recurring_provider.dart';
 import '../providers/target_provider.dart';
 import '../providers/transaction_provider.dart';
 import '../providers/user_provider.dart';
@@ -64,11 +66,15 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _handleRefresh() async {
     final belajarProvider = context.read<BelajarProvider>();
+    final catProvider = Provider.of<CategoryProvider?>(context, listen: false);
+    final recProvider = Provider.of<RecurringProvider?>(context, listen: false);
     await Future.wait([
       context.read<UserProvider>().loadProfile(silent: true),
       context.read<DompetProvider>().loadDompets(silent: true),
       context.read<TransactionProvider>().loadTransactions(silent: true),
       context.read<TargetProvider>().loadTargets(silent: true),
+      if (catProvider != null) catProvider.loadCategories(silent: true),
+      if (recProvider != null) recProvider.loadRecurring(silent: true),
       belajarProvider.levels.isEmpty
           ? belajarProvider.loadAll(silent: true)
           : belajarProvider.loadProgress(silent: true),

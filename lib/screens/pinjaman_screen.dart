@@ -1,26 +1,34 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../data/category_catalog.dart';
 import '../models/dompet_model.dart';
 import '../models/transaction_model.dart';
+import '../providers/category_provider.dart';
 import '../providers/contact_provider.dart';
 import '../providers/dompet_provider.dart';
 import '../providers/transaction_provider.dart';
 import '../services/notification_service.dart';
 import '../theme/app_colors.dart';
 import '../utils/currency_formatter.dart';
+import '../utils/date_helper.dart';
 import '../utils/error_mapper.dart';
-import '../widgets/common/custom_dropdown_field.dart';
+import '../utils/loan_helper.dart';
 import '../widgets/common/custom_text_field.dart';
+import '../widgets/common/date_picker_field.dart';
 import '../widgets/common/primary_button.dart';
+import '../widgets/transaction/category_selection_field.dart';
 import '../widgets/transaction/contact_selection_autocomplete.dart';
 import '../widgets/transaction/dompet_selection_dropdown.dart';
 import '../widgets/transaction/transaction_scaffold.dart';
 
 class PinjamanScreen extends StatefulWidget {
-  const PinjamanScreen({super.key});
+  final TransactionModel? loanToEdit;
+
+  const PinjamanScreen({
+    super.key,
+    this.loanToEdit,
+  });
 
   @override
   State<PinjamanScreen> createState() => _PinjamanScreenState();
@@ -31,19 +39,21 @@ class _PinjamanScreenState extends State<PinjamanScreen> {
   final _jumlahController = TextEditingController();
   final _catatanController = TextEditingController();
   final _temanController = TextEditingController();
-  final _tanggalController = TextEditingController();
 
   int _selectedTab = 0; // 0 = Hutang (Debt), 1 = Piutang (Receivable)
 
   String? _selectedDompetId;
   String? _selectedCategoryId;
 
+  DateTime _selectedTransactionDate = DateTime.now();
   DateTime? _selectedDateObj;
   bool _simpanKeDaftar = false;
   bool _isLoading = false;
 
   late final List<CategoryModel> _debtCategories;
   late final List<CategoryModel> _receivableCategories;
+
+  bool get _isEdit => widget.loanToEdit != null;
 
   @override
   void initState() {
@@ -52,15 +62,48 @@ class _PinjamanScreenState extends State<PinjamanScreen> {
     _receivableCategories =
         CategoryCatalog.getByType(TransactionType.receivable);
 
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    final editing = widget.loanToEdit;
+    if (editing != null) {
+      _selectedTab = editing.type == TransactionType.debt ? 0 : 1;
+      _selectedDompetId = editing.dompetId;
+      _selectedCategoryId = editing.categoryId;
+      _jumlahController.text = CurrencyInputFormatter.formatValue(
+        editing.amount.toStringAsFixed(0),
+      );
+      _catatanController.text = editing.notes;
+      _selectedTransactionDate = editing.date;
+      _selectedDateObj = editing.dueDate;
+      _temanController.text = LoanHelper.counterpartyName(editing);
+    }
+
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (!mounted) return;
       final dompetProvider = context.read<DompetProvider>();
       final contactProvider = context.read<ContactProvider>();
       if (dompetProvider.items.isEmpty && !dompetProvider.isLoading) {
-        dompetProvider.loadDompets();
+        await dompetProvider.loadDompets();
       }
       if (contactProvider.contacts.isEmpty && !contactProvider.isLoading) {
-        contactProvider.loadContacts();
+        await contactProvider.loadContacts();
+      }
+      if (!mounted) return;
+      final catProvider = Provider.of<CategoryProvider?>(
+        context,
+        listen: false,
+      );
+      if (catProvider != null &&
+          catProvider.customCategories.isEmpty &&
+          !catProvider.isLoading) {
+        await catProvider.loadCategories(silent: true);
+      }
+      if (!mounted) return;
+      if (editing != null && editing.contactId != null) {
+        final contact = contactProvider.getContactById(editing.contactId);
+        if (contact != null && _temanController.text.isEmpty) {
+          setState(() {
+            _temanController.text = contact.name;
+          });
+        }
       }
     });
   }
@@ -70,7 +113,6 @@ class _PinjamanScreenState extends State<PinjamanScreen> {
     _jumlahController.dispose();
     _catatanController.dispose();
     _temanController.dispose();
-    _tanggalController.dispose();
     super.dispose();
   }
 
@@ -79,35 +121,6 @@ class _PinjamanScreenState extends State<PinjamanScreen> {
     if (_selectedDompetId == null ||
         !dompets.any((d) => d.id == _selectedDompetId)) {
       _selectedDompetId = dompets.first.id;
-    }
-  }
-
-  Future<void> _selectDate(BuildContext context) async {
-    final now = DateTime.now();
-    final DateTime? picked = await showDatePicker(
-      context: context,
-      initialDate: _selectedDateObj ?? now,
-      firstDate: DateTime(2020),
-      lastDate: DateTime(now.year + 10, 12, 31),
-      builder: (context, child) {
-        return Theme(
-          data: Theme.of(context).copyWith(
-            colorScheme: const ColorScheme.light(
-              primary: primaryGreen,
-              onPrimary: Colors.white,
-              onSurface: primaryGreen,
-            ),
-          ),
-          child: child!,
-        );
-      },
-    );
-    if (picked != null) {
-      setState(() {
-        _selectedDateObj = picked;
-        _tanggalController.text =
-            DateFormat('dd MMMM yyyy', 'id_ID').format(picked);
-      });
     }
   }
 
@@ -124,6 +137,17 @@ class _PinjamanScreenState extends State<PinjamanScreen> {
       return;
     }
 
+    final editing = widget.loanToEdit;
+    if (editing != null && editing.isPaid) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Pinjaman yang sudah lunas tidak dapat diedit.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
     setState(() => _isLoading = true);
 
     try {
@@ -132,12 +156,18 @@ class _PinjamanScreenState extends State<PinjamanScreen> {
       final amount = double.tryParse(amountStr) ?? 0.0;
       final isDebt = _selectedTab == 0;
 
+      if (editing != null && amount + 0.0001 < editing.paidAmount) {
+        throw Exception(
+          'Nominal pinjaman tidak boleh kurang dari cicilan yang sudah terbayar (${Formatters.rupiah(editing.paidAmount)}).',
+        );
+      }
+
       final dompetProvider = context.read<DompetProvider>();
       final contactProvider = context.read<ContactProvider>();
       final txProvider = context.read<TransactionProvider>();
 
-      // Validasi kecukupan saldo untuk Piutang (Kasih Pinjam) sebelum menulis kontak
-      if (!isDebt) {
+      // Validasi kecukupan saldo saat membuat piutang baru sebelum menulis kontak
+      if (!_isEdit && !isDebt) {
         final selectedDompets =
             dompetProvider.items.where((d) => d.id == _selectedDompetId);
         if (selectedDompets.isNotEmpty &&
@@ -166,11 +196,18 @@ class _PinjamanScreenState extends State<PinjamanScreen> {
         }
       }
 
+      final existingPayments = editing?.payments ?? const <LoanPayment>[];
+      final double paidSoFar = editing?.paidAmount ?? 0.0;
+      final bool nowPaid = amount > 0 && paidSoFar + 0.0001 >= amount;
+
       final transaction = TransactionModel(
-        id: '',
+        id: editing?.id ?? '',
         title: '${isDebt ? 'Hutang dari' : 'Piutang ke'} $friendName',
         amount: amount,
-        date: DateTime.now(),
+        date: DateHelper.withCurrentTime(
+          _selectedTransactionDate,
+          original: editing?.date,
+        ),
         notes: _catatanController.text.trim(),
         categoryId: categoryId,
         type: isDebt ? TransactionType.debt : TransactionType.receivable,
@@ -178,21 +215,36 @@ class _PinjamanScreenState extends State<PinjamanScreen> {
         dueDate: _selectedDateObj,
         contactId: contactId,
         counterpartyName: friendName,
+        isPaid: nowPaid,
+        paidDompetId: nowPaid && existingPayments.isNotEmpty
+            ? existingPayments.last.dompetId
+            : editing?.paidDompetId,
+        payments: existingPayments,
+        isAdjustment: editing?.isAdjustment ?? false,
+        recurringId: editing?.recurringId,
       );
 
       await NotificationService.instance.requestPermissionIfNeeded();
-      await txProvider.addTransaction(transaction);
-      await NotificationService.instance.showLoanCreatedNotification(
-        transaction,
-      );
+      if (_isEdit) {
+        await txProvider.updateTransaction(transaction);
+      } else {
+        await txProvider.addTransaction(transaction);
+      }
+      if (!transaction.isPaid) {
+        await NotificationService.instance.showLoanCreatedNotification(
+          transaction,
+        );
+      }
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              isDebt
-                  ? '✅ Data Pinjaman Tersimpan!'
-                  : '✅ Data Piutang Tersimpan!',
+              _isEdit
+                  ? '✅ Data Pinjaman Berhasil Diperbarui!'
+                  : (isDebt
+                      ? '✅ Data Pinjaman Tersimpan!'
+                      : '✅ Data Piutang Tersimpan!'),
             ),
             backgroundColor: primaryGreen,
           ),
@@ -269,20 +321,20 @@ class _PinjamanScreenState extends State<PinjamanScreen> {
     final contacts = contactProvider.contacts;
     _ensureDefaultDompetSelected(dompets);
 
-    final currentCategories =
-        _selectedTab == 0 ? _debtCategories : _receivableCategories;
-    final dropdownItems = currentCategories.map((c) => c.name).toList();
-    final selectedCatName = _selectedCategoryId != null
-        ? currentCategories
-            .firstWhere(
-              (c) => c.id == _selectedCategoryId,
-              orElse: () => currentCategories.first,
-            )
-            .name
-        : null;
+    final currentType =
+        _selectedTab == 0 ? TransactionType.debt : TransactionType.receivable;
+
+    final editing = widget.loanToEdit;
+    final double paidAmount = editing?.paidAmount ?? 0.0;
+    final DateTime? earliestPaymentDate =
+        (editing != null && editing.payments.isNotEmpty)
+            ? editing.payments.first.date
+            : null;
 
     return TransactionScaffold(
-      title: 'Pinjaman',
+      title: _isEdit
+          ? (_selectedTab == 0 ? 'Edit Hutang' : 'Edit Piutang')
+          : 'Pinjaman',
       child: SafeArea(
         child: dompetProvider.isLoading && dompets.isEmpty
             ? const Center(
@@ -295,29 +347,31 @@ class _PinjamanScreenState extends State<PinjamanScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      Container(
-                        padding: const EdgeInsets.all(4),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFD4DFBA),
-                          borderRadius: BorderRadius.circular(100),
+                      if (!_isEdit) ...[
+                        Container(
+                          padding: const EdgeInsets.all(4),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFD4DFBA),
+                            borderRadius: BorderRadius.circular(100),
+                          ),
+                          child: Row(
+                            children: [
+                              _buildTabButton(
+                                0,
+                                'Pinjam Uang',
+                                const Color(0xFF415121),
+                              ),
+                              const SizedBox(width: 6),
+                              _buildTabButton(
+                                1,
+                                'Kasih Pinjam',
+                                const Color(0xFF415121),
+                              ),
+                            ],
+                          ),
                         ),
-                        child: Row(
-                          children: [
-                            _buildTabButton(
-                              0,
-                              'Pinjam Uang',
-                              const Color(0xFF415121),
-                            ),
-                            const SizedBox(width: 6),
-                            _buildTabButton(
-                              1,
-                              'Kasih Pinjam',
-                              const Color(0xFF415121),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 16),
+                        const SizedBox(height: 16),
+                      ],
                       Text(
                         _selectedTab == 0
                             ? 'Lagi pinjam uang teman? Sini kami bantu catat, biar kamu nggak lupa balikin!'
@@ -347,29 +401,37 @@ class _PinjamanScreenState extends State<PinjamanScreen> {
                           if (value == null || value.isEmpty) {
                             return 'Jumlah uang tidak boleh kosong';
                           }
-                          if (value == 'Rp 0' || value == '0') {
+                          final parsed = double.tryParse(
+                                value.replaceAll(RegExp(r'[^0-9]'), ''),
+                              ) ??
+                              0.0;
+                          if (parsed <= 0) {
                             return 'Jumlah harus lebih dari 0';
+                          }
+                          if (paidAmount > 0 && parsed + 0.0001 < paidAmount) {
+                            return 'Minimal ${Formatters.rupiah(paidAmount)} (sudah dicicil)';
                           }
                           return null;
                         },
                       ),
-                      CustomDropdownField(
-                        label: 'Kategori',
-                        hint: 'Pilih Kategori',
-                        value: selectedCatName,
-                        items: dropdownItems,
-                        onChanged: (value) {
-                          setState(() {
-                            _selectedCategoryId = currentCategories
-                                .firstWhere((c) => c.name == value)
-                                .id;
-                          });
-                        },
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Kategori tidak boleh kosong';
-                          }
-                          return null;
+                      if (_isEdit && paidAmount > 0)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 12, left: 4),
+                          child: Text(
+                            'Sudah dicicil sebesar ${Formatters.rupiah(paidAmount)}. Nominal sama dengan cicilan akan menandai pinjaman lunas.',
+                            style: TextStyle(
+                              color: primaryGreen.withValues(alpha: 0.8),
+                              fontSize: 12,
+                              fontFamily: 'Inter',
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      CategorySelectionField(
+                        type: currentType,
+                        selectedCategoryId: _selectedCategoryId,
+                        onChanged: (catId) {
+                          setState(() => _selectedCategoryId = catId);
                         },
                       ),
                       CustomTextField(
@@ -377,21 +439,52 @@ class _PinjamanScreenState extends State<PinjamanScreen> {
                         hint: 'Tambah catatan (opsional)',
                         controller: _catatanController,
                       ),
-                      CustomTextField(
+                      DatePickerField(
+                        label: 'Tanggal Pinjaman',
+                        hint: 'Pilih tanggal pinjaman',
+                        value: _selectedTransactionDate,
+                        lastDate: earliestPaymentDate ?? DateTime.now(),
+                        onChanged: (picked) {
+                          if (picked != null) {
+                            setState(() => _selectedTransactionDate = picked);
+                          }
+                        },
+                        validator: (value) {
+                          if (value == null) {
+                            return 'Tanggal pinjaman harus dipilih';
+                          }
+                          if (DateHelper.daysBetween(DateTime.now(), value) >
+                              0) {
+                            return 'Tanggal pinjaman tidak boleh di masa depan';
+                          }
+                          if (earliestPaymentDate != null &&
+                              DateHelper.daysBetween(
+                                    earliestPaymentDate,
+                                    value,
+                                  ) >
+                                  0) {
+                            return 'Tidak boleh setelah tanggal cicilan pertama';
+                          }
+                          return null;
+                        },
+                      ),
+                      DatePickerField(
                         label: 'Batas Waktu',
                         hint: 'Pilih tanggal',
-                        controller: _tanggalController,
-                        readOnly: true,
-                        onTap: () => _selectDate(context),
-                        suffixIcon: const Icon(
-                          Icons.calendar_today,
-                          color: primaryGreen,
-                        ),
+                        value: _selectedDateObj,
+                        firstDate: _selectedTransactionDate,
+                        onChanged: (picked) =>
+                            setState(() => _selectedDateObj = picked),
                         validator: (value) {
-                          if (_selectedDateObj == null ||
-                              value == null ||
-                              value.isEmpty) {
+                          if (value == null) {
                             return 'Batas waktu harus dipilih';
+                          }
+                          if (DateHelper.daysBetween(
+                                _selectedTransactionDate,
+                                value,
+                              ) <
+                              0) {
+                            return 'Batas waktu tidak boleh sebelum tanggal pinjaman';
                           }
                           return null;
                         },

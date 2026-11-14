@@ -34,6 +34,12 @@ class FirestoreService {
   CollectionReference<Map<String, dynamic>> targetsCol(String uid) =>
       userDoc(uid).collection(AppConstants.targetsSubcollection);
 
+  CollectionReference<Map<String, dynamic>> categoriesCol(String uid) =>
+      userDoc(uid).collection(AppConstants.categoriesSubcollection);
+
+  CollectionReference<Map<String, dynamic>> recurringCol(String uid) =>
+      userDoc(uid).collection(AppConstants.recurringSubcollection);
+
   CollectionReference<Map<String, dynamic>> get belajarLevelsCol =>
       db.collection(AppConstants.belajarLevelsCollection);
 

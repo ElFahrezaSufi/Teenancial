@@ -1,24 +1,33 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
+import '../config/app_routes.dart';
 import '../data/category_catalog.dart';
 import '../models/dompet_model.dart';
 import '../models/transaction_model.dart';
+import '../providers/category_provider.dart';
 import '../providers/contact_provider.dart';
 import '../providers/dompet_provider.dart';
 import '../providers/transaction_provider.dart';
 import '../theme/app_colors.dart';
 import '../utils/currency_formatter.dart';
+import '../utils/date_helper.dart';
 import '../utils/error_mapper.dart';
-import '../widgets/common/custom_dropdown_field.dart';
 import '../widgets/common/custom_text_field.dart';
+import '../widgets/common/date_picker_field.dart';
 import '../widgets/common/primary_button.dart';
+import '../widgets/transaction/category_selection_field.dart';
 import '../widgets/transaction/contact_selection_autocomplete.dart';
 import '../widgets/transaction/dompet_selection_dropdown.dart';
 import '../widgets/transaction/transaction_scaffold.dart';
 
 class TransferScreen extends StatefulWidget {
-  const TransferScreen({super.key});
+  final TransactionModel? transactionToEdit;
+
+  const TransferScreen({
+    super.key,
+    this.transactionToEdit,
+  });
 
   @override
   State<TransferScreen> createState() => _TransferScreenState();
@@ -34,25 +43,87 @@ class _TransferScreenState extends State<TransferScreen> {
   String? _selectedSourceDompetId;
   String? _selectedDestDompetId;
   String? _selectedCategoryId;
+  DateTime _selectedTransactionDate = DateTime.now();
   bool _simpanKeDaftar = false;
   bool _isLoading = false;
 
   late final List<CategoryModel> _transferCategories;
 
+  bool get _isEdit => widget.transactionToEdit != null;
+
   @override
   void initState() {
     super.initState();
-    _transferCategories = CategoryCatalog.getByType(TransactionType.transfer);
+    final baseCategories = CategoryCatalog.getByType(TransactionType.transfer);
+    final editing = widget.transactionToEdit;
 
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    if (editing != null &&
+        !baseCategories.any((c) => c.id == editing.categoryId)) {
+      _transferCategories = [
+        ...baseCategories,
+        CategoryCatalog.getById(
+          editing.categoryId,
+          fallbackType: TransactionType.transfer,
+        ),
+      ];
+    } else {
+      _transferCategories = baseCategories;
+    }
+
+    if (editing != null) {
+      _isSelfTransfer = editing.destinationDompetId != null &&
+          editing.destinationDompetId!.isNotEmpty;
+      _selectedSourceDompetId = editing.dompetId;
+      _selectedDestDompetId = editing.destinationDompetId;
+      _selectedCategoryId = editing.categoryId;
+      _jumlahController.text = CurrencyInputFormatter.formatValue(
+        editing.amount.toStringAsFixed(0),
+      );
+      _catatanController.text = editing.notes;
+      _selectedTransactionDate = editing.date;
+
+      if (!_isSelfTransfer) {
+        if (editing.counterpartyName != null &&
+            editing.counterpartyName!.trim().isNotEmpty) {
+          _untukController.text = editing.counterpartyName!.trim();
+        } else if (editing.title.startsWith('Transfer ke ')) {
+          _untukController.text =
+              editing.title.substring('Transfer ke '.length).trim();
+        }
+      }
+    }
+
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (!mounted) return;
       final dompetProvider = context.read<DompetProvider>();
       final contactProvider = context.read<ContactProvider>();
       if (dompetProvider.items.isEmpty && !dompetProvider.isLoading) {
-        dompetProvider.loadDompets();
+        await dompetProvider.loadDompets();
       }
       if (contactProvider.contacts.isEmpty && !contactProvider.isLoading) {
-        contactProvider.loadContacts();
+        await contactProvider.loadContacts();
+      }
+      if (!mounted) return;
+      final catProvider = Provider.of<CategoryProvider?>(
+        context,
+        listen: false,
+      );
+      if (catProvider != null &&
+          catProvider.customCategories.isEmpty &&
+          !catProvider.isLoading) {
+        await catProvider.loadCategories(silent: true);
+      }
+      if (!mounted) return;
+      if (editing != null &&
+          !_isSelfTransfer &&
+          _untukController.text.isEmpty &&
+          editing.contactId != null) {
+        final contact = contactProvider.getContactById(editing.contactId);
+        if (contact != null) {
+          setState(() {
+            _untukController.text = contact.name;
+          });
+        }
       }
     });
   }
@@ -112,8 +183,20 @@ class _TransferScreenState extends State<TransferScreen> {
       final amountStr =
           _jumlahController.text.replaceAll(RegExp(r'[^0-9]'), '');
       final amount = double.tryParse(amountStr) ?? 0.0;
+      final catProvider = Provider.of<CategoryProvider?>(
+        context,
+        listen: false,
+      );
       final categoryId = _selectedCategoryId ?? _transferCategories.first.id;
-      final cat = CategoryCatalog.getById(categoryId);
+      final cat = catProvider != null
+          ? catProvider.resolve(
+              categoryId,
+              fallbackType: TransactionType.transfer,
+            )
+          : CategoryCatalog.getById(
+              categoryId,
+              fallbackType: TransactionType.transfer,
+            );
 
       final contactProvider = context.read<ContactProvider>();
       final txProvider = context.read<TransactionProvider>();
@@ -121,41 +204,57 @@ class _TransferScreenState extends State<TransferScreen> {
       String? contactId;
       final recipientName = _untukController.text.trim();
 
-      if (!_isSelfTransfer && _simpanKeDaftar && recipientName.isNotEmpty) {
-        final newContact = await contactProvider.addContact(recipientName);
-        contactId = newContact.id;
-      } else if (!_isSelfTransfer && recipientName.isNotEmpty) {
+      if (!_isSelfTransfer && recipientName.isNotEmpty) {
         final existing = contactProvider.contacts.where(
-          (c) => c.name.toLowerCase() == recipientName.toLowerCase(),
+          (c) => c.name.trim().toLowerCase() == recipientName.toLowerCase(),
         );
         if (existing.isNotEmpty) {
           contactId = existing.first.id;
+        } else if (_simpanKeDaftar) {
+          final newContact = await contactProvider.addContact(recipientName);
+          contactId = newContact.id;
         }
       }
 
       final transaction = TransactionModel(
-        id: '',
+        id: widget.transactionToEdit?.id ?? '',
         title: _isSelfTransfer
             ? 'Transfer Internal'
             : (recipientName.isNotEmpty
                 ? 'Transfer ke $recipientName'
                 : cat.name),
         amount: amount,
-        date: DateTime.now(),
+        date: DateHelper.withCurrentTime(
+          _selectedTransactionDate,
+          original: widget.transactionToEdit?.date,
+        ),
         notes: _catatanController.text,
         categoryId: categoryId,
         type: TransactionType.transfer,
         dompetId: _selectedSourceDompetId!,
         destinationDompetId: _isSelfTransfer ? _selectedDestDompetId : null,
         contactId: contactId,
+        counterpartyName: !_isSelfTransfer && recipientName.isNotEmpty
+            ? recipientName
+            : null,
+        isAdjustment: widget.transactionToEdit?.isAdjustment ?? false,
+        recurringId: widget.transactionToEdit?.recurringId,
       );
 
-      await txProvider.addTransaction(transaction);
+      if (_isEdit) {
+        await txProvider.updateTransaction(transaction);
+      } else {
+        await txProvider.addTransaction(transaction);
+      }
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('✅ Transfer berhasil disimpan!'),
+          SnackBar(
+            content: Text(
+              _isEdit
+                  ? '✅ Transfer berhasil diperbarui!'
+                  : '✅ Transfer berhasil disimpan!',
+            ),
             backgroundColor: primaryGreen,
           ),
         );
@@ -183,18 +282,25 @@ class _TransferScreenState extends State<TransferScreen> {
     final contacts = contactProvider.contacts;
     _ensureDefaultDompetSelected(dompets);
 
-    final dropdownItems = _transferCategories.map((c) => c.name).toList();
-    final selectedCatName = _selectedCategoryId != null
-        ? _transferCategories
-            .firstWhere(
-              (c) => c.id == _selectedCategoryId,
-              orElse: () => _transferCategories.first,
-            )
-            .name
-        : null;
-
     return TransactionScaffold(
-      title: 'Transfer',
+      title: _isEdit ? 'Edit Transfer' : 'Transfer',
+      trailing: !_isEdit
+          ? Padding(
+              padding: const EdgeInsets.only(right: 8),
+              child: IconButton(
+                tooltip: 'Jadwal Transfer Berulang',
+                icon: const Icon(
+                  Icons.event_repeat_rounded,
+                  color: primaryGreen,
+                  size: 22,
+                ),
+                onPressed: () => context.push(
+                  AppRoutes.transaksiBerulang,
+                  extra: TransactionType.transfer,
+                ),
+              ),
+            )
+          : null,
       child: SafeArea(
         child: dompetProvider.isLoading && dompets.isEmpty
             ? const Center(
@@ -258,29 +364,38 @@ class _TransferScreenState extends State<TransferScreen> {
                           return null;
                         },
                       ),
-                      CustomDropdownField(
-                        label: 'Kategori',
-                        hint: 'Pilih Kategori',
-                        value: selectedCatName,
-                        items: dropdownItems,
-                        onChanged: (value) {
-                          setState(() {
-                            _selectedCategoryId = _transferCategories
-                                .firstWhere((c) => c.name == value)
-                                .id;
-                          });
-                        },
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Kategori tidak boleh kosong';
-                          }
-                          return null;
+                      CategorySelectionField(
+                        type: TransactionType.transfer,
+                        selectedCategoryId: _selectedCategoryId,
+                        onChanged: (catId) {
+                          setState(() => _selectedCategoryId = catId);
                         },
                       ),
                       CustomTextField(
                         label: 'Catatan',
                         hint: 'Tambah catatan (opsional)',
                         controller: _catatanController,
+                      ),
+                      DatePickerField(
+                        label: 'Tanggal Transaksi',
+                        hint: 'Pilih tanggal transaksi',
+                        value: _selectedTransactionDate,
+                        lastDate: DateTime.now(),
+                        onChanged: (picked) {
+                          if (picked != null) {
+                            setState(() => _selectedTransactionDate = picked);
+                          }
+                        },
+                        validator: (value) {
+                          if (value == null) {
+                            return 'Tanggal transaksi harus dipilih';
+                          }
+                          if (DateHelper.daysBetween(DateTime.now(), value) >
+                              0) {
+                            return 'Tanggal transaksi tidak boleh di masa depan';
+                          }
+                          return null;
+                        },
                       ),
                       AnimatedSize(
                         duration: const Duration(milliseconds: 300),
@@ -296,7 +411,8 @@ class _TransferScreenState extends State<TransferScreen> {
                                     contacts: contacts,
                                     validator: (value) {
                                       if (!_isSelfTransfer &&
-                                          (value == null || value.isEmpty)) {
+                                          (value == null ||
+                                              value.trim().isEmpty)) {
                                         return 'Nama tujuan tidak boleh kosong';
                                       }
                                       return null;
