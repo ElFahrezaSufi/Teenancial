@@ -28,6 +28,8 @@ class AppRoutes {
   static const String tanyaFeen = '/tanya_feen';
   static const String kategori = '/kategori';
   static const String laporan = '/laporan';
+  static const String transaksiBerulang = '/transaksi_berulang';
+  static const String buatBerulang = '/buat_berulang';
 
   static const Set<String> authRoutes = {
     getStarted,

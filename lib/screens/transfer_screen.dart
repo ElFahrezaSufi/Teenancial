@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
+import '../config/app_routes.dart';
 import '../data/category_catalog.dart';
 import '../models/dompet_model.dart';
 import '../models/transaction_model.dart';
@@ -283,6 +284,23 @@ class _TransferScreenState extends State<TransferScreen> {
 
     return TransactionScaffold(
       title: _isEdit ? 'Edit Transfer' : 'Transfer',
+      trailing: !_isEdit
+          ? Padding(
+              padding: const EdgeInsets.only(right: 8),
+              child: IconButton(
+                tooltip: 'Jadwal Transfer Berulang',
+                icon: const Icon(
+                  Icons.event_repeat_rounded,
+                  color: primaryGreen,
+                  size: 22,
+                ),
+                onPressed: () => context.push(
+                  AppRoutes.transaksiBerulang,
+                  extra: TransactionType.transfer,
+                ),
+              ),
+            )
+          : null,
       child: SafeArea(
         child: dompetProvider.isLoading && dompets.isEmpty
             ? const Center(

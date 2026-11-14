@@ -85,16 +85,56 @@ class TransactionCard extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                 ),
                 const SizedBox(height: 2),
-                Text(
-                  item.notes.isNotEmpty ? item.notes : cat.name,
-                  style: const TextStyle(
-                    color: primaryGreen,
-                    fontSize: 12,
-                    fontFamily: 'Inter',
-                    fontWeight: FontWeight.w500,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+                Row(
+                  children: [
+                    Flexible(
+                      child: Text(
+                        item.notes.isNotEmpty ? item.notes : cat.name,
+                        style: const TextStyle(
+                          color: primaryGreen,
+                          fontSize: 12,
+                          fontFamily: 'Inter',
+                          fontWeight: FontWeight.w500,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    if (item.recurringId != null &&
+                        item.recurringId!.isNotEmpty) ...[
+                      const SizedBox(width: 6),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 6,
+                          vertical: 1.5,
+                        ),
+                        decoration: BoxDecoration(
+                          color: primaryGreen.withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(100),
+                        ),
+                        child: const Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.autorenew_rounded,
+                              size: 10,
+                              color: primaryGreen,
+                            ),
+                            SizedBox(width: 2.5),
+                            Text(
+                              'Berulang',
+                              style: TextStyle(
+                                color: primaryGreen,
+                                fontSize: 9.5,
+                                fontFamily: 'Inter',
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ],
                 ),
                 if (isLoan) ...[
                   const SizedBox(height: 4),

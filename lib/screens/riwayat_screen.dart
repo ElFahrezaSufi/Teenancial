@@ -151,9 +151,21 @@ class _RiwayatScreenState extends State<RiwayatScreen> {
 
     return Scaffold(
       backgroundColor: scaffoldBg,
-      appBar: const CustomAppBar(
+      appBar: CustomAppBar(
         title: 'Riwayat',
         showBackButton: false,
+        trailing: Padding(
+          padding: const EdgeInsets.only(right: 8),
+          child: IconButton(
+            tooltip: 'Transaksi Berulang',
+            icon: const Icon(
+              Icons.event_repeat_rounded,
+              color: primaryGreen,
+              size: 22,
+            ),
+            onPressed: () => context.push(AppRoutes.transaksiBerulang),
+          ),
+        ),
       ),
       body: Stack(
         fit: StackFit.expand,

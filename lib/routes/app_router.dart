@@ -5,12 +5,14 @@ import 'package:go_router/go_router.dart';
 
 import '../config/app_routes.dart';
 import '../models/dompet_model.dart';
+import '../models/recurring_model.dart';
 import '../models/target_model.dart';
 import '../models/transaction_model.dart';
 import '../providers/auth_provider.dart';
 import '../services/local_storage_service.dart';
 import 'app_transitions.dart';
 
+import '../screens/buat_berulang_screen.dart';
 import '../screens/buat_target_screen.dart';
 import '../screens/daftar_pinjaman_screen.dart';
 import '../screens/dompet_screen.dart';
@@ -33,6 +35,7 @@ import '../screens/splash_screen.dart';
 import '../screens/tambah_dompet_screen.dart';
 import '../screens/tanya_feen_screen.dart';
 import '../screens/target_menabung_screen.dart';
+import '../screens/transaksi_berulang_screen.dart';
 import '../screens/transfer_screen.dart';
 
 final GlobalKey<NavigatorState> rootNavigatorKey =
@@ -312,6 +315,43 @@ final GoRouter appRouter = GoRouter(
         return AppTransitions.slideHorizontal(
           key: state.pageKey,
           child: LaporanScreen(initialMonth: initialMonth),
+        );
+      },
+    ),
+    GoRoute(
+      parentNavigatorKey: rootNavigatorKey,
+      path: AppRoutes.transaksiBerulang,
+      pageBuilder: (context, state) {
+        final initialType = state.extra is TransactionType
+            ? state.extra as TransactionType
+            : null;
+        return AppTransitions.slideHorizontal(
+          key: state.pageKey,
+          child: TransaksiBerulangScreen(initialType: initialType),
+        );
+      },
+    ),
+    GoRoute(
+      parentNavigatorKey: rootNavigatorKey,
+      path: AppRoutes.buatBerulang,
+      pageBuilder: (context, state) {
+        final extra = state.extra;
+        RecurringModel? itemToEdit;
+        TransactionType? initialType;
+        if (extra is BuatBerulangArgs) {
+          itemToEdit = extra.itemToEdit;
+          initialType = extra.initialType;
+        } else if (extra is RecurringModel) {
+          itemToEdit = extra;
+        } else if (extra is TransactionType) {
+          initialType = extra;
+        }
+        return AppTransitions.slideHorizontal(
+          key: state.pageKey,
+          child: BuatBerulangScreen(
+            itemToEdit: itemToEdit,
+            initialType: initialType,
+          ),
         );
       },
     ),
