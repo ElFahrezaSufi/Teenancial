@@ -18,6 +18,7 @@ import '../screens/forgot_password_screen.dart';
 import '../screens/get_started.dart';
 import '../screens/home_screen.dart';
 import '../screens/kategori_screen.dart';
+import '../screens/laporan_screen.dart';
 import '../screens/login_screen.dart';
 import '../screens/main_screen.dart';
 import '../screens/pemasukan_screen.dart';
@@ -299,6 +300,18 @@ final GoRouter appRouter = GoRouter(
         return AppTransitions.slideHorizontal(
           key: state.pageKey,
           child: KategoriScreen(initialType: initialType),
+        );
+      },
+    ),
+    GoRoute(
+      parentNavigatorKey: rootNavigatorKey,
+      path: AppRoutes.laporan,
+      pageBuilder: (context, state) {
+        final initialMonth =
+            state.extra is DateTime ? state.extra as DateTime : null;
+        return AppTransitions.slideHorizontal(
+          key: state.pageKey,
+          child: LaporanScreen(initialMonth: initialMonth),
         );
       },
     ),

@@ -258,21 +258,76 @@ class _RiwayatScreenState extends State<RiwayatScreen> {
                           ),
                         ),
                       ),
-                      if (filteredGroups.isEmpty)
-                        Padding(
-                          padding: const EdgeInsets.only(top: 60),
-                          child: _buildEmpty(),
-                        )
-                      else ...[
-                        const SizedBox(height: 20),
-                        const Text(
-                          'Tren Saldo',
-                          style: TextStyle(
-                            color: primaryGreen,
-                            fontSize: 14,
-                            fontFamily: 'Inter',
-                            fontWeight: FontWeight.w700,
+                      if (filteredGroups.isEmpty) ...[
+                        const SizedBox(height: 16),
+                        Align(
+                          alignment: Alignment.centerRight,
+                          child: GestureDetector(
+                            onTap: () => context.push(AppRoutes.laporan),
+                            child: const Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  Icons.donut_large_rounded,
+                                  size: 15,
+                                  color: orangeText,
+                                ),
+                                SizedBox(width: 5),
+                                Text(
+                                  'Laporan Keuangan ›',
+                                  style: TextStyle(
+                                    color: orangeText,
+                                    fontSize: 13,
+                                    fontFamily: 'Inter',
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.only(top: 40),
+                          child: _buildEmpty(),
+                        ),
+                      ] else ...[
+                        const SizedBox(height: 20),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Text(
+                              'Tren Saldo',
+                              style: TextStyle(
+                                color: primaryGreen,
+                                fontSize: 14,
+                                fontFamily: 'Inter',
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                            GestureDetector(
+                              onTap: () => context.push(AppRoutes.laporan),
+                              child: const Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    Icons.donut_large_rounded,
+                                    size: 15,
+                                    color: orangeText,
+                                  ),
+                                  SizedBox(width: 5),
+                                  Text(
+                                    'Laporan Keuangan ›',
+                                    style: TextStyle(
+                                      color: orangeText,
+                                      fontSize: 13,
+                                      fontFamily: 'Inter',
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
                         ),
                         const SizedBox(height: 10),
                         CustomCard(

@@ -27,6 +27,7 @@ class AppRoutes {
   static const String semuaAktivitas = '/semua_aktivitas';
   static const String tanyaFeen = '/tanya_feen';
   static const String kategori = '/kategori';
+  static const String laporan = '/laporan';
 
   static const Set<String> authRoutes = {
     getStarted,
