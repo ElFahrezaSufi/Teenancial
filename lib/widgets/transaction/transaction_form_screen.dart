@@ -4,16 +4,17 @@ import 'package:provider/provider.dart';
 import '../../data/category_catalog.dart';
 import '../../models/dompet_model.dart';
 import '../../models/transaction_model.dart';
+import '../../providers/category_provider.dart';
 import '../../providers/dompet_provider.dart';
 import '../../providers/transaction_provider.dart';
 import '../../theme/app_colors.dart';
 import '../../utils/currency_formatter.dart';
 import '../../utils/date_helper.dart';
 import '../../utils/error_mapper.dart';
-import '../common/custom_dropdown_field.dart';
 import '../common/custom_text_field.dart';
 import '../common/date_picker_field.dart';
 import '../common/primary_button.dart';
+import 'category_selection_field.dart';
 import 'dompet_selection_dropdown.dart';
 import 'transaction_scaffold.dart';
 
@@ -67,6 +68,15 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
       if (dompetProvider.items.isEmpty && !dompetProvider.isLoading) {
         dompetProvider.loadDompets();
       }
+      final catProvider = Provider.of<CategoryProvider?>(
+        context,
+        listen: false,
+      );
+      if (catProvider != null &&
+          catProvider.customCategories.isEmpty &&
+          !catProvider.isLoading) {
+        catProvider.loadCategories(silent: true);
+      }
     });
   }
 
@@ -103,11 +113,17 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
       final amountStr =
           _jumlahController.text.replaceAll(RegExp(r'[^0-9]'), '');
       final amount = double.tryParse(amountStr) ?? 0.0;
-      final categoryId = _selectedCategoryId ?? _categories.first.id;
-      final cat = CategoryCatalog.getById(
-        categoryId,
-        fallbackType: widget.type,
+      final catProvider = Provider.of<CategoryProvider?>(
+        context,
+        listen: false,
       );
+      final categoryId = _selectedCategoryId ?? _categories.first.id;
+      final cat = catProvider != null
+          ? catProvider.resolve(categoryId, fallbackType: widget.type)
+          : CategoryCatalog.getById(
+              categoryId,
+              fallbackType: widget.type,
+            );
 
       final transaction = TransactionModel(
         id: widget.transactionToEdit?.id ?? '',
@@ -164,15 +180,6 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
     final title = widget.transactionToEdit != null
         ? 'Edit $_baseTitle'
         : _baseTitle;
-    final dropdownItems = _categories.map((c) => c.name).toList();
-    final selectedCatName = _selectedCategoryId != null
-        ? _categories
-            .firstWhere(
-              (c) => c.id == _selectedCategoryId,
-              orElse: () => _categories.first,
-            )
-            .name
-        : null;
 
     return TransactionScaffold(
       title: title,
@@ -212,23 +219,11 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
                           return null;
                         },
                       ),
-                      CustomDropdownField(
-                        label: 'Kategori',
-                        hint: 'Pilih Kategori',
-                        value: selectedCatName,
-                        items: dropdownItems,
-                        onChanged: (value) {
-                          setState(() {
-                            _selectedCategoryId = _categories
-                                .firstWhere((c) => c.name == value)
-                                .id;
-                          });
-                        },
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Kategori tidak boleh kosong';
-                          }
-                          return null;
+                      CategorySelectionField(
+                        type: widget.type,
+                        selectedCategoryId: _selectedCategoryId,
+                        onChanged: (catId) {
+                          setState(() => _selectedCategoryId = catId);
                         },
                       ),
                       CustomTextField(

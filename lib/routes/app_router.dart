@@ -17,6 +17,7 @@ import '../screens/dompet_screen.dart';
 import '../screens/forgot_password_screen.dart';
 import '../screens/get_started.dart';
 import '../screens/home_screen.dart';
+import '../screens/kategori_screen.dart';
 import '../screens/login_screen.dart';
 import '../screens/main_screen.dart';
 import '../screens/pemasukan_screen.dart';
@@ -287,6 +288,19 @@ final GoRouter appRouter = GoRouter(
         key: state.pageKey,
         child: const TanyaFeenScreen(),
       ),
+    ),
+    GoRoute(
+      parentNavigatorKey: rootNavigatorKey,
+      path: AppRoutes.kategori,
+      pageBuilder: (context, state) {
+        final initialType = state.extra is TransactionType
+            ? state.extra as TransactionType
+            : TransactionType.expense;
+        return AppTransitions.slideHorizontal(
+          key: state.pageKey,
+          child: KategoriScreen(initialType: initialType),
+        );
+      },
     ),
   ],
 );

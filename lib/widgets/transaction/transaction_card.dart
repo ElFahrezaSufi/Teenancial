@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../../data/category_catalog.dart';
 import '../../models/transaction_model.dart';
+import '../../providers/category_provider.dart';
 import '../../theme/app_colors.dart';
 import '../../utils/loan_helper.dart';
 import '../common/custom_card.dart';
@@ -21,10 +23,17 @@ class TransactionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cat = CategoryCatalog.getById(
-      item.categoryId,
-      fallbackType: item.type,
-    );
+    final catProvider = Provider.of<CategoryProvider?>(context);
+    final cat = catProvider != null
+        ? catProvider.resolve(item.categoryId, fallbackType: item.type)
+        : CategoryCatalog.getById(
+            item.categoryId,
+            fallbackType: item.type,
+          );
+    final Color iconBgColor = cat.isCustom
+        ? cat.color.withValues(alpha: 0.18)
+        : lightGreen.withValues(alpha: 0.4);
+    final Color iconFgColor = cat.isCustom ? cat.color : primaryGreen;
     // Piutang & Transfer keluar = uang keluar, Hutang & Pemasukan = uang masuk
     final bool isExpense = item.type == TransactionType.expense ||
         item.type == TransactionType.receivable ||
@@ -54,10 +63,10 @@ class TransactionCard extends StatelessWidget {
             width: 40,
             height: 40,
             decoration: BoxDecoration(
-              color: lightGreen.withValues(alpha: 0.4),
+              color: iconBgColor,
               borderRadius: BorderRadius.circular(8),
             ),
-            child: Icon(cat.icon, color: primaryGreen, size: 22),
+            child: Icon(cat.icon, color: iconFgColor, size: 22),
           ),
           const SizedBox(width: 12),
           Expanded(

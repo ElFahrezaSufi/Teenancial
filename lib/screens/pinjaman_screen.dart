@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../data/category_catalog.dart';
 import '../models/dompet_model.dart';
 import '../models/transaction_model.dart';
+import '../providers/category_provider.dart';
 import '../providers/contact_provider.dart';
 import '../providers/dompet_provider.dart';
 import '../providers/transaction_provider.dart';
@@ -13,10 +14,10 @@ import '../utils/currency_formatter.dart';
 import '../utils/date_helper.dart';
 import '../utils/error_mapper.dart';
 import '../utils/loan_helper.dart';
-import '../widgets/common/custom_dropdown_field.dart';
 import '../widgets/common/custom_text_field.dart';
 import '../widgets/common/date_picker_field.dart';
 import '../widgets/common/primary_button.dart';
+import '../widgets/transaction/category_selection_field.dart';
 import '../widgets/transaction/contact_selection_autocomplete.dart';
 import '../widgets/transaction/dompet_selection_dropdown.dart';
 import '../widgets/transaction/transaction_scaffold.dart';
@@ -84,6 +85,16 @@ class _PinjamanScreenState extends State<PinjamanScreen> {
       }
       if (contactProvider.contacts.isEmpty && !contactProvider.isLoading) {
         await contactProvider.loadContacts();
+      }
+      if (!mounted) return;
+      final catProvider = Provider.of<CategoryProvider?>(
+        context,
+        listen: false,
+      );
+      if (catProvider != null &&
+          catProvider.customCategories.isEmpty &&
+          !catProvider.isLoading) {
+        await catProvider.loadCategories(silent: true);
       }
       if (!mounted) return;
       if (editing != null && editing.contactId != null) {
@@ -308,17 +319,8 @@ class _PinjamanScreenState extends State<PinjamanScreen> {
     final contacts = contactProvider.contacts;
     _ensureDefaultDompetSelected(dompets);
 
-    final currentCategories =
-        _selectedTab == 0 ? _debtCategories : _receivableCategories;
-    final dropdownItems = currentCategories.map((c) => c.name).toList();
-    final selectedCatName = _selectedCategoryId != null
-        ? currentCategories
-            .firstWhere(
-              (c) => c.id == _selectedCategoryId,
-              orElse: () => currentCategories.first,
-            )
-            .name
-        : null;
+    final currentType =
+        _selectedTab == 0 ? TransactionType.debt : TransactionType.receivable;
 
     final editing = widget.loanToEdit;
     final double paidAmount = editing?.paidAmount ?? 0.0;
@@ -423,23 +425,11 @@ class _PinjamanScreenState extends State<PinjamanScreen> {
                             ),
                           ),
                         ),
-                      CustomDropdownField(
-                        label: 'Kategori',
-                        hint: 'Pilih Kategori',
-                        value: selectedCatName,
-                        items: dropdownItems,
-                        onChanged: (value) {
-                          setState(() {
-                            _selectedCategoryId = currentCategories
-                                .firstWhere((c) => c.name == value)
-                                .id;
-                          });
-                        },
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Kategori tidak boleh kosong';
-                          }
-                          return null;
+                      CategorySelectionField(
+                        type: currentType,
+                        selectedCategoryId: _selectedCategoryId,
+                        onChanged: (catId) {
+                          setState(() => _selectedCategoryId = catId);
                         },
                       ),
                       CustomTextField(

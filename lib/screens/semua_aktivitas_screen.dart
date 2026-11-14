@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../data/category_catalog.dart';
 import '../models/dompet_model.dart';
 import '../models/transaction_filter.dart';
+import '../providers/category_provider.dart';
 import '../providers/dompet_provider.dart';
 import '../providers/transaction_provider.dart';
 import '../theme/app_colors.dart';
@@ -54,6 +55,15 @@ class _SemuaAktivitasScreenState extends State<SemuaAktivitasScreen> {
       final dompetProvider = context.read<DompetProvider>();
       if (dompetProvider.items.isEmpty && !dompetProvider.isLoading) {
         dompetProvider.loadDompets();
+      }
+      final catProvider = Provider.of<CategoryProvider?>(
+        context,
+        listen: false,
+      );
+      if (catProvider != null &&
+          catProvider.customCategories.isEmpty &&
+          !catProvider.isLoading) {
+        catProvider.loadCategories(silent: true);
       }
       if (widget.autoFocusSearch) {
         _searchFocusNode.requestFocus();
@@ -142,8 +152,11 @@ class _SemuaAktivitasScreenState extends State<SemuaAktivitasScreen> {
       );
     }
 
+    final catProvider = Provider.of<CategoryProvider?>(context, listen: false);
     for (final catId in _filter.categoryIds) {
-      final cat = CategoryCatalog.getById(catId);
+      final cat = catProvider != null
+          ? catProvider.resolve(catId)
+          : CategoryCatalog.getById(catId);
       chips.add(
         _ActiveChip(
           label: cat.name,
@@ -162,9 +175,13 @@ class _SemuaAktivitasScreenState extends State<SemuaAktivitasScreen> {
   Widget build(BuildContext context) {
     final txProvider = context.watch<TransactionProvider>();
     final dompetProvider = context.watch<DompetProvider>();
+    final catProvider = Provider.of<CategoryProvider?>(context);
     final dompets = dompetProvider.items;
 
-    final filteredTransactions = _filter.apply(txProvider.transactions);
+    final filteredTransactions = _filter.apply(
+      txProvider.transactions,
+      categoryResolver: catProvider?.resolve,
+    );
     final activeChips = _buildActiveFilterChips(dompets);
     final int activeBadgeCount = _filter.activeFilterCount;
 

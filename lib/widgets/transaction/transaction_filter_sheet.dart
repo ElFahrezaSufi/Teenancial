@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../../data/category_catalog.dart';
 import '../../models/dompet_model.dart';
 import '../../models/transaction_filter.dart';
 import '../../models/transaction_model.dart';
+import '../../providers/category_provider.dart';
 import '../../theme/app_colors.dart';
 import '../../utils/date_helper.dart';
 
@@ -120,8 +122,16 @@ class _TransactionFilterSheetState extends State<TransactionFilterSheet> {
         _selectedTypes.add(type);
       }
       if (_selectedTypes.isNotEmpty) {
+        final catProvider = Provider.of<CategoryProvider?>(
+          context,
+          listen: false,
+        );
         final allowedCategoryIds = _selectedTypes
-            .expand((t) => CategoryCatalog.getByType(t))
+            .expand(
+              (t) => catProvider != null
+                  ? catProvider.categoriesFor(t)
+                  : CategoryCatalog.getByType(t),
+            )
             .map((c) => c.id)
             .toSet();
         _selectedCategoryIds.removeWhere(
@@ -408,7 +418,11 @@ class _TransactionFilterSheetState extends State<TransactionFilterSheet> {
                       const SizedBox(height: 18),
                       _buildSectionTitle('Kategori'),
                       ...typesToShowCategories.map((type) {
-                        final cats = CategoryCatalog.getByType(type);
+                        final catProvider =
+                            Provider.of<CategoryProvider?>(context);
+                        final cats = catProvider != null
+                            ? catProvider.categoriesFor(type)
+                            : CategoryCatalog.getByType(type);
                         return Padding(
                           padding: const EdgeInsets.only(bottom: 12),
                           child: Column(

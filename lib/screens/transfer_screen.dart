@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../data/category_catalog.dart';
 import '../models/dompet_model.dart';
 import '../models/transaction_model.dart';
+import '../providers/category_provider.dart';
 import '../providers/contact_provider.dart';
 import '../providers/dompet_provider.dart';
 import '../providers/transaction_provider.dart';
@@ -11,10 +12,10 @@ import '../theme/app_colors.dart';
 import '../utils/currency_formatter.dart';
 import '../utils/date_helper.dart';
 import '../utils/error_mapper.dart';
-import '../widgets/common/custom_dropdown_field.dart';
 import '../widgets/common/custom_text_field.dart';
 import '../widgets/common/date_picker_field.dart';
 import '../widgets/common/primary_button.dart';
+import '../widgets/transaction/category_selection_field.dart';
 import '../widgets/transaction/contact_selection_autocomplete.dart';
 import '../widgets/transaction/dompet_selection_dropdown.dart';
 import '../widgets/transaction/transaction_scaffold.dart';
@@ -102,6 +103,16 @@ class _TransferScreenState extends State<TransferScreen> {
         await contactProvider.loadContacts();
       }
       if (!mounted) return;
+      final catProvider = Provider.of<CategoryProvider?>(
+        context,
+        listen: false,
+      );
+      if (catProvider != null &&
+          catProvider.customCategories.isEmpty &&
+          !catProvider.isLoading) {
+        await catProvider.loadCategories(silent: true);
+      }
+      if (!mounted) return;
       if (editing != null &&
           !_isSelfTransfer &&
           _untukController.text.isEmpty &&
@@ -171,8 +182,20 @@ class _TransferScreenState extends State<TransferScreen> {
       final amountStr =
           _jumlahController.text.replaceAll(RegExp(r'[^0-9]'), '');
       final amount = double.tryParse(amountStr) ?? 0.0;
+      final catProvider = Provider.of<CategoryProvider?>(
+        context,
+        listen: false,
+      );
       final categoryId = _selectedCategoryId ?? _transferCategories.first.id;
-      final cat = CategoryCatalog.getById(categoryId);
+      final cat = catProvider != null
+          ? catProvider.resolve(
+              categoryId,
+              fallbackType: TransactionType.transfer,
+            )
+          : CategoryCatalog.getById(
+              categoryId,
+              fallbackType: TransactionType.transfer,
+            );
 
       final contactProvider = context.read<ContactProvider>();
       final txProvider = context.read<TransactionProvider>();
@@ -256,16 +279,6 @@ class _TransferScreenState extends State<TransferScreen> {
     final contacts = contactProvider.contacts;
     _ensureDefaultDompetSelected(dompets);
 
-    final dropdownItems = _transferCategories.map((c) => c.name).toList();
-    final selectedCatName = _selectedCategoryId != null
-        ? _transferCategories
-            .firstWhere(
-              (c) => c.id == _selectedCategoryId,
-              orElse: () => _transferCategories.first,
-            )
-            .name
-        : null;
-
     return TransactionScaffold(
       title: _isEdit ? 'Edit Transfer' : 'Transfer',
       child: SafeArea(
@@ -331,23 +344,11 @@ class _TransferScreenState extends State<TransferScreen> {
                           return null;
                         },
                       ),
-                      CustomDropdownField(
-                        label: 'Kategori',
-                        hint: 'Pilih Kategori',
-                        value: selectedCatName,
-                        items: dropdownItems,
-                        onChanged: (value) {
-                          setState(() {
-                            _selectedCategoryId = _transferCategories
-                                .firstWhere((c) => c.name == value)
-                                .id;
-                          });
-                        },
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Kategori tidak boleh kosong';
-                          }
-                          return null;
+                      CategorySelectionField(
+                        type: TransactionType.transfer,
+                        selectedCategoryId: _selectedCategoryId,
+                        onChanged: (catId) {
+                          setState(() => _selectedCategoryId = catId);
                         },
                       ),
                       CustomTextField(
