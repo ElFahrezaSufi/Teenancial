@@ -107,6 +107,7 @@ class TransactionFilter {
   List<TransactionModel> apply(
     List<TransactionModel> source, {
     DateTime? now,
+    CategoryResolver? categoryResolver,
   }) {
     final trimmedQuery = query.trim().toLowerCase();
     final queryDigits = trimmedQuery.replaceAll(RegExp(r'[^0-9]'), '');
@@ -122,7 +123,13 @@ class TransactionFilter {
       }
       if (dompetIds.isNotEmpty && !_matchesDompet(t)) return false;
       if (trimmedQuery.isNotEmpty &&
-          !_matchesQuery(t, trimmedQuery, queryDigits, isNumericSearch)) {
+          !_matchesQuery(
+            t,
+            trimmedQuery,
+            queryDigits,
+            isNumericSearch,
+            categoryResolver: categoryResolver,
+          )) {
         return false;
       }
       return true;
@@ -173,8 +180,9 @@ class TransactionFilter {
     TransactionModel t,
     String lowerQuery,
     String queryDigits,
-    bool isNumericSearch,
-  ) {
+    bool isNumericSearch, {
+    CategoryResolver? categoryResolver,
+  }) {
     if (t.title.toLowerCase().contains(lowerQuery)) return true;
     if (t.notes.toLowerCase().contains(lowerQuery)) return true;
     if (t.counterpartyName != null &&
@@ -182,7 +190,8 @@ class TransactionFilter {
       return true;
     }
 
-    final cat = CategoryCatalog.getById(t.categoryId, fallbackType: t.type);
+    final resolver = categoryResolver ?? CategoryCatalog.getById;
+    final cat = resolver(t.categoryId, fallbackType: t.type);
     if (cat.name.toLowerCase().contains(lowerQuery)) return true;
 
     final formattedAmount = Formatters.rupiah(t.amount).toLowerCase();

@@ -1,7 +1,11 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:teenancial/data/category_catalog.dart';
+import 'package:teenancial/data/category_icons.dart';
 import 'package:teenancial/models/belajar_model.dart';
 import 'package:teenancial/models/dompet_model.dart';
 import 'package:teenancial/models/target_model.dart';
+import 'package:teenancial/models/transaction_model.dart';
 import 'package:teenancial/models/user_model.dart';
 
 void main() {
@@ -119,6 +123,67 @@ void main() {
       final restored = BelajarProgressModel.fromMap(map);
       expect(restored.completedModules, {'0_0', '0_1'});
       expect(restored.completedQuizzes, {'0_0'});
+    });
+  });
+
+  group('CategoryModel, CategoryIcons & CategoryCatalog', () {
+    test('CategoryModel serialisasi toMap/fromMap mempertahankan iconKey dan colorValue', () {
+      final custom = CategoryModel(
+        id: 'cat_custom_1',
+        name: 'Kopi & Jajan',
+        type: TransactionType.expense,
+        icon: CategoryIcons.iconForKey('drink'),
+        iconKey: 'drink',
+        colorValue: 0xFFE18151,
+        isCustom: true,
+        createdAt: DateTime(2026, 11, 14),
+      );
+
+      final restored = CategoryModel.fromMap(
+        custom.toMap(),
+        docId: 'cat_custom_1',
+      );
+      expect(restored.id, 'cat_custom_1');
+      expect(restored.name, 'Kopi & Jajan');
+      expect(restored.type, TransactionType.expense);
+      expect(restored.iconKey, 'drink');
+      expect(restored.icon, Icons.local_cafe_outlined);
+      expect(restored.colorValue, 0xFFE18151);
+      expect(restored.isCustom, isTrue);
+    });
+
+    test('mergeWithCustom menempatkan kategori kustom sebelum kategori Lainnya bawaan', () {
+      final customExpense = CategoryModel(
+        id: 'cat_custom_exp',
+        name: 'Skincare',
+        type: TransactionType.expense,
+        icon: CategoryIcons.iconForKey('shopping'),
+        iconKey: 'shopping',
+        colorValue: 0xFFEC407A,
+        isCustom: true,
+      );
+
+      final merged = CategoryCatalog.mergeWithCustom(
+        TransactionType.expense,
+        [customExpense],
+      );
+
+      expect(merged.last.id, 'c6'); // "Lainnya" selalu paling bawah
+      expect(merged[merged.length - 2].id, 'cat_custom_exp');
+
+      final resolved = CategoryCatalog.resolveWithCustom(
+        'cat_custom_exp',
+        [customExpense],
+        fallbackType: TransactionType.expense,
+      );
+      expect(resolved.name, 'Skincare');
+
+      final missingFallback = CategoryCatalog.resolveWithCustom(
+        'deleted_id',
+        [customExpense],
+        fallbackType: TransactionType.expense,
+      );
+      expect(missingFallback.id, 'c6');
     });
   });
 }
