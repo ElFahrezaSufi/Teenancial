@@ -17,7 +17,6 @@ class PdfReportBuilder {
   static const PdfColor _brandGreen = PdfColor.fromInt(0xFF3E4F22);
   static const PdfColor _cardCream = PdfColor.fromInt(0xFFE7EFD0);
   static const PdfColor _lightBg = PdfColor.fromInt(0xFFF6F8EE);
-  static const PdfColor _accentOrange = PdfColor.fromInt(0xFFD96B27);
   static const PdfColor _expenseRed = PdfColor.fromInt(0xFFC62828);
   static const PdfColor _mutedText = PdfColor.fromInt(0xFF5A6B42);
 
@@ -72,6 +71,49 @@ class PdfReportBuilder {
     return filter.periodPreset.label;
   }
 
+  static String _typeLabel(TransactionType type) {
+    switch (type) {
+      case TransactionType.income:
+        return 'Pemasukan';
+      case TransactionType.expense:
+        return 'Pengeluaran';
+      case TransactionType.transfer:
+        return 'Transfer';
+      case TransactionType.debt:
+        return 'Hutang';
+      case TransactionType.receivable:
+        return 'Piutang';
+    }
+  }
+
+  static String _describeFilterTypes(TransactionFilter filter) {
+    if (filter.types.isEmpty) return 'Semua Jenis';
+    return TransactionType.values
+        .where((t) => filter.types.contains(t))
+        .map(_typeLabel)
+        .join(', ');
+  }
+
+  static String _describeFilterWallets(
+    TransactionFilter filter,
+    Map<String, String> walletNames,
+  ) {
+    if (filter.dompetIds.isEmpty) return 'Semua Dompet';
+    return filter.dompetIds
+        .map((id) => walletNames[id] ?? id)
+        .join(', ');
+  }
+
+  static String _describeFilterCategories(
+    TransactionFilter filter,
+    CategoryResolver resolve,
+  ) {
+    if (filter.categoryIds.isEmpty) return 'Semua Kategori';
+    return filter.categoryIds
+        .map((id) => sanitizePdfText(resolve(id).name))
+        .join(', ');
+  }
+
   static List<CategoryBreakdownItem> _aggregateCategories(
     List<TransactionModel> transactions,
     bool Function(TransactionModel) predicate,
@@ -124,6 +166,8 @@ class PdfReportBuilder {
     required List<DompetItem> dompets,
     required TransactionFilter filter,
     CategoryResolver? categoryResolver,
+    String? userName,
+    String? userEmail,
     DateTime? generatedAt,
   }) async {
     final theme = await _loadPdfTheme();
@@ -131,6 +175,25 @@ class PdfReportBuilder {
     final Map<String, String> walletNames = {
       for (final d in dompets) d.id: sanitizePdfText(d.nama),
     };
+
+    final cleanUserName = sanitizePdfText(
+      (userName != null && userName.trim().isNotEmpty)
+          ? userName.trim()
+          : 'Pengguna Teenancial',
+    );
+    final cleanUserEmail =
+        userEmail != null ? sanitizePdfText(userEmail.trim()) : '';
+    final String userDisplay = cleanUserEmail.isNotEmpty
+        ? '$cleanUserName ($cleanUserEmail)'
+        : cleanUserName;
+
+    final String periodDisplay = sanitizePdfText(_describeFilterPeriod(filter));
+    final String typesDisplay = sanitizePdfText(_describeFilterTypes(filter));
+    final String walletsDisplay =
+        sanitizePdfText(_describeFilterWallets(filter, walletNames));
+    final String categoriesDisplay =
+        sanitizePdfText(_describeFilterCategories(filter, resolveCategory));
+    final String queryDisplay = sanitizePdfText(filter.query.trim());
 
     final sorted = List<TransactionModel>.from(transactions)
       ..sort((a, b) => b.date.compareTo(a.date));
@@ -229,7 +292,7 @@ class PdfReportBuilder {
                   crossAxisAlignment: pw.CrossAxisAlignment.end,
                   children: [
                     pw.Text(
-                      'Periode: ${sanitizePdfText(_describeFilterPeriod(filter))}',
+                      'Periode: $periodDisplay',
                       style: const pw.TextStyle(
                         color: PdfColors.white,
                         fontSize: 9.5,
@@ -249,7 +312,58 @@ class PdfReportBuilder {
               ],
             ),
           ),
-          pw.SizedBox(height: 14),
+          pw.SizedBox(height: 10),
+
+          // 1B. INFORMASI PENGGUNA & FILTER AKTIF
+          pw.Container(
+            padding: const pw.EdgeInsets.symmetric(
+              horizontal: 12,
+              vertical: 9,
+            ),
+            decoration: pw.BoxDecoration(
+              color: _lightBg,
+              borderRadius: pw.BorderRadius.circular(8),
+              border: pw.Border.all(color: _brandGreen, width: 0.6),
+            ),
+            child: pw.Column(
+              crossAxisAlignment: pw.CrossAxisAlignment.start,
+              children: [
+                pw.Row(
+                  crossAxisAlignment: pw.CrossAxisAlignment.start,
+                  children: [
+                    pw.Expanded(
+                      child: _buildMetadataLine('Pengguna', userDisplay),
+                    ),
+                    pw.SizedBox(width: 12),
+                    pw.Expanded(
+                      child: _buildMetadataLine('Jenis Transaksi', typesDisplay),
+                    ),
+                  ],
+                ),
+                pw.SizedBox(height: 4),
+                pw.Row(
+                  crossAxisAlignment: pw.CrossAxisAlignment.start,
+                  children: [
+                    pw.Expanded(
+                      child: _buildMetadataLine('Filter Dompet', walletsDisplay),
+                    ),
+                    pw.SizedBox(width: 12),
+                    pw.Expanded(
+                      child: _buildMetadataLine(
+                        'Filter Kategori',
+                        categoriesDisplay,
+                      ),
+                    ),
+                  ],
+                ),
+                if (queryDisplay.isNotEmpty) ...[
+                  pw.SizedBox(height: 4),
+                  _buildMetadataLine('Kata Kunci Pencarian', '"$queryDisplay"'),
+                ],
+              ],
+            ),
+          ),
+          pw.SizedBox(height: 12),
 
           // 2. KOTAK RINGKASAN EKSEKUTIF
           pw.Row(
@@ -337,7 +451,7 @@ class PdfReportBuilder {
                           height: 5,
                           width: 480 * barWidthFactor,
                           decoration: pw.BoxDecoration(
-                            color: _accentOrange,
+                            color: PdfColor.fromInt(cat.color.toARGB32()),
                             borderRadius: pw.BorderRadius.circular(3),
                           ),
                         ),
@@ -433,6 +547,31 @@ class PdfReportBuilder {
     );
 
     return pdf.save();
+  }
+
+  static pw.Widget _buildMetadataLine(String label, String value) {
+    return pw.RichText(
+      text: pw.TextSpan(
+        children: [
+          pw.TextSpan(
+            text: '$label: ',
+            style: const pw.TextStyle(
+              color: _mutedText,
+              fontSize: 8.5,
+              fontWeight: pw.FontWeight.bold,
+            ),
+          ),
+          pw.TextSpan(
+            text: value,
+            style: const pw.TextStyle(
+              color: _brandGreen,
+              fontSize: 8.5,
+              fontWeight: pw.FontWeight.bold,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   static pw.Widget _buildSummaryBox({

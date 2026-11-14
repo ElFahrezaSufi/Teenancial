@@ -12,6 +12,7 @@ import '../models/transaction_model.dart';
 import '../providers/category_provider.dart';
 import '../providers/dompet_provider.dart';
 import '../providers/transaction_provider.dart';
+import '../providers/user_provider.dart';
 import '../theme/app_colors.dart';
 import '../utils/csv_exporter.dart';
 import '../utils/currency_formatter.dart';
@@ -30,6 +31,8 @@ typedef PdfBytesGenerator = Future<Uint8List> Function({
   required List<DompetItem> dompets,
   required TransactionFilter filter,
   CategoryResolver? categoryResolver,
+  String? userName,
+  String? userEmail,
 });
 
 class EksporScreen extends StatefulWidget {
@@ -206,12 +209,15 @@ class _EksporScreenState extends State<EksporScreen> {
       return (bytes: bytes, fileName: fileName, mimeType: 'text/csv');
     }
 
+    final userProvider = Provider.of<UserProvider?>(context, listen: false);
     final pdfGen = EksporScreen.pdfGenerator ?? PdfReportBuilder.generatePdfBytes;
     final bytes = await pdfGen(
       transactions: filteredTransactions,
       dompets: dompets,
       filter: _filter,
       categoryResolver: categoryResolver,
+      userName: userProvider?.displayName,
+      userEmail: userProvider?.profile?.email,
     );
     final fileName = CsvExporter.suggestedFileName(_filter, extension: 'pdf');
     return (bytes: bytes, fileName: fileName, mimeType: 'application/pdf');
@@ -336,6 +342,9 @@ class _EksporScreenState extends State<EksporScreen> {
         previewExpense += tx.amount;
       }
     }
+    final double previewNet = previewIncome - previewExpense;
+    final bool isNetPositive = previewNet >= 0;
+    final bool canExport = !_isBusy && filtered.isNotEmpty;
 
     final typesToShowCategories = _filter.types.isNotEmpty
         ? TransactionType.values
@@ -592,6 +601,7 @@ class _EksporScreenState extends State<EksporScreen> {
                                             return _buildChip(
                                               label: cat.name,
                                               icon: cat.icon,
+                                              iconColor: cat.color,
                                               selected: _filter.categoryIds
                                                   .contains(cat.id),
                                               onTap: () =>
@@ -679,6 +689,56 @@ class _EksporScreenState extends State<EksporScreen> {
                                 '- ${Formatters.rupiah(previewExpense)}',
                                 valueColor: const Color(0xFFC62828),
                               ),
+                              Padding(
+                                padding: const EdgeInsets.symmetric(vertical: 8),
+                                child: Divider(
+                                  height: 1,
+                                  color: primaryGreen.withValues(alpha: 0.2),
+                                ),
+                              ),
+                              _buildPreviewRow(
+                                'Selisih Bersih',
+                                '${isNetPositive ? '+' : '-'} ${Formatters.rupiah(previewNet.abs())}',
+                                isBold: true,
+                                valueColor: isNetPositive
+                                    ? primaryGreen
+                                    : const Color(0xFFC62828),
+                              ),
+                              if (filtered.isEmpty) ...[
+                                const SizedBox(height: 10),
+                                Container(
+                                  width: double.infinity,
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 10,
+                                    vertical: 8,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: primaryGreen.withValues(alpha: 0.08),
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  child: const Row(
+                                    children: [
+                                      Icon(
+                                        Icons.info_outline_rounded,
+                                        size: 16,
+                                        color: primaryGreen,
+                                      ),
+                                      SizedBox(width: 8),
+                                      Expanded(
+                                        child: Text(
+                                          'Tidak ada transaksi yang cocok dengan filter. Sesuaikan filter untuk mengekspor data.',
+                                          style: TextStyle(
+                                            fontFamily: 'Inter',
+                                            fontSize: 11.5,
+                                            fontWeight: FontWeight.w500,
+                                            color: primaryGreen,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
                             ],
                           ),
                         ),
@@ -700,13 +760,13 @@ class _EksporScreenState extends State<EksporScreen> {
                     children: [
                       Expanded(
                         child: OutlinedButton.icon(
-                          onPressed: _isBusy
-                              ? null
-                              : () => _shareFile(
+                          onPressed: canExport
+                              ? () => _shareFile(
                                     filteredTransactions: filtered,
                                     dompets: dompets,
                                     categoryResolver: catProvider?.resolve,
-                                  ),
+                                  )
+                              : null,
                           icon: const Icon(Icons.share_rounded, size: 18),
                           label: const Text(
                             'Bagikan',
@@ -717,8 +777,12 @@ class _EksporScreenState extends State<EksporScreen> {
                           ),
                           style: OutlinedButton.styleFrom(
                             foregroundColor: primaryGreen,
-                            side: const BorderSide(
-                              color: primaryGreen,
+                            disabledForegroundColor:
+                                primaryGreen.withValues(alpha: 0.4),
+                            side: BorderSide(
+                              color: canExport
+                                  ? primaryGreen
+                                  : primaryGreen.withValues(alpha: 0.3),
                               width: 1.6,
                             ),
                             padding: const EdgeInsets.symmetric(vertical: 14),
@@ -732,13 +796,13 @@ class _EksporScreenState extends State<EksporScreen> {
                       Expanded(
                         flex: 2,
                         child: ElevatedButton.icon(
-                          onPressed: _isBusy
-                              ? null
-                              : () => _saveToDevice(
+                          onPressed: canExport
+                              ? () => _saveToDevice(
                                     filteredTransactions: filtered,
                                     dompets: dompets,
                                     categoryResolver: catProvider?.resolve,
-                                  ),
+                                  )
+                              : null,
                           icon: const Icon(Icons.save_alt_rounded, size: 19),
                           label: Text(
                             _isBusy ? 'Memproses...' : 'Simpan ke Perangkat',
@@ -750,6 +814,10 @@ class _EksporScreenState extends State<EksporScreen> {
                           style: ElevatedButton.styleFrom(
                             backgroundColor: primaryGreen,
                             foregroundColor: Colors.white,
+                            disabledBackgroundColor:
+                                primaryGreen.withValues(alpha: 0.35),
+                            disabledForegroundColor:
+                                Colors.white.withValues(alpha: 0.8),
                             elevation: 0,
                             padding: const EdgeInsets.symmetric(vertical: 14),
                             shape: RoundedRectangleBorder(
@@ -859,6 +927,7 @@ class _EksporScreenState extends State<EksporScreen> {
     required bool selected,
     required VoidCallback onTap,
     IconData? icon,
+    Color? iconColor,
   }) {
     return GestureDetector(
       onTap: onTap,
@@ -877,7 +946,7 @@ class _EksporScreenState extends State<EksporScreen> {
               Icon(
                 icon,
                 size: 13,
-                color: selected ? Colors.white : primaryGreen,
+                color: selected ? Colors.white : (iconColor ?? primaryGreen),
               ),
               const SizedBox(width: 5),
             ],

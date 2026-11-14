@@ -60,7 +60,15 @@ void main() {
         final bytes = await PdfReportBuilder.generatePdfBytes(
           transactions: txs,
           dompets: dompets,
-          filter: TransactionFilter(periodPreset: HistoryPeriodPreset.monthly),
+          filter: TransactionFilter(
+            periodPreset: HistoryPeriodPreset.monthly,
+            types: {TransactionType.income, TransactionType.expense},
+            dompetIds: {'w1'},
+            categoryIds: {'c1', 'c5'},
+            query: 'Kuliah',
+          ),
+          userName: 'Budi Santoso',
+          userEmail: 'budi@teenancial.id',
           generatedAt: DateTime(2026, 11, 14, 16, 0),
         );
 
