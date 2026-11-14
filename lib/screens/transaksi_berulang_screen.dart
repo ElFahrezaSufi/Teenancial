@@ -15,6 +15,7 @@ import '../utils/date_helper.dart';
 import '../utils/error_mapper.dart';
 import '../widgets/common/custom_app_bar.dart';
 import '../widgets/common/custom_card.dart';
+import '../widgets/common/custom_filter_chip.dart';
 import '../widgets/common/primary_button.dart';
 import 'buat_berulang_screen.dart';
 
@@ -32,9 +33,34 @@ class TransaksiBerulangScreen extends StatefulWidget {
 }
 
 class _TransaksiBerulangScreenState extends State<TransaksiBerulangScreen> {
+  TransactionType? _selectedFilterType;
+
+  bool get _isLockedToType => widget.initialType != null;
+
+  static const List<TransactionType?> _riwayatTabs = [
+    null,
+    TransactionType.income,
+    TransactionType.expense,
+    TransactionType.transfer,
+  ];
+
+  static String _typeLabel(TransactionType type) {
+    switch (type) {
+      case TransactionType.income:
+        return 'Pemasukan';
+      case TransactionType.expense:
+        return 'Pengeluaran';
+      case TransactionType.transfer:
+        return 'Transfer';
+      default:
+        return 'Transaksi';
+    }
+  }
+
   @override
   void initState() {
     super.initState();
+    _selectedFilterType = widget.initialType;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       final recProvider = context.read<RecurringProvider>();
@@ -181,13 +207,31 @@ class _TransaksiBerulangScreenState extends State<TransaksiBerulangScreen> {
     final dompetProvider = context.watch<DompetProvider>();
     final catProvider = Provider.of<CategoryProvider?>(context);
     final dompets = dompetProvider.items;
-    final activeItems = recProvider.activeItems;
-    final inactiveItems = recProvider.inactiveItems;
+
+    final effectiveFilterType =
+        _isLockedToType ? widget.initialType : _selectedFilterType;
+
+    final activeItems = effectiveFilterType == null
+        ? recProvider.activeItems
+        : recProvider.activeItems
+            .where((item) => item.type == effectiveFilterType)
+            .toList();
+    final inactiveItems = effectiveFilterType == null
+        ? recProvider.inactiveItems
+        : recProvider.inactiveItems
+            .where((item) => item.type == effectiveFilterType)
+            .toList();
+    final bool hasFilteredItems =
+        activeItems.isNotEmpty || inactiveItems.isNotEmpty;
+
+    final String appBarTitle = _isLockedToType
+        ? 'Jadwal ${_typeLabel(widget.initialType!)} Berulang'
+        : 'Transaksi Berulang';
 
     return Scaffold(
       backgroundColor: scaffoldBg,
-      appBar: const CustomAppBar(
-        title: 'Transaksi Berulang',
+      appBar: CustomAppBar(
+        title: appBarTitle,
         backIcon: Icons.arrow_back_ios_new,
       ),
       body: Stack(
@@ -205,6 +249,28 @@ class _TransaksiBerulangScreenState extends State<TransaksiBerulangScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
+                if (!_isLockedToType)
+                  SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    padding: const EdgeInsets.fromLTRB(24, 16, 24, 4),
+                    child: Row(
+                      children: _riwayatTabs.map((tabType) {
+                        final label = tabType == null
+                            ? 'Semua'
+                            : _typeLabel(tabType);
+                        return Padding(
+                          padding: const EdgeInsets.only(right: 8),
+                          child: CustomFilterChip(
+                            label: label,
+                            selected: _selectedFilterType == tabType,
+                            onTap: () => setState(
+                              () => _selectedFilterType = tabType,
+                            ),
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                  ),
                 Expanded(
                   child: recProvider.isLoading && recProvider.items.isEmpty
                       ? const Center(
@@ -214,7 +280,7 @@ class _TransaksiBerulangScreenState extends State<TransaksiBerulangScreen> {
                           color: primaryGreen,
                           backgroundColor: scaffoldBg,
                           onRefresh: () => recProvider.loadRecurring(),
-                          child: recProvider.items.isEmpty
+                          child: !hasFilteredItems
                               ? ListView(
                                   physics:
                                       const AlwaysScrollableScrollPhysics(),
@@ -228,10 +294,12 @@ class _TransaksiBerulangScreenState extends State<TransaksiBerulangScreen> {
                                           primaryGreen.withValues(alpha: 0.45),
                                     ),
                                     const SizedBox(height: 12),
-                                    const Text(
-                                      'Belum ada jadwal transaksi berulang',
+                                    Text(
+                                      effectiveFilterType != null
+                                          ? 'Belum ada jadwal ${_typeLabel(effectiveFilterType).toLowerCase()} berulang'
+                                          : 'Belum ada jadwal transaksi berulang',
                                       textAlign: TextAlign.center,
-                                      style: TextStyle(
+                                      style: const TextStyle(
                                         color: primaryGreen,
                                         fontSize: 15,
                                         fontFamily: 'Inter',
@@ -240,7 +308,9 @@ class _TransaksiBerulangScreenState extends State<TransaksiBerulangScreen> {
                                     ),
                                     const SizedBox(height: 6),
                                     Text(
-                                      'Otomatiskan pencatatan uang saku, langganan bulanan, atau tabungan rutin antar-dompet agar tidak perlu input manual berulang kali.',
+                                      _isLockedToType
+                                          ? 'Ketuk tombol di bawah untuk membuat jadwal ${_typeLabel(widget.initialType!).toLowerCase()} berulang otomatis.'
+                                          : 'Buat jadwal berulang baru melalui ikon jadwal di pojok kanan atas halaman Pemasukan, Pengeluaran, atau Transfer.',
                                       textAlign: TextAlign.center,
                                       style: TextStyle(
                                         color:
@@ -304,16 +374,18 @@ class _TransaksiBerulangScreenState extends State<TransaksiBerulangScreen> {
                                 ),
                         ),
                 ),
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(24, 8, 24, 20),
-                  child: PrimaryButton(
-                    label: '+ Buat Jadwal Berulang',
-                    onPressed: () => context.push(
-                      AppRoutes.buatBerulang,
-                      extra: BuatBerulangArgs(initialType: widget.initialType),
+                if (_isLockedToType)
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(24, 8, 24, 20),
+                    child: PrimaryButton(
+                      label:
+                          '+ Buat ${_typeLabel(widget.initialType!)} Berulang',
+                      onPressed: () => context.push(
+                        AppRoutes.buatBerulang,
+                        extra: BuatBerulangArgs(initialType: widget.initialType),
+                      ),
                     ),
                   ),
-                ),
               ],
             ),
           ),
@@ -339,10 +411,8 @@ class _TransaksiBerulangScreenState extends State<TransaksiBerulangScreen> {
         ? primaryGreen
         : (isExpense ? const Color(0xFFC62828) : primaryGreen);
 
-    final Color iconBg = cat.isCustom
-        ? cat.color.withValues(alpha: 0.18)
-        : lightGreen.withValues(alpha: 0.4);
-    final Color iconFg = cat.isCustom ? cat.color : primaryGreen;
+    final Color iconBg = cat.color.withValues(alpha: 0.18);
+    final Color iconFg = cat.color;
 
     final walletRoute = _resolveWalletRouteLabel(item, dompets);
 
@@ -560,12 +630,14 @@ class _TransaksiBerulangScreenState extends State<TransaksiBerulangScreen> {
                     const SizedBox(width: 6),
                     Expanded(
                       child: Text(
-                        item.lastSkipReason!,
+                        item.skippedCount > 0
+                            ? 'Dilewati (${item.skippedCount}x) — ${item.lastSkipReason!}'
+                            : 'Dilewati — ${item.lastSkipReason!}',
                         style: const TextStyle(
                           color: Colors.red,
                           fontSize: 11,
                           fontFamily: 'Inter',
-                          fontWeight: FontWeight.w600,
+                          fontWeight: FontWeight.w700,
                         ),
                       ),
                     ),

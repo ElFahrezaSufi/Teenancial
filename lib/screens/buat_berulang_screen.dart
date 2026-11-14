@@ -344,9 +344,10 @@ class _BuatBerulangScreenState extends State<BuatBerulangScreen> {
     final today = RecurrenceRule.dateOnly(DateTime.now());
     final bool startsTodayOrEarlier =
         !RecurrenceRule.dateOnly(_startDate).isAfter(today);
+    final String typeLabel = _typeTabLabel(_selectedType);
 
     return TransactionScaffold(
-      title: _isEdit ? 'Edit Berulang' : 'Buat Berulang',
+      title: _isEdit ? 'Edit $typeLabel Berulang' : 'Buat $typeLabel Berulang',
       child: SafeArea(
         child: dompetProvider.isLoading && dompets.isEmpty
             ? const Center(
@@ -359,62 +360,6 @@ class _BuatBerulangScreenState extends State<BuatBerulangScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      if (!_isEdit) ...[
-                        Container(
-                          padding: const EdgeInsets.all(4),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFD4DFBA),
-                            borderRadius: BorderRadius.circular(100),
-                          ),
-                          child: Row(
-                            children: _supportedTypes.map((t) {
-                              final selected = _selectedType == t;
-                              return Expanded(
-                                child: GestureDetector(
-                                  onTap: () {
-                                    setState(() {
-                                      _selectedType = t;
-                                      _selectedCategoryId = null;
-                                    });
-                                  },
-                                  child: AnimatedContainer(
-                                    duration: const Duration(milliseconds: 140),
-                                    padding: const EdgeInsets.symmetric(
-                                      vertical: 10,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: selected
-                                          ? const Color(0xFFF8FFE8)
-                                          : Colors.transparent,
-                                      borderRadius: BorderRadius.circular(100),
-                                      border: Border.all(
-                                        color: selected
-                                            ? primaryGreen
-                                            : Colors.transparent,
-                                        width: 1.6,
-                                      ),
-                                    ),
-                                    child: Center(
-                                      child: Text(
-                                        _typeTabLabel(t),
-                                        style: TextStyle(
-                                          color: primaryGreen,
-                                          fontSize: 12,
-                                          fontFamily: 'Inter',
-                                          fontWeight: selected
-                                              ? FontWeight.w800
-                                              : FontWeight.w600,
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              );
-                            }).toList(),
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                      ],
                       if (_selectedType == TransactionType.transfer) ...[
                         GestureDetector(
                           onTap: () {
