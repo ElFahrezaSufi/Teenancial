@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
+import '../config/app_routes.dart';
 import '../data/category_catalog.dart';
 import '../models/dompet_model.dart';
 import '../models/transaction_filter.dart';
@@ -191,6 +192,21 @@ class _SemuaAktivitasScreenState extends State<SemuaAktivitasScreen> {
         title: 'Semua Aktivitas',
         backIcon: Icons.arrow_back_ios_new,
         onBack: () => context.pop(true),
+        trailing: Padding(
+          padding: const EdgeInsets.only(right: 8),
+          child: IconButton(
+            tooltip: 'Ekspor Aktivitas',
+            icon: const Icon(
+              Icons.download_rounded,
+              color: primaryGreen,
+              size: 22,
+            ),
+            onPressed: () => context.push(
+              AppRoutes.ekspor,
+              extra: _filter,
+            ),
+          ),
+        ),
       ),
       body: Stack(
         fit: StackFit.expand,

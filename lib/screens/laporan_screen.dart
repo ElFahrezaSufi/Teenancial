@@ -1,7 +1,10 @@
 import 'dart:math' as math;
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
+import '../config/app_routes.dart';
+import '../models/transaction_filter.dart';
 import '../models/transaction_model.dart';
 import '../providers/category_provider.dart';
 import '../providers/transaction_provider.dart';
@@ -120,11 +123,38 @@ class _LaporanScreenState extends State<LaporanScreen> {
       formatCurrency: Formatters.rupiah,
     );
 
+    final lastDayOfMonth = DateTime(
+      _selectedMonth.year,
+      _selectedMonth.month + 1,
+      0,
+    );
+
     return Scaffold(
       backgroundColor: scaffoldBg,
-      appBar: const CustomAppBar(
+      appBar: CustomAppBar(
         title: 'Laporan Keuangan',
         backIcon: Icons.arrow_back_ios_new,
+        trailing: Padding(
+          padding: const EdgeInsets.only(right: 8),
+          child: IconButton(
+            tooltip: 'Ekspor Laporan',
+            icon: const Icon(
+              Icons.download_rounded,
+              color: primaryGreen,
+              size: 22,
+            ),
+            onPressed: () => context.push(
+              AppRoutes.ekspor,
+              extra: TransactionFilter(
+                periodPreset: HistoryPeriodPreset.custom,
+                customRange: DateTimeRange(
+                  start: _selectedMonth,
+                  end: lastDayOfMonth,
+                ),
+              ),
+            ),
+          ),
+        ),
       ),
       body: Stack(
         fit: StackFit.expand,

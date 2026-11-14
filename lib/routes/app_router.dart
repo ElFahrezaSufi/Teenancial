@@ -7,6 +7,7 @@ import '../config/app_routes.dart';
 import '../models/dompet_model.dart';
 import '../models/recurring_model.dart';
 import '../models/target_model.dart';
+import '../models/transaction_filter.dart';
 import '../models/transaction_model.dart';
 import '../providers/auth_provider.dart';
 import '../services/local_storage_service.dart';
@@ -16,6 +17,7 @@ import '../screens/buat_berulang_screen.dart';
 import '../screens/buat_target_screen.dart';
 import '../screens/daftar_pinjaman_screen.dart';
 import '../screens/dompet_screen.dart';
+import '../screens/ekspor_screen.dart';
 import '../screens/forgot_password_screen.dart';
 import '../screens/get_started.dart';
 import '../screens/home_screen.dart';
@@ -352,6 +354,19 @@ final GoRouter appRouter = GoRouter(
             itemToEdit: itemToEdit,
             initialType: initialType,
           ),
+        );
+      },
+    ),
+    GoRoute(
+      parentNavigatorKey: rootNavigatorKey,
+      path: AppRoutes.ekspor,
+      pageBuilder: (context, state) {
+        final filter = state.extra is TransactionFilter
+            ? state.extra as TransactionFilter
+            : null;
+        return AppTransitions.slideHorizontal(
+          key: state.pageKey,
+          child: EksporScreen(initialFilter: filter),
         );
       },
     ),
