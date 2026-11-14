@@ -220,6 +220,8 @@ class _PinjamanScreenState extends State<PinjamanScreen> {
             ? existingPayments.last.dompetId
             : editing?.paidDompetId,
         payments: existingPayments,
+        isAdjustment: editing?.isAdjustment ?? false,
+        recurringId: editing?.recurringId,
       );
 
       await NotificationService.instance.requestPermissionIfNeeded();

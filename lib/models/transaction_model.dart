@@ -23,6 +23,8 @@ class TransactionModel {
   final bool isPaid; // Status pelunasan (khusus hutang/piutang)
   final String? paidDompetId; // Dompet yang digunakan saat pelunasan pinjaman
   final List<LoanPayment> payments; // Riwayat cicilan pinjaman/piutang
+  final bool isAdjustment; // Penanda transaksi penyesuaian saldo otomatis saat edit dompet
+  final String? recurringId; // ID template transaksi berulang (jika dibuat otomatis)
 
   TransactionModel({
     required this.id,
@@ -40,7 +42,14 @@ class TransactionModel {
     this.isPaid = false,
     this.paidDompetId,
     List<LoanPayment> payments = const [],
+    this.isAdjustment = false,
+    this.recurringId,
   }) : payments = List<LoanPayment>.unmodifiable(payments);
+
+  /// Menentukan apakah transaksi ini merupakan penyesuaian saldo otomatis
+  /// (mendukung flag `isAdjustment` baru maupun catatan penyesuaian lama).
+  bool get isBalanceAdjustment =>
+      isAdjustment || notes == 'Penyesuaian saldo otomatis saat edit dompet';
 
   /// Menentukan apakah transaksi ini dapat diedit dari Riwayat maupun Daftar Pinjaman.
   /// Pinjaman yang sudah lunas tidak dapat diedit (hanya dapat dihapus).
@@ -239,6 +248,8 @@ class TransactionModel {
       'isPaid': isPaid,
       'paidDompetId': paidDompetId,
       'payments': payments.map((p) => p.toMap()).toList(),
+      'isAdjustment': isAdjustment,
+      'recurringId': recurringId,
     };
   }
 
@@ -293,6 +304,8 @@ class TransactionModel {
       isPaid: map['isPaid'] == true,
       paidDompetId: map['paidDompetId'] as String?,
       payments: parsedPayments,
+      isAdjustment: map['isAdjustment'] == true,
+      recurringId: map['recurringId'] as String?,
     );
   }
 
@@ -317,6 +330,9 @@ class TransactionModel {
     String? paidDompetId,
     bool clearPaidDompetId = false,
     List<LoanPayment>? payments,
+    bool? isAdjustment,
+    String? recurringId,
+    bool clearRecurringId = false,
   }) {
     return TransactionModel(
       id: id ?? this.id,
@@ -339,6 +355,8 @@ class TransactionModel {
       paidDompetId:
           clearPaidDompetId ? null : (paidDompetId ?? this.paidDompetId),
       payments: payments ?? this.payments,
+      isAdjustment: isAdjustment ?? this.isAdjustment,
+      recurringId: clearRecurringId ? null : (recurringId ?? this.recurringId),
     );
   }
 }

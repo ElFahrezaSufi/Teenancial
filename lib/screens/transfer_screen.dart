@@ -236,6 +236,8 @@ class _TransferScreenState extends State<TransferScreen> {
         counterpartyName: !_isSelfTransfer && recipientName.isNotEmpty
             ? recipientName
             : null,
+        isAdjustment: widget.transactionToEdit?.isAdjustment ?? false,
+        recurringId: widget.transactionToEdit?.recurringId,
       );
 
       if (_isEdit) {

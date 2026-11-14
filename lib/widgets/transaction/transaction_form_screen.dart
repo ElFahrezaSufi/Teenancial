@@ -139,6 +139,8 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
         categoryId: categoryId,
         type: widget.type,
         dompetId: _selectedDompetId!,
+        isAdjustment: widget.transactionToEdit?.isAdjustment ?? false,
+        recurringId: widget.transactionToEdit?.recurringId,
       );
 
       final txProvider = context.read<TransactionProvider>();

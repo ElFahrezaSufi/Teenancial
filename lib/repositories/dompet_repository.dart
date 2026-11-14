@@ -75,6 +75,7 @@ class DompetRepository {
           categoryId: isPositive ? 'c19' : 'c6',
           type: isPositive ? TransactionType.income : TransactionType.expense,
           dompetId: item.id,
+          isAdjustment: true,
         );
         fsTx.set(txDocRef, adjustmentTx.toMap());
       }
