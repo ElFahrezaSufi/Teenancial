@@ -9,6 +9,7 @@ import 'providers/belajar_provider.dart';
 import 'providers/category_provider.dart';
 import 'providers/contact_provider.dart';
 import 'providers/dompet_provider.dart';
+import 'providers/recurring_provider.dart';
 import 'providers/target_provider.dart';
 import 'providers/transaction_provider.dart';
 import 'providers/user_provider.dart';
@@ -56,6 +57,13 @@ void main() async {
           update: (_, auth, dompetProvider, provider) =>
               (provider ?? TransactionProvider())
                 ..bindDependencies(auth.activeUid, dompetProvider),
+        ),
+        ChangeNotifierProxyProvider3<AuthProvider, DompetProvider,
+            TransactionProvider, RecurringProvider>(
+          create: (_) => RecurringProvider(),
+          update: (_, auth, dompetProvider, txProvider, provider) =>
+              (provider ?? RecurringProvider())
+                ..bindDependencies(auth.activeUid, dompetProvider, txProvider),
         ),
         ChangeNotifierProxyProvider<AuthProvider, TargetProvider>(
           create: (_) => TargetProvider(),

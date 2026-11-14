@@ -2,14 +2,22 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:teenancial/data/category_icons.dart';
 import 'package:teenancial/models/belajar_model.dart';
+import 'package:teenancial/models/dompet_model.dart';
+import 'package:teenancial/models/recurring_model.dart';
 import 'package:teenancial/models/target_model.dart';
 import 'package:teenancial/models/transaction_model.dart';
 import 'package:teenancial/providers/belajar_provider.dart';
 import 'package:teenancial/providers/category_provider.dart';
+import 'package:teenancial/providers/dompet_provider.dart';
+import 'package:teenancial/providers/recurring_provider.dart';
 import 'package:teenancial/providers/target_provider.dart';
+import 'package:teenancial/providers/transaction_provider.dart';
 import 'package:teenancial/repositories/belajar_repository.dart';
 import 'package:teenancial/repositories/category_repository.dart';
+import 'package:teenancial/repositories/dompet_repository.dart';
+import 'package:teenancial/repositories/recurring_repository.dart';
 import 'package:teenancial/repositories/target_repository.dart';
+import 'package:teenancial/repositories/transaction_repository.dart';
 
 class _FakeTargetRepository extends TargetRepository {
   final List<TargetItem> store = [];
@@ -465,6 +473,116 @@ void main() {
       );
     });
   });
+
+  group('RecurringProvider Catch-Up & Lifecycle', () {
+    late _FakeRecurringRepository fakeRecRepo;
+    late RecurringProvider recProvider;
+
+    setUp(() async {
+      TestWidgetsFlutterBinding.ensureInitialized();
+      fakeRecRepo = _FakeRecurringRepository();
+      recProvider = RecurringProvider(repository: fakeRecRepo);
+      recProvider.bindDependencies(
+        'user_1',
+        DompetProvider(repository: _NoopDompetRepository()),
+        TransactionProvider(repository: _NoopTransactionRepository()),
+      );
+      await Future<void>.delayed(Duration.zero);
+    });
+
+    tearDown(() {
+      recProvider.dispose();
+    });
+
+    test('menjalankan catch-up otomatis saat login dan mengelola jadwal aktif/dijeda', () async {
+      expect(fakeRecRepo.processDueCalls, 1);
+
+      final item = RecurringModel(
+        id: '',
+        title: 'Langganan Musik',
+        amount: 55000,
+        categoryId: 'c16',
+        type: TransactionType.expense,
+        dompetId: 'w1',
+        frequency: RecurrenceFrequency.monthly,
+        intervalCount: 1,
+        startDate: DateTime(2026, 11, 1),
+        nextRunDate: DateTime(2026, 12, 1),
+      );
+
+      final added = await recProvider.addRecurring(item);
+      expect(recProvider.activeItems.length, 1);
+      expect(recProvider.inactiveItems, isEmpty);
+
+      await recProvider.toggleActive(added.id, false);
+      expect(recProvider.activeItems, isEmpty);
+      expect(recProvider.inactiveItems.length, 1);
+
+      await recProvider.deleteRecurring(added.id);
+      expect(recProvider.items, isEmpty);
+    });
+  });
+}
+
+class _NoopDompetRepository extends DompetRepository {
+  @override
+  Future<List<DompetItem>> getDompets(String uid) async => const [];
+}
+
+class _NoopTransactionRepository extends TransactionRepository {
+  @override
+  Future<List<TransactionModel>> getTransactions(String uid) async => const [];
+}
+
+class _FakeRecurringRepository extends RecurringRepository {
+  final List<RecurringModel> store = [];
+  int processDueCalls = 0;
+
+  @override
+  Future<List<RecurringModel>> getRecurringTemplates(String uid) async {
+    return List<RecurringModel>.from(store);
+  }
+
+  @override
+  Future<RecurringCatchUpResult> processDue(
+    String uid, {
+    DateTime? now,
+  }) async {
+    processDueCalls++;
+    return const RecurringCatchUpResult();
+  }
+
+  @override
+  Future<RecurringModel> addRecurring(String uid, RecurringModel item) async {
+    RecurringRepository.validateTemplate(item);
+    final saved = item.copyWith(id: 'rec_${store.length + 1}');
+    store.add(saved);
+    return saved;
+  }
+
+  @override
+  Future<RecurringModel> updateRecurring(
+    String uid,
+    RecurringModel item,
+  ) async {
+    RecurringRepository.validateTemplate(item);
+    final idx = store.indexWhere((r) => r.id == item.id);
+    if (idx != -1) store[idx] = item;
+    return item;
+  }
+
+  @override
+  Future<void> toggleActive(String uid, String id, bool isActive) async {
+    final idx = store.indexWhere((r) => r.id == id);
+    if (idx != -1) {
+      store[idx] = store[idx].copyWith(isActive: isActive);
+    }
+  }
+
+  @override
+  Future<void> deleteRecurring(String uid, String id) async {
+    store.removeWhere((r) => r.id == id);
+  }
 }
 
 class _FakeCategoryRepository extends CategoryRepository {
