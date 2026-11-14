@@ -30,10 +30,8 @@ class TransactionCard extends StatelessWidget {
             item.categoryId,
             fallbackType: item.type,
           );
-    final Color iconBgColor = cat.isCustom
-        ? cat.color.withValues(alpha: 0.18)
-        : lightGreen.withValues(alpha: 0.4);
-    final Color iconFgColor = cat.isCustom ? cat.color : primaryGreen;
+    final Color iconBgColor = cat.color.withValues(alpha: 0.18);
+    final Color iconFgColor = cat.color;
     // Piutang & Transfer keluar = uang keluar, Hutang & Pemasukan = uang masuk
     final bool isExpense = item.type == TransactionType.expense ||
         item.type == TransactionType.receivable ||
@@ -52,6 +50,34 @@ class TransactionCard extends StatelessWidget {
         : (isExpense ? Colors.red : primaryGreen);
 
     final bool canEdit = item.isEditable;
+    final bool hasRecurringBadge =
+        item.recurringId != null && item.recurringId!.isNotEmpty;
+
+    final bool isStandardIncomeOrExpense =
+        (item.type == TransactionType.income ||
+                item.type == TransactionType.expense) &&
+            !item.isBalanceAdjustment;
+
+    final String displayTitle;
+    String? displaySubtitle;
+
+    if (isStandardIncomeOrExpense) {
+      displayTitle = cat.name;
+      final trimmedNotes = item.notes.trim();
+      final trimmedTitle = item.title.trim();
+      if (trimmedNotes.isNotEmpty &&
+          trimmedNotes.toLowerCase() != cat.name.trim().toLowerCase()) {
+        displaySubtitle = trimmedNotes;
+      } else if (trimmedNotes.isEmpty &&
+          trimmedTitle.isNotEmpty &&
+          trimmedTitle.toLowerCase() != cat.name.trim().toLowerCase()) {
+        displaySubtitle = trimmedTitle;
+      }
+    } else {
+      displayTitle = item.title;
+      displaySubtitle =
+          item.notes.trim().isNotEmpty ? item.notes.trim() : cat.name;
+    }
 
     return CustomCard(
       backgroundColor: cardBg,
@@ -71,71 +97,54 @@ class TransactionCard extends StatelessWidget {
           const SizedBox(width: 12),
           Expanded(
             child: Column(
+              mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  item.title,
-                  style: const TextStyle(
-                    color: primaryGreen,
-                    fontSize: 14,
-                    fontFamily: 'Inter',
-                    fontWeight: FontWeight.w700,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const SizedBox(height: 2),
                 Row(
                   children: [
                     Flexible(
                       child: Text(
-                        item.notes.isNotEmpty ? item.notes : cat.name,
+                        displayTitle,
                         style: const TextStyle(
                           color: primaryGreen,
-                          fontSize: 12,
+                          fontSize: 14,
                           fontFamily: 'Inter',
-                          fontWeight: FontWeight.w500,
+                          fontWeight: FontWeight.w700,
                         ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
-                    if (item.recurringId != null &&
-                        item.recurringId!.isNotEmpty) ...[
+                    if (displaySubtitle == null && hasRecurringBadge) ...[
                       const SizedBox(width: 6),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 6,
-                          vertical: 1.5,
-                        ),
-                        decoration: BoxDecoration(
-                          color: primaryGreen.withValues(alpha: 0.12),
-                          borderRadius: BorderRadius.circular(100),
-                        ),
-                        child: const Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              Icons.autorenew_rounded,
-                              size: 10,
-                              color: primaryGreen,
-                            ),
-                            SizedBox(width: 2.5),
-                            Text(
-                              'Berulang',
-                              style: TextStyle(
-                                color: primaryGreen,
-                                fontSize: 9.5,
-                                fontFamily: 'Inter',
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
+                      const _RecurringBadge(),
                     ],
                   ],
                 ),
+                if (displaySubtitle != null) ...[
+                  const SizedBox(height: 2),
+                  Row(
+                    children: [
+                      Flexible(
+                        child: Text(
+                          displaySubtitle,
+                          style: const TextStyle(
+                            color: primaryGreen,
+                            fontSize: 12,
+                            fontFamily: 'Inter',
+                            fontWeight: FontWeight.w500,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      if (hasRecurringBadge) ...[
+                        const SizedBox(width: 6),
+                        const _RecurringBadge(),
+                      ],
+                    ],
+                  ),
+                ],
                 if (isLoan) ...[
                   const SizedBox(height: 4),
                   Wrap(
@@ -227,6 +236,41 @@ class TransactionCard extends StatelessWidget {
                 ),
               ),
             ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _RecurringBadge extends StatelessWidget {
+  const _RecurringBadge();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
+      decoration: BoxDecoration(
+        color: primaryGreen.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(100),
+      ),
+      child: const Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            Icons.autorenew_rounded,
+            size: 10,
+            color: primaryGreen,
+          ),
+          SizedBox(width: 2.5),
+          Text(
+            'Berulang',
+            style: TextStyle(
+              color: primaryGreen,
+              fontSize: 9.5,
+              fontFamily: 'Inter',
+              fontWeight: FontWeight.w700,
+            ),
           ),
         ],
       ),

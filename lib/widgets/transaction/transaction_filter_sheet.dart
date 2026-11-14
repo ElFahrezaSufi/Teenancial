@@ -207,6 +207,7 @@ class _TransactionFilterSheetState extends State<TransactionFilterSheet> {
     required bool selected,
     required VoidCallback onTap,
     IconData? icon,
+    Color? iconColor,
   }) {
     return GestureDetector(
       onTap: onTap,
@@ -228,7 +229,7 @@ class _TransactionFilterSheetState extends State<TransactionFilterSheet> {
               Icon(
                 icon,
                 size: 14,
-                color: selected ? Colors.white : primaryGreen,
+                color: selected ? Colors.white : (iconColor ?? primaryGreen),
               ),
               const SizedBox(width: 6),
             ],
@@ -445,6 +446,7 @@ class _TransactionFilterSheetState extends State<TransactionFilterSheet> {
                                   return _buildSelectableChip(
                                     label: cat.name,
                                     icon: cat.icon,
+                                    iconColor: cat.color,
                                     selected:
                                         _selectedCategoryIds.contains(cat.id),
                                     onTap: () => _toggleCategory(cat.id),

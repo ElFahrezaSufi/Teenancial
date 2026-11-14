@@ -126,17 +126,18 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
               fallbackType: widget.type,
             );
 
+      final trimmedNotes = _catatanController.text.trim();
       final transaction = TransactionModel(
         id: widget.transactionToEdit?.id ?? '',
-        title: _catatanController.text.isNotEmpty
-            ? _catatanController.text
+        title: (widget.transactionToEdit?.isBalanceAdjustment ?? false)
+            ? widget.transactionToEdit!.title
             : cat.name,
         amount: amount,
         date: DateHelper.withCurrentTime(
           _selectedTransactionDate,
           original: widget.transactionToEdit?.date,
         ),
-        notes: _catatanController.text,
+        notes: trimmedNotes,
         categoryId: categoryId,
         type: widget.type,
         dompetId: _selectedDompetId!,

@@ -556,6 +556,7 @@ class _CategoryFormSheetState extends State<_CategoryFormSheet> {
   late String _selectedIconKey;
   late int _selectedColorValue;
   bool _isSaving = false;
+  String? _errorMessage;
 
   bool get _isEdit => widget.categoryToEdit != null;
 
@@ -567,7 +568,11 @@ class _CategoryFormSheetState extends State<_CategoryFormSheet> {
     _selectedIconKey = editing?.iconKey ?? CategoryIcons.selectableKeys.first;
     _selectedColorValue = editing?.colorValue ?? CategoryIcons.palette.first;
     _nameController.addListener(() {
-      if (mounted) setState(() {});
+      if (mounted) {
+        setState(() {
+          _errorMessage = null;
+        });
+      }
     });
   }
 
@@ -579,7 +584,10 @@ class _CategoryFormSheetState extends State<_CategoryFormSheet> {
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
-    setState(() => _isSaving = true);
+    setState(() {
+      _isSaving = true;
+      _errorMessage = null;
+    });
 
     try {
       final categoryProvider = context.read<CategoryProvider>();
@@ -604,12 +612,9 @@ class _CategoryFormSheetState extends State<_CategoryFormSheet> {
       Navigator.of(context).pop(saved);
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(ErrorMapper.message(e)),
-          backgroundColor: Colors.redAccent,
-        ),
-      );
+      setState(() {
+        _errorMessage = ErrorMapper.message(e);
+      });
     } finally {
       if (mounted) setState(() => _isSaving = false);
     }
@@ -730,6 +735,43 @@ class _CategoryFormSheetState extends State<_CategoryFormSheet> {
                             return null;
                           },
                         ),
+                        if (_errorMessage != null) ...[
+                          Container(
+                            margin: const EdgeInsets.only(bottom: 14),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 10,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.red.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: Colors.redAccent.withValues(alpha: 0.5),
+                              ),
+                            ),
+                            child: Row(
+                              children: [
+                                const Icon(
+                                  Icons.error_outline_rounded,
+                                  color: Colors.redAccent,
+                                  size: 18,
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    _errorMessage!,
+                                    style: const TextStyle(
+                                      color: Colors.redAccent,
+                                      fontSize: 12,
+                                      fontFamily: 'Inter',
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
                         const Text(
                           'Pilih Warna',
                           style: TextStyle(

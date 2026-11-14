@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../data/category_catalog.dart';
 import '../../models/transaction_model.dart';
+import '../../providers/category_provider.dart';
 import '../../providers/contact_provider.dart';
 import '../../theme/app_colors.dart';
 import '../../utils/loan_helper.dart';
@@ -30,10 +31,13 @@ class LoanCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cat = CategoryCatalog.getById(
-      item.categoryId,
-      fallbackType: item.type,
-    );
+    final catProvider = Provider.of<CategoryProvider?>(context);
+    final cat = catProvider != null
+        ? catProvider.resolve(item.categoryId, fallbackType: item.type)
+        : CategoryCatalog.getById(
+            item.categoryId,
+            fallbackType: item.type,
+          );
     final bool isDebt = item.type == TransactionType.debt;
     final contact =
         context.watch<ContactProvider>().getContactById(item.contactId);
@@ -69,10 +73,10 @@ class LoanCard extends StatelessWidget {
                 width: 40,
                 height: 40,
                 decoration: BoxDecoration(
-                  color: lightGreen.withValues(alpha: 0.4),
+                  color: cat.color.withValues(alpha: 0.18),
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: Icon(cat.icon, color: primaryGreen, size: 22),
+                child: Icon(cat.icon, color: cat.color, size: 22),
               ),
               const SizedBox(width: 12),
               Expanded(

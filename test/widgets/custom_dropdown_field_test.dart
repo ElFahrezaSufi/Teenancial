@@ -7,7 +7,9 @@ import 'package:teenancial/providers/dompet_provider.dart';
 import 'package:teenancial/providers/transaction_provider.dart';
 import 'package:teenancial/repositories/dompet_repository.dart';
 import 'package:teenancial/repositories/transaction_repository.dart';
+import 'package:teenancial/utils/currency_formatter.dart';
 import 'package:teenancial/widgets/common/custom_dropdown_field.dart';
+import 'package:teenancial/widgets/transaction/transaction_card.dart';
 import 'package:teenancial/widgets/transaction/transaction_form_screen.dart';
 
 class _StubDompetRepository extends DompetRepository {
@@ -117,6 +119,64 @@ void main() {
         await tester.pump();
 
         expect(find.text('Rp 150.000'), findsOneWidget);
+      },
+    );
+  });
+
+  group('TransactionCard Widget Test (Opsi 2A & 3A)', () {
+    testWidgets(
+      'menampilkan 1 baris nama kategori jika tidak ada catatan, dan Kategori di atas + Catatan di bawah jika ada catatan',
+      (WidgetTester tester) async {
+        final txWithoutNote = TransactionModel(
+          id: 'tx1',
+          title: 'Hiburan',
+          amount: 50000,
+          date: DateTime(2026, 11, 14),
+          notes: '',
+          categoryId: 'c5', // Hiburan
+          type: TransactionType.expense,
+          dompetId: 'd1',
+        );
+
+        final txWithDuplicateOldNote = TransactionModel(
+          id: 'tx2',
+          title: 'Beli Kopi',
+          amount: 25000,
+          date: DateTime(2026, 11, 14),
+          notes: 'Beli Kopi',
+          categoryId: 'c3', // Makanan
+          type: TransactionType.expense,
+          dompetId: 'd1',
+        );
+
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: Column(
+                children: [
+                  TransactionCard(
+                    item: txWithoutNote,
+                    formatCurrency: Formatters.rupiah,
+                    onEdit: (_) {},
+                    onDelete: (_) {},
+                  ),
+                  TransactionCard(
+                    item: txWithDuplicateOldNote,
+                    formatCurrency: Formatters.rupiah,
+                    onEdit: (_) {},
+                    onDelete: (_) {},
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+
+        // txWithoutNote hanya menampilkan 'Hiburan' 1 kali (tidak kembar)
+        expect(find.text('Hiburan'), findsOneWidget);
+        // txWithDuplicateOldNote menampilkan 'Makanan' (di atas) dan 'Beli Kopi' 1 kali (di bawah)
+        expect(find.text('Makanan'), findsOneWidget);
+        expect(find.text('Beli Kopi'), findsOneWidget);
       },
     );
   });
