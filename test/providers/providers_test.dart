@@ -1,10 +1,14 @@
 import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:teenancial/data/category_icons.dart';
 import 'package:teenancial/models/belajar_model.dart';
 import 'package:teenancial/models/target_model.dart';
+import 'package:teenancial/models/transaction_model.dart';
 import 'package:teenancial/providers/belajar_provider.dart';
+import 'package:teenancial/providers/category_provider.dart';
 import 'package:teenancial/providers/target_provider.dart';
 import 'package:teenancial/repositories/belajar_repository.dart';
+import 'package:teenancial/repositories/category_repository.dart';
 import 'package:teenancial/repositories/target_repository.dart';
 
 class _FakeTargetRepository extends TargetRepository {
@@ -354,4 +358,190 @@ void main() {
       expect(provider.currentModule, isNull);
     });
   });
+
+  group('CategoryProvider & CategoryRepository Validation', () {
+    late _FakeCategoryRepository fakeCategoryRepo;
+    late CategoryProvider categoryProvider;
+
+    setUp(() async {
+      fakeCategoryRepo = _FakeCategoryRepository();
+      categoryProvider = CategoryProvider(repository: fakeCategoryRepo);
+      categoryProvider.updateUser('user_1');
+      await Future<void>.delayed(Duration.zero);
+    });
+
+    test('tambah, ubah, dan hapus kategori kustom pada berbagai jenis transaksi', () async {
+      final created = await categoryProvider.addCategory(
+        name: 'Kopi Kampus',
+        type: TransactionType.expense,
+        iconKey: 'drink',
+        colorValue: 0xFFE18151,
+      );
+
+      expect(created.name, 'Kopi Kampus');
+      expect(created.isCustom, isTrue);
+
+      final expenseCats = categoryProvider.categoriesFor(TransactionType.expense);
+      expect(expenseCats.last.id, 'c6'); // "Lainnya" tetap di paling bawah
+      expect(expenseCats[expenseCats.length - 2].id, created.id);
+      expect(categoryProvider.resolve(created.id).name, 'Kopi Kampus');
+
+      // Mendukung jenis transaksi lain (Opsi A: Transfer / Pinjaman)
+      final customTransfer = await categoryProvider.addCategory(
+        name: 'Arisan Kelas',
+        type: TransactionType.transfer,
+        iconKey: 'send',
+        colorValue: 0xFF2E7D6B,
+      );
+      expect(
+        categoryProvider.resolve(customTransfer.id).name,
+        'Arisan Kelas',
+      );
+
+      // Update nama & warna
+      await categoryProvider.updateCategory(
+        categoryId: created.id,
+        name: 'Nongkrong & Kopi',
+        type: TransactionType.expense,
+        iconKey: 'food',
+        colorValue: 0xFF5C6BC0,
+      );
+      expect(categoryProvider.resolve(created.id).name, 'Nongkrong & Kopi');
+
+      // Hapus kategori kustom -> resolve jatuh ke "Lainnya" (c6)
+      fakeCategoryRepo.mockUsageCount[created.id] = 3;
+      final reassigned = await categoryProvider.deleteCategory(
+        categoryId: created.id,
+        type: TransactionType.expense,
+      );
+      expect(reassigned, 3);
+      expect(
+        categoryProvider
+            .resolve(created.id, fallbackType: TransactionType.expense)
+            .id,
+        'c6',
+      );
+    });
+
+    test('validasi menolak nama kosong, terlalu panjang, atau duplikat bawaan/kustom', () async {
+      // Duplikat nama kategori bawaan (case-insensitive)
+      await expectLater(
+        () => categoryProvider.addCategory(
+          name: 'makanan',
+          type: TransactionType.expense,
+          iconKey: 'food',
+          colorValue: 0xFFE18151,
+        ),
+        throwsException,
+      );
+
+      // Nama lebih dari 20 karakter
+      await expectLater(
+        () => categoryProvider.addCategory(
+          name: 'Kategori Sangat Panjang Sekali',
+          type: TransactionType.expense,
+          iconKey: 'food',
+          colorValue: 0xFFE18151,
+        ),
+        throwsException,
+      );
+
+      await categoryProvider.addCategory(
+        name: 'Skincare',
+        type: TransactionType.expense,
+        iconKey: 'shopping',
+        colorValue: 0xFFEC407A,
+      );
+
+      // Duplikat nama kategori kustom pada jenis yang sama
+      await expectLater(
+        () => categoryProvider.addCategory(
+          name: 'SKINCARE',
+          type: TransactionType.expense,
+          iconKey: 'shopping',
+          colorValue: 0xFFEC407A,
+        ),
+        throwsException,
+      );
+    });
+  });
+}
+
+class _FakeCategoryRepository extends CategoryRepository {
+  final List<CategoryModel> store = [];
+  final Map<String, int> mockUsageCount = {};
+
+  @override
+  Future<List<CategoryModel>> getCategories(String uid) async {
+    return List<CategoryModel>.from(store);
+  }
+
+  @override
+  Future<CategoryModel> addCategory({
+    required String uid,
+    required String name,
+    required TransactionType type,
+    required String iconKey,
+    required int colorValue,
+  }) async {
+    final validatedName = CategoryRepository.validateCategoryName(
+      name: name,
+      type: type,
+      existingCustom: store,
+    );
+    final created = CategoryModel(
+      id: 'cat_${store.length + 1}',
+      name: validatedName,
+      type: type,
+      icon: CategoryIcons.iconForKey(iconKey),
+      iconKey: iconKey,
+      colorValue: colorValue,
+      isCustom: true,
+      createdAt: DateTime(2026, 11, 14),
+    );
+    store.add(created);
+    return created;
+  }
+
+  @override
+  Future<CategoryModel> updateCategory({
+    required String uid,
+    required String categoryId,
+    required String name,
+    required TransactionType type,
+    required String iconKey,
+    required int colorValue,
+  }) async {
+    final idx = store.indexWhere((c) => c.id == categoryId);
+    if (idx == -1) throw Exception('Kategori tidak ditemukan');
+    final validatedName = CategoryRepository.validateCategoryName(
+      name: name,
+      type: type,
+      existingCustom: store,
+      editingCategoryId: categoryId,
+    );
+    final updated = store[idx].copyWith(
+      name: validatedName,
+      type: type,
+      iconKey: iconKey,
+      colorValue: colorValue,
+    );
+    store[idx] = updated;
+    return updated;
+  }
+
+  @override
+  Future<int> countUsages(String uid, String categoryId) async {
+    return mockUsageCount[categoryId] ?? 0;
+  }
+
+  @override
+  Future<int> deleteCategory({
+    required String uid,
+    required String categoryId,
+    required TransactionType type,
+  }) async {
+    store.removeWhere((c) => c.id == categoryId);
+    return mockUsageCount[categoryId] ?? 0;
+  }
 }

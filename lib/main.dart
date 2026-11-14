@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import 'firebase_options.dart';
 import 'providers/auth_provider.dart';
 import 'providers/belajar_provider.dart';
+import 'providers/category_provider.dart';
 import 'providers/contact_provider.dart';
 import 'providers/dompet_provider.dart';
 import 'providers/target_provider.dart';
@@ -43,6 +44,11 @@ void main() async {
           create: (_) => ContactProvider(),
           update: (_, auth, provider) =>
               (provider ?? ContactProvider())..updateUser(auth.activeUid),
+        ),
+        ChangeNotifierProxyProvider<AuthProvider, CategoryProvider>(
+          create: (_) => CategoryProvider(),
+          update: (_, auth, provider) =>
+              (provider ?? CategoryProvider())..updateUser(auth.activeUid),
         ),
         ChangeNotifierProxyProvider2<AuthProvider, DompetProvider,
             TransactionProvider>(
