@@ -1,5 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:teenancial/data/category_catalog.dart';
 import 'package:teenancial/models/transaction_model.dart';
+import 'package:teenancial/utils/currency_formatter.dart';
 import 'package:teenancial/utils/report_calculator.dart';
 
 void main() {
@@ -209,6 +211,75 @@ void main() {
         expect(points[3].expense, 250000);
         expect(points.last.month, DateTime(2026, 2, 1));
         expect(points.last.income, 400000);
+      },
+    );
+
+    test(
+      'generateInsight menampilkan 4 poin lengkap (kategori terbesar, rata-rata harian, rasio tabungan, dan tren bulan lalu) serta warna asli kategori',
+      () {
+        final txs = <TransactionModel>[
+          TransactionModel(
+            id: 'in1',
+            title: 'Uang Jajan',
+            amount: 500000,
+            date: DateTime(2026, 11, 2),
+            categoryId: 'c1',
+            type: TransactionType.income,
+            dompetId: 'w1',
+          ),
+          TransactionModel(
+            id: 'ex1',
+            title: 'Hiburan',
+            amount: 150000,
+            date: DateTime(2026, 11, 5),
+            categoryId: 'c5', // Hiburan
+            type: TransactionType.expense,
+            dompetId: 'w1',
+          ),
+          TransactionModel(
+            id: 'prev1',
+            title: 'Makanan Okt',
+            amount: 100000,
+            date: DateTime(2026, 10, 10),
+            categoryId: 'c3',
+            type: TransactionType.expense,
+            dompetId: 'w1',
+          ),
+        ];
+
+        final summary = ReportCalculator.calculateMonthlySummary(txs, nov2026);
+        final expBreakdown = ReportCalculator.calculateCategoryBreakdown(
+          txs,
+          nov2026,
+          ReportFlowType.expense,
+        );
+        final incBreakdown = ReportCalculator.calculateCategoryBreakdown(
+          txs,
+          nov2026,
+          ReportFlowType.income,
+        );
+
+        // Warna di breakdown mengikuti warna asli kategori bawaan c5 (Hiburan)
+        expect(
+          expBreakdown.fullItems.first.color,
+          CategoryCatalog.getById('c5').color,
+        );
+
+        final insight = ReportCalculator.generateInsight(
+          summary: summary,
+          expenseBreakdown: expBreakdown,
+          incomeBreakdown: incBreakdown,
+          formatCurrency: Formatters.rupiah,
+          now: DateTime(2026, 11, 15),
+        );
+
+        expect(insight.highlights.length, 4);
+        expect(insight.highlights[0], contains('Hiburan'));
+        expect(insight.highlights[1], contains('Rata-rata pengeluaran harian'));
+        expect(insight.highlights[1], contains('Rp 10.000')); // 150.000 / 15 hari
+        expect(insight.highlights[2], contains('Rasio tabungan'));
+        expect(insight.highlights[2], contains('70%')); // 350.000 / 500.000
+        expect(insight.highlights[3], contains('dibandingkan bulan lalu'));
       },
     );
   });

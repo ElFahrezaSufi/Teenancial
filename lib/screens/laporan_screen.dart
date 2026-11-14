@@ -369,14 +369,29 @@ class _LaporanScreenState extends State<LaporanScreen> {
               ),
               const SizedBox(width: 10),
               Expanded(
-                child: Text(
-                  insight.headline,
-                  style: const TextStyle(
-                    color: primaryGreen,
-                    fontSize: 14,
-                    fontFamily: 'Inter',
-                    fontWeight: FontWeight.w800,
-                  ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Wawasan Singkat',
+                      style: TextStyle(
+                        color: orangeText,
+                        fontSize: 11,
+                        fontFamily: 'Inter',
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    const SizedBox(height: 1),
+                    Text(
+                      insight.headline,
+                      style: const TextStyle(
+                        color: primaryGreen,
+                        fontSize: 14,
+                        fontFamily: 'Inter',
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],
@@ -670,7 +685,7 @@ class _LaporanScreenState extends State<LaporanScreen> {
                 ),
               ),
               const SizedBox(width: 8),
-              Icon(item.icon, size: 17, color: primaryGreen),
+              Icon(item.icon, size: 17, color: item.color),
               const SizedBox(width: 8),
               Expanded(
                 child: Row(

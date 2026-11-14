@@ -38,6 +38,26 @@ class MonthlyReportSummary {
     if (previousExpense <= 0) return null;
     return ((totalExpense - previousExpense) / previousExpense) * 100.0;
   }
+
+  /// Persentase rasio tabungan terhadap total pemasukan (`null` bila pemasukan Rp 0).
+  double? get savingsRatePercent {
+    if (totalIncome <= 0) return null;
+    return ((netCashflow / totalIncome) * 100.0).clamp(-999.0, 100.0);
+  }
+
+  /// Rata-rata pengeluaran per hari (dibagi jumlah hari berjalan jika bulan ini,
+  /// atau jumlah hari penuh dalam bulan tersebut jika bulan yang sudah lewat).
+  double dailyAverageExpense({DateTime? now}) {
+    if (totalExpense <= 0) return 0.0;
+    final ref = now ?? DateTime.now();
+    final int daysDivisor;
+    if (ref.year == month.year && ref.month == month.month) {
+      daysDivisor = ref.day < 1 ? 1 : ref.day;
+    } else {
+      daysDivisor = DateTime(month.year, month.month + 1, 0).day;
+    }
+    return totalExpense / daysDivisor;
+  }
 }
 
 class CategoryBreakdownItem {
@@ -118,19 +138,6 @@ class ReportCalculator {
   static const int maxPrimaryDonutSlices = 5;
   static const String groupedOtherCategoryId = '_grouped_other';
   static const String groupedOtherCategoryName = 'Kategori Lainnya';
-
-  static const List<Color> _builtInSlicePalette = [
-    Color(0xFF3E4F22), // Hijau Teenancial
-    Color(0xFFD96B27), // Oranye Terakota
-    Color(0xFF1F6E8C), // Biru Laut
-    Color(0xFF6C4AB6), // Ungu
-    Color(0xFF2E7D32), // Hijau Daun
-    Color(0xFFC62828), // Merah Bata
-    Color(0xFF00838F), // Teal
-    Color(0xFFAD1457), // Berry
-    Color(0xFF5D4037), // Cokelat
-    Color(0xFF455A64), // Abu Kebiruan
-  ];
 
   static const Color groupedOtherColor = Color(0xFF78909C);
 
@@ -300,9 +307,7 @@ class ReportCalculator {
     for (int i = 0; i < sortedEntries.length; i++) {
       final entry = sortedEntries[i];
       final cat = resolve(entry.key, fallbackType: entry.value.sampleType);
-      final Color itemColor = cat.isCustom
-          ? cat.color
-          : _builtInSlicePalette[i % _builtInSlicePalette.length];
+      final Color itemColor = cat.color;
       final double pct = (entry.value.amount / totalAmount) * 100.0;
 
       fullItems.add(
@@ -409,6 +414,7 @@ class ReportCalculator {
     required CategoryBreakdownResult expenseBreakdown,
     required CategoryBreakdownResult incomeBreakdown,
     required String Function(double) formatCurrency,
+    DateTime? now,
   }) {
     final periodTitle = monthTitle(summary.month);
 
@@ -423,6 +429,8 @@ class ReportCalculator {
           'totalIncome': 0.0,
           'totalExpense': 0.0,
           'netCashflow': 0.0,
+          'dailyAverageExpense': 0.0,
+          'savingsRatePercent': null,
           'topExpenseCategory': null,
           'topIncomeCategory': null,
         },
@@ -441,14 +449,44 @@ class ReportCalculator {
     }
 
     final List<String> highlights = [];
+    final double dailyAvg = summary.dailyAverageExpense(now: now);
+    final double? savingRate = summary.savingsRatePercent;
 
+    // 1. Kategori pengeluaran terbesar
     if (expenseBreakdown.fullItems.isNotEmpty) {
       final topExpense = expenseBreakdown.fullItems.first;
       highlights.add(
         'Pengeluaran terbesar ada pada kategori ${topExpense.categoryName} sebesar ${formatCurrency(topExpense.amount)} (${topExpense.percentage.toStringAsFixed(0)}% dari total pengeluaran).',
       );
+    } else {
+      highlights.add('Belum ada pengeluaran tercatat pada bulan ini.');
     }
 
+    // 2. Rata-rata pengeluaran harian
+    if (summary.totalExpense > 0) {
+      highlights.add(
+        'Rata-rata pengeluaran harian: ${formatCurrency(dailyAvg)} per hari.',
+      );
+    }
+
+    // 3. Rasio tabungan
+    if (savingRate != null) {
+      if (savingRate >= 0) {
+        highlights.add(
+          'Rasio tabungan: kamu menyisihkan ${savingRate.toStringAsFixed(0)}% dari pemasukan bulan ini (${formatCurrency(summary.netCashflow)}).',
+        );
+      } else {
+        highlights.add(
+          'Rasio tabungan: 0% (pengeluaran melebihi pemasukan sebesar ${formatCurrency(summary.netCashflow.abs())}).',
+        );
+      }
+    } else {
+      highlights.add(
+        'Rasio tabungan: belum dapat dihitung karena belum ada pemasukan tercatat bulan ini.',
+      );
+    }
+
+    // 4. Tren dibanding bulan lalu
     final expenseChange = summary.expenseChangePercent;
     if (expenseChange != null) {
       if (expenseChange > 5) {
@@ -464,20 +502,9 @@ class ReportCalculator {
           'Pengeluaran bulan ini relatif stabil dibandingkan bulan lalu (${formatCurrency(summary.previousExpense)}).',
         );
       }
-    } else if (summary.totalIncome > 0) {
-      final savingRate =
-          ((summary.netCashflow / summary.totalIncome) * 100.0).clamp(-100.0, 100.0);
-      if (savingRate > 0) {
-        highlights.add(
-          'Kamu menyisihkan ${savingRate.toStringAsFixed(0)}% dari pemasukan bulan ini.',
-        );
-      }
-    }
-
-    if (incomeBreakdown.fullItems.isNotEmpty && highlights.length < 3) {
-      final topIncome = incomeBreakdown.fullItems.first;
+    } else {
       highlights.add(
-        'Sumber pemasukan utama berasal dari ${topIncome.categoryName} (${formatCurrency(topIncome.amount)}).',
+        'Tren bulanan: belum ada data pengeluaran pada bulan sebelumnya sebagai pembanding.',
       );
     }
 
@@ -489,6 +516,8 @@ class ReportCalculator {
         'totalIncome': summary.totalIncome,
         'totalExpense': summary.totalExpense,
         'netCashflow': summary.netCashflow,
+        'dailyAverageExpense': dailyAvg,
+        'savingsRatePercent': savingRate,
         'expenseChangePercent': summary.expenseChangePercent,
         'incomeChangePercent': summary.incomeChangePercent,
         'topExpenseCategory': expenseBreakdown.fullItems.isNotEmpty
