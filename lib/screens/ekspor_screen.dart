@@ -17,6 +17,7 @@ import '../utils/csv_exporter.dart';
 import '../utils/currency_formatter.dart';
 import '../utils/date_helper.dart';
 import '../utils/error_mapper.dart';
+import '../utils/pdf_report_builder.dart';
 import '../utils/report_calculator.dart';
 import '../widgets/common/custom_app_bar.dart';
 import '../widgets/common/custom_card.dart';
@@ -205,10 +206,7 @@ class _EksporScreenState extends State<EksporScreen> {
       return (bytes: bytes, fileName: fileName, mimeType: 'text/csv');
     }
 
-    final pdfGen = EksporScreen.pdfGenerator;
-    if (pdfGen == null) {
-      throw Exception('Modul ekspor PDF belum siap');
-    }
+    final pdfGen = EksporScreen.pdfGenerator ?? PdfReportBuilder.generatePdfBytes;
     final bytes = await pdfGen(
       transactions: filteredTransactions,
       dompets: dompets,
