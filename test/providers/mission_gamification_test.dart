@@ -1,3 +1,4 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:teenancial/data/feen_catalog.dart';
@@ -11,10 +12,13 @@ import 'package:teenancial/providers/dompet_provider.dart';
 import 'package:teenancial/providers/mission_provider.dart';
 import 'package:teenancial/providers/transaction_provider.dart';
 import 'package:teenancial/providers/user_provider.dart';
+import 'package:teenancial/repositories/auth_repository.dart';
 import 'package:teenancial/repositories/dompet_repository.dart';
 import 'package:teenancial/repositories/transaction_repository.dart';
 import 'package:teenancial/repositories/user_repository.dart';
 import 'package:teenancial/screens/riwayat_screen.dart';
+import 'package:teenancial/services/notification_service.dart';
+import 'package:teenancial/utils/error_mapper.dart';
 
 class _FakeUserRepository extends UserRepository {
   UserModel profile;
@@ -412,6 +416,154 @@ void main() {
         expect(groups.length, 2);
         expect(groups.first.items.single.id, 'tx_new');
         expect(groups.last.items.single.id, 'tx_old');
+      },
+    );
+  });
+
+  group('NotificationService.buildDailyMissionReminderPlan', () {
+    test(
+      'sebelum pukul 20:00 dan belum selesai misi harian -> jadwalkan hari ini pukul 20:00 & tandai armedDate',
+      () {
+        final plan = NotificationService.buildDailyMissionReminderPlan(
+          now: DateTime(2026, 11, 15, 10, 30),
+          hasCompletedAnyDailyToday: false,
+        );
+
+        expect(plan.scheduledDate, DateTime(2026, 11, 15, 20));
+        expect(plan.shouldShowInstantNow, isFalse);
+        expect(plan.armedDateToRecord, '2026-11-15');
+        expect(plan.shouldClearArmedDate, isFalse);
+      },
+    );
+
+    test(
+      'sebelum pukul 20:00 tetapi misi harian hari ini sudah selesai -> skip hari ini ke besok 20:00',
+      () {
+        final plan = NotificationService.buildDailyMissionReminderPlan(
+          now: DateTime(2026, 11, 15, 14, 0),
+          hasCompletedAnyDailyToday: true,
+          armedDate: '2026-11-15',
+        );
+
+        expect(plan.scheduledDate, DateTime(2026, 11, 16, 20));
+        expect(plan.shouldShowInstantNow, isFalse);
+        expect(plan.shouldClearArmedDate, isTrue);
+      },
+    );
+
+    test(
+      'jendela 20:00-23:59 saat misi harian 0 & belum tercakup -> munculkan notif instan 1x dan jadwalkan besok 20:00',
+      () {
+        final plan = NotificationService.buildDailyMissionReminderPlan(
+          now: DateTime(2026, 11, 15, 21, 15),
+          hasCompletedAnyDailyToday: false,
+          lastRemindedDate: '2026-11-14',
+        );
+
+        expect(plan.scheduledDate, DateTime(2026, 11, 16, 20));
+        expect(plan.shouldShowInstantNow, isTrue);
+        expect(plan.lastRemindedDateToRecord, '2026-11-15');
+        expect(plan.shouldClearArmedDate, isTrue);
+      },
+    );
+
+    test(
+      'jendela 20:00-23:59 jika sudah diingatkan hari ini -> tidak memunculkan notif instan kedua kalinya',
+      () {
+        final plan = NotificationService.buildDailyMissionReminderPlan(
+          now: DateTime(2026, 11, 15, 22, 45),
+          hasCompletedAnyDailyToday: false,
+          lastRemindedDate: '2026-11-15',
+        );
+
+        expect(plan.scheduledDate, DateTime(2026, 11, 16, 20));
+        expect(plan.shouldShowInstantNow, isFalse);
+        expect(plan.lastRemindedDateToRecord, '2026-11-15');
+      },
+    );
+
+    test(
+      'jendela 20:00-23:59 jika alarm hari ini sudah dipasang sebelumnya atau notif masih aktif di tray -> cegah double notif',
+      () {
+        final coveredByArmed = NotificationService.buildDailyMissionReminderPlan(
+          now: DateTime(2026, 11, 15, 20, 30),
+          hasCompletedAnyDailyToday: false,
+          armedDate: '2026-11-15',
+        );
+        expect(coveredByArmed.shouldShowInstantNow, isFalse);
+        expect(coveredByArmed.lastRemindedDateToRecord, '2026-11-15');
+
+        final coveredByTray = NotificationService.buildDailyMissionReminderPlan(
+          now: DateTime(2026, 11, 15, 20, 30),
+          hasCompletedAnyDailyToday: false,
+          hasActiveDailyMissionNotification: true,
+        );
+        expect(coveredByTray.shouldShowInstantNow, isFalse);
+        expect(coveredByTray.lastRemindedDateToRecord, '2026-11-15');
+      },
+    );
+
+    test(
+      'jendela 20:00-23:59 jika misi harian sudah selesai -> tidak memunculkan notif instan',
+      () {
+        final plan = NotificationService.buildDailyMissionReminderPlan(
+          now: DateTime(2026, 11, 15, 21, 0),
+          hasCompletedAnyDailyToday: true,
+        );
+
+        expect(plan.scheduledDate, DateTime(2026, 11, 16, 20));
+        expect(plan.shouldShowInstantNow, isFalse);
+      },
+    );
+  });
+
+  group('AuthRepository.isMatchingGoogleEmail & ErrorMapper', () {
+    test('mencocokkan email secara case-insensitive dan whitespace-trimmed', () {
+      expect(
+        AuthRepository.isMatchingGoogleEmail(
+          'User.Satu@Gmail.com ',
+          ' user.satu@gmail.com',
+        ),
+        isTrue,
+      );
+      expect(
+        AuthRepository.isMatchingGoogleEmail(
+          'akun.a@gmail.com',
+          'akun.b@gmail.com',
+        ),
+        isFalse,
+      );
+      expect(
+        AuthRepository.isMatchingGoogleEmail(null, 'akun.b@gmail.com'),
+        isTrue,
+      );
+    });
+
+    test(
+      'ErrorMapper menerjemahkan error reautentikasi ke Bahasa Indonesia',
+      () {
+        expect(
+          ErrorMapper.message(FirebaseAuthException(code: 'user-mismatch')),
+          contains('Akun Google yang dipilih tidak cocok'),
+        );
+        expect(
+          ErrorMapper.message(
+            FirebaseAuthException(code: 'requires-recent-login'),
+          ),
+          contains('Demi keamanan'),
+        );
+        expect(
+          ErrorMapper.message(
+            FirebaseAuthException(code: 'popup-closed-by-user'),
+          ),
+          contains('dibatalkan'),
+        );
+        expect(
+          ErrorMapper.message(
+            FirebaseAuthException(code: 'cancelled-popup-request'),
+          ),
+          contains('dibatalkan'),
+        );
       },
     );
   });
