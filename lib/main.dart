@@ -108,6 +108,7 @@ class MyApp extends StatelessWidget {
     return MaterialApp.router(
       title: 'Teenancial',
       debugShowCheckedModeBanner: false,
+      scaffoldMessengerKey: rootScaffoldMessengerKey,
       locale: const Locale('id', 'ID'),
       supportedLocales: const [
         Locale('id', 'ID'),

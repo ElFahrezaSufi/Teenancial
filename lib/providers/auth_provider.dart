@@ -116,8 +116,8 @@ class AuthProvider extends ChangeNotifier {
   }
 
   Future<void> deleteAccount({String? password}) async {
-    await NotificationService.instance.cancelAll();
     await _repository.deleteAccount(password: password);
+    await NotificationService.instance.cancelAll();
   }
 
   Future<void> logout() async {

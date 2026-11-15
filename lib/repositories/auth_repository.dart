@@ -246,25 +246,20 @@ class AuthRepository {
       (info) => info.providerId == GoogleAuthProvider.PROVIDER_ID,
     );
 
-    if (password != null && password.isNotEmpty) {
-      await _reauthenticateUser(user, password: password);
-    }
-    await deleteUserFirestoreData(uid);
-
-    try {
-      await user.delete();
-    } on FirebaseAuthException catch (e) {
-      if (e.code == 'requires-recent-login') {
-        if (isGoogleUser) {
-          await _reauthenticateUser(user);
-          await user.delete();
-        } else {
-          rethrow;
-        }
-      } else {
-        rethrow;
+    if (isGoogleUser) {
+      await _reauthenticateUser(user);
+    } else {
+      if (password == null || password.trim().isEmpty) {
+        throw FirebaseAuthException(
+          code: 'requires-recent-login',
+          message: 'Password diperlukan untuk menghapus akun.',
+        );
       }
+      await _reauthenticateUser(user, password: password.trim());
     }
+
+    await deleteUserFirestoreData(uid);
+    await user.delete();
 
     if (!kIsWeb && (isGoogleUser || _googleInit != null)) {
       try {

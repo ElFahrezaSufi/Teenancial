@@ -1,6 +1,5 @@
 import 'dart:io';
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:firebase_auth/firebase_auth.dart' show FirebaseAuthException;
 import 'package:material_ui/material_ui.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
@@ -10,6 +9,7 @@ import '../models/user_model.dart';
 import '../providers/auth_provider.dart';
 import '../providers/mission_provider.dart';
 import '../providers/user_provider.dart';
+import '../routes/app_router.dart';
 import '../services/local_storage_service.dart';
 import '../services/notification_service.dart';
 import '../theme/app_colors.dart';
@@ -353,8 +353,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<String?> _promptPasswordForReauth() async {
-    final controller = TextEditingController();
+    String typedPassword = '';
     bool obscure = true;
+    String? errorText;
 
     final result = await showDialog<String>(
       context: context,
@@ -387,15 +388,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
               const SizedBox(height: 12),
               TextField(
-                controller: controller,
                 obscureText: obscure,
+                autofocus: true,
+                onChanged: (val) {
+                  typedPassword = val;
+                  if (errorText != null && val.trim().isNotEmpty) {
+                    setDialogState(() => errorText = null);
+                  }
+                },
                 style: const TextStyle(
                   color: primaryGreen,
                   fontFamily: 'Inter',
                   fontWeight: FontWeight.w600,
                 ),
                 decoration: InputDecoration(
-                  hintText: 'Password',
+                  hintText: 'Masukkan password akunmu',
+                  errorText: errorText,
                   filled: true,
                   fillColor: Colors.white,
                   contentPadding:
@@ -437,7 +445,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   borderRadius: BorderRadius.circular(100),
                 ),
               ),
-              onPressed: () => Navigator.of(ctx).pop(controller.text),
+              onPressed: () {
+                if (typedPassword.trim().isEmpty) {
+                  setDialogState(
+                    () => errorText = 'Password wajib diisi',
+                  );
+                  return;
+                }
+                Navigator.of(ctx).pop(typedPassword.trim());
+              },
               child: const Text(
                 'Hapus Permanen',
                 style: TextStyle(
@@ -450,12 +466,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
         ),
       ),
     );
-    controller.dispose();
     return result;
   }
 
   Future<void> _handleDeleteAccount() async {
     if (_isSaving || _isDeletingAccount) return;
+
+    final authProvider = context.read<AuthProvider>();
+    final isGoogleUser = authProvider.isGoogleSignInUser;
 
     final confirm = await showDialog<bool>(
       context: context,
@@ -502,9 +520,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
             ),
             onPressed: () => Navigator.of(ctx).pop(true),
-            child: const Text(
-              'Ya, Hapus',
-              style: TextStyle(
+            child: Text(
+              isGoogleUser ? 'Ya, Hapus' : 'Lanjutkan',
+              style: const TextStyle(
                 fontFamily: 'Inter',
                 fontWeight: FontWeight.w700,
               ),
@@ -515,31 +533,35 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
     if (confirm != true || !mounted) return;
 
+    String? password;
+    if (!isGoogleUser) {
+      password = await _promptPasswordForReauth();
+      if (password == null || password.isEmpty || !mounted) {
+        return;
+      }
+    }
+
     setState(() => _isDeletingAccount = true);
 
     try {
       await LocalStorageService.instance.setHasSeenGetStarted(true);
       if (!mounted) return;
-      final authProvider = context.read<AuthProvider>();
+      await authProvider.deleteAccount(password: password);
 
-      try {
-        await authProvider.deleteAccount();
-      } on FirebaseAuthException catch (e) {
-        if (e.code == 'requires-recent-login' &&
-            !authProvider.isGoogleSignInUser &&
-            mounted) {
-          final password = await _promptPasswordForReauth();
-          if (password == null || password.isEmpty) {
-            return;
-          }
-          await authProvider.deleteAccount(password: password);
-        } else {
-          rethrow;
-        }
+      if (mounted) {
+        context.go(AppRoutes.login);
       }
-
-      if (!mounted) return;
-      context.go(AppRoutes.login);
+      rootScaffoldMessengerKey.currentState
+        ?..hideCurrentSnackBar()
+        ..showSnackBar(
+          const SnackBar(
+            content: Text(
+              '✅ Akun beserta seluruh data kamu telah berhasil dihapus secara permanen.',
+            ),
+            backgroundColor: primaryGreen,
+            duration: Duration(seconds: 4),
+          ),
+        );
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
