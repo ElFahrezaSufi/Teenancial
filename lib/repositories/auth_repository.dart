@@ -6,6 +6,11 @@ import '../models/dompet_model.dart';
 import '../models/user_model.dart';
 import '../services/firestore_service.dart';
 
+/// Dilempar ketika pengguna membatalkan proses re-autentikasi Google.
+class ReauthCanceledException implements Exception {
+  const ReauthCanceledException();
+}
+
 class AuthRepository {
   final FirebaseAuth? _firebaseAuth;
   final FirestoreService _firestoreService;
@@ -205,24 +210,120 @@ class AuthRepository {
     await _firestoreService.userDoc(uid).delete();
   }
 
-  Future<void> _reauthenticateUser(User user, {String? password}) async {
-    final isGoogleUser = user.providerData.any(
+  bool _isGoogleAccount(User user) {
+    return user.providerData.any(
       (info) => info.providerId == GoogleAuthProvider.PROVIDER_ID,
     );
+  }
 
-    if (isGoogleUser) {
+  /// Memvalidasi kecocokan email akun Google yang dipilih saat reautentikasi
+  /// terhadap email akun Firebase yang sedang login (case-insensitive).
+  @visibleForTesting
+  static bool isMatchingGoogleEmail(
+    String? expectedEmail,
+    String? pickedEmail,
+  ) {
+    final expected = expectedEmail?.trim().toLowerCase();
+    final picked = pickedEmail?.trim().toLowerCase();
+    if (expected == null ||
+        expected.isEmpty ||
+        picked == null ||
+        picked.isEmpty) {
+      return true;
+    }
+    return expected == picked;
+  }
+
+  /// Mengecek apakah sesi autentikasi Firebase masih baru (< 2 menit berdasar
+  /// timestamp server pada ID token) sehingga penghapusan akun dapat langsung
+  /// dilakukan tanpa memaksa picker akun Google ulang.
+  Future<bool> _hasRecentAuthSession(User user) async {
+    try {
+      final tokenResult = await user.getIdTokenResult(true);
+      final authTime = tokenResult.authTime;
+      final issuedAt = tokenResult.issuedAtTime;
+      if (authTime == null || issuedAt == null) return false;
+      final elapsed = issuedAt.difference(authTime);
+      return !elapsed.isNegative && elapsed < const Duration(minutes: 2);
+    } catch (_) {
+      return false;
+    }
+  }
+
+  Future<void> _clearGoogleCredentialSelection() async {
+    if (kIsWeb) return;
+    try {
+      await _ensureGoogleInitialized();
+      await GoogleSignIn.instance.signOut();
+    } catch (_) {}
+  }
+
+  Future<void> _reauthenticateUser(User user, {String? password}) async {
+    if (_isGoogleAccount(user)) {
       if (kIsWeb) {
-        await user.reauthenticateWithPopup(GoogleAuthProvider());
-      } else {
-        await _ensureGoogleInitialized();
-        final googleUser = await GoogleSignIn.instance.authenticate();
-        final googleAuth = googleUser.authentication;
-        if (googleAuth.idToken == null) {
-          throw Exception('Verifikasi Google gagal.');
+        try {
+          await user.reauthenticateWithPopup(GoogleAuthProvider());
+        } on FirebaseAuthException catch (e) {
+          if (e.code == 'popup-closed-by-user' ||
+              e.code == 'cancelled-popup-request') {
+            throw const ReauthCanceledException();
+          }
+          rethrow;
         }
-        final cred = GoogleAuthProvider.credential(idToken: googleAuth.idToken);
-        await user.reauthenticateWithCredential(cred);
+        return;
       }
+
+      await _ensureGoogleInitialized();
+      GoogleSignInAccount? googleUser;
+
+      // Utamakan verifikasi ringan tanpa memunculkan modal pemilih akun bila
+      // hanya ada satu akun Google yang sudah terotorisasi.
+      try {
+        final attempt = GoogleSignIn.instance.attemptLightweightAuthentication(
+          reportAllExceptions: true,
+        );
+        if (attempt != null) {
+          googleUser = await attempt;
+        }
+      } on GoogleSignInException catch (e) {
+        if (e.code == GoogleSignInExceptionCode.canceled) {
+          throw const ReauthCanceledException();
+        }
+        googleUser = null;
+      }
+
+      if (googleUser != null &&
+          !isMatchingGoogleEmail(user.email, googleUser.email)) {
+        await _clearGoogleCredentialSelection();
+        googleUser = null;
+      }
+
+      if (googleUser == null) {
+        try {
+          googleUser = await GoogleSignIn.instance.authenticate();
+        } on GoogleSignInException catch (e) {
+          if (e.code == GoogleSignInExceptionCode.canceled) {
+            throw const ReauthCanceledException();
+          }
+          rethrow;
+        }
+      }
+
+      if (!isMatchingGoogleEmail(user.email, googleUser.email)) {
+        await _clearGoogleCredentialSelection();
+        throw FirebaseAuthException(
+          code: 'user-mismatch',
+          message:
+              'Akun Google yang dipilih tidak sesuai dengan akun yang sedang login.',
+        );
+      }
+
+      final googleAuth = googleUser.authentication;
+      if (googleAuth.idToken == null) {
+        throw Exception('Verifikasi Google gagal.');
+      }
+      final cred = GoogleAuthProvider.credential(idToken: googleAuth.idToken);
+      await user.reauthenticateWithCredential(cred);
       return;
     }
 
@@ -242,12 +343,13 @@ class AuthRepository {
     }
 
     final uid = user.uid;
-    final bool isGoogleUser = user.providerData.any(
-      (info) => info.providerId == GoogleAuthProvider.PROVIDER_ID,
-    );
+    final bool isGoogleUser = _isGoogleAccount(user);
 
     if (isGoogleUser) {
-      await _reauthenticateUser(user);
+      final hasRecentAuth = await _hasRecentAuthSession(user);
+      if (!hasRecentAuth) {
+        await _reauthenticateUser(user);
+      }
     } else {
       if (password == null || password.trim().isEmpty) {
         throw FirebaseAuthException(
@@ -262,10 +364,7 @@ class AuthRepository {
     await user.delete();
 
     if (!kIsWeb && (isGoogleUser || _googleInit != null)) {
-      try {
-        await _ensureGoogleInitialized();
-        await GoogleSignIn.instance.signOut();
-      } catch (_) {}
+      await _clearGoogleCredentialSelection();
     }
   }
 

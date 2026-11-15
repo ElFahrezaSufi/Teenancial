@@ -5,6 +5,8 @@ import '../repositories/auth_repository.dart';
 import '../services/local_storage_service.dart';
 import '../services/notification_service.dart';
 
+export '../repositories/auth_repository.dart' show ReauthCanceledException;
+
 class AuthProvider extends ChangeNotifier {
   static final ValueNotifier<bool> _bootstrapNotifier =
       ValueNotifier<bool>(false);

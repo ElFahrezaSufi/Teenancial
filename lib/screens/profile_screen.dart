@@ -562,6 +562,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
             duration: Duration(seconds: 4),
           ),
         );
+    } on ReauthCanceledException {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Verifikasi akun Google dibatalkan. Akun tidak dihapus.',
+            ),
+            backgroundColor: primaryGreen,
+          ),
+        );
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
