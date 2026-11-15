@@ -160,9 +160,33 @@ class BelajarProvider extends ChangeNotifier {
   Future<void> _fetchProgress(String targetUid) async {
     final progress = await _repository.getProgress(targetUid);
     if (_uid != targetUid) return;
-    _completedModules = Set<String>.from(progress.completedModules);
-    _completedQuizzes = Set<String>.from(progress.completedQuizzes);
+    final validModuleIds = <String>{
+      for (final level in _baseLevels)
+        for (final mod in level.modules) mod.id,
+    };
+    final rawModules = Set<String>.from(progress.completedModules);
+    final rawQuizzes = Set<String>.from(progress.completedQuizzes);
+
+    if (validModuleIds.isNotEmpty) {
+      _completedModules = rawModules.intersection(validModuleIds);
+      _completedQuizzes = rawQuizzes.intersection(validModuleIds);
+      if (_completedModules.length != rawModules.length ||
+          _completedQuizzes.length != rawQuizzes.length) {
+        unawaited(_persistProgress());
+      }
+    } else {
+      _completedModules = rawModules;
+      _completedQuizzes = rawQuizzes;
+    }
     _recomputeLocks();
+    if (validModuleIds.isNotEmpty && _missionProvider != null) {
+      unawaited(
+        _missionProvider!.syncOneTimeLearningProgress(
+          completedModulesCount: _completedModules.length,
+          completedQuizzesCount: _completedQuizzes.length,
+        ),
+      );
+    }
   }
 
   // Aksi user
@@ -189,9 +213,17 @@ class BelajarProvider extends ChangeNotifier {
     _recomputeLocks();
     notifyListeners();
     await _persistProgress();
-    if (isFirstTime && _missionProvider != null) {
+    if (_missionProvider != null) {
+      if (isFirstTime) {
+        unawaited(
+          _missionProvider!.recordTrigger(MissionTrigger.completeModule),
+        );
+      }
       unawaited(
-        _missionProvider!.recordTrigger(MissionTrigger.completeModule),
+        _missionProvider!.syncOneTimeLearningProgress(
+          completedModulesCount: _completedModules.length,
+          completedQuizzesCount: _completedQuizzes.length,
+        ),
       );
     }
   }
@@ -226,6 +258,12 @@ class BelajarProvider extends ChangeNotifier {
           _missionProvider!.recordTrigger(MissionTrigger.passQuiz),
         );
       }
+      unawaited(
+        _missionProvider!.syncOneTimeLearningProgress(
+          completedModulesCount: _completedModules.length,
+          completedQuizzesCount: _completedQuizzes.length,
+        ),
+      );
     }
     return true;
   }

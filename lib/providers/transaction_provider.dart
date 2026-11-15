@@ -133,8 +133,23 @@ class TransactionProvider extends ChangeNotifier {
         _lastDebtAt = DateTime.now();
       }
       if (_missionProvider != null) {
+        if (transaction.type == TransactionType.income ||
+            transaction.type == TransactionType.expense) {
+          unawaited(
+            _missionProvider!.recordTrigger(MissionTrigger.addIncomeExpense),
+          );
+        }
         unawaited(
           _missionProvider!.recordTrigger(MissionTrigger.addTransaction),
+        );
+      }
+      if (transaction.type == TransactionType.income ||
+          transaction.type == TransactionType.expense ||
+          transaction.type == TransactionType.transfer) {
+        unawaited(
+          NotificationService.instance.showTransactionSavedNotification(
+            transaction,
+          ),
         );
       }
     }
@@ -165,8 +180,25 @@ class TransactionProvider extends ChangeNotifier {
     if (targetUid == null) {
       throw Exception('Sesi pengguna tidak ditemukan');
     }
+    final existingLoan = _transactions
+        .where((t) => t.id == transactionId)
+        .firstOrNull;
     await _repository.markAsPaid(targetUid, transactionId, dompetId);
     unawaited(NotificationService.instance.cancelLoanReminder(transactionId));
+    if (_missionProvider != null) {
+      unawaited(
+        _missionProvider!.recordTrigger(MissionTrigger.addTransaction),
+      );
+    }
+    if (existingLoan != null) {
+      unawaited(
+        NotificationService.instance.showLoanPaymentNotification(
+          loan: existingLoan,
+          paymentAmount: existingLoan.remainingAmount,
+          forceSettled: true,
+        ),
+      );
+    }
     await _refreshAfterMutation();
   }
 
@@ -178,7 +210,23 @@ class TransactionProvider extends ChangeNotifier {
     if (targetUid == null) {
       throw Exception('Sesi pengguna tidak ditemukan');
     }
+    final existingLoan = _transactions
+        .where((t) => t.id == transactionId)
+        .firstOrNull;
     await _repository.addLoanPayment(targetUid, transactionId, payment);
+    if (_missionProvider != null) {
+      unawaited(
+        _missionProvider!.recordTrigger(MissionTrigger.addTransaction),
+      );
+    }
+    if (existingLoan != null) {
+      unawaited(
+        NotificationService.instance.showLoanPaymentNotification(
+          loan: existingLoan,
+          paymentAmount: payment.amount,
+        ),
+      );
+    }
     await _refreshAfterMutation();
   }
 

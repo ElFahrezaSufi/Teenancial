@@ -1,14 +1,24 @@
+import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import '../data/mission_catalog.dart';
 import '../models/mission_model.dart';
+import '../services/notification_service.dart';
 import 'user_provider.dart';
 
 class MissionProvider extends ChangeNotifier {
-  final FirebaseFirestore _firestore;
+  final FirebaseFirestore? _firestore;
+  final Future<Map<String, dynamic>?> Function(String uid)? _loadDocOverride;
+  final Future<void> Function(String uid, Map<String, dynamic> data)?
+      _saveDocOverride;
 
-  MissionProvider({FirebaseFirestore? firestore})
-      : _firestore = firestore ?? FirebaseFirestore.instance;
+  MissionProvider({
+    FirebaseFirestore? firestore,
+    Future<Map<String, dynamic>?> Function(String uid)? onLoad,
+    Future<void> Function(String uid, Map<String, dynamic> data)? onSave,
+  })  : _firestore = firestore,
+        _loadDocOverride = onLoad,
+        _saveDocOverride = onSave;
 
   String? _uid;
   UserProvider? _userProvider;
@@ -19,9 +29,18 @@ class MissionProvider extends ChangeNotifier {
   Set<String> _claimedKeys = {};
   DateTime? _weeklyAnchor;
   DateTime? _monthlyAnchor;
+  int? _verifiedModulesCount;
+  int? _verifiedQuizzesCount;
 
   bool get isLoading => _isLoading;
   String? get claimingId => _claimingId;
+
+  bool get hasCompletedAnyDailyToday {
+    final dailyMissions = MissionCatalog.byPeriod(MissionPeriod.daily);
+    return dailyMissions.any(
+      (m) => statusOf(m) != MissionClaimStatus.inProgress,
+    );
+  }
 
   void bindDependencies(String? newUid, UserProvider userProvider) {
     _userProvider = userProvider;
@@ -32,6 +51,8 @@ class MissionProvider extends ChangeNotifier {
       _claimedKeys = {};
       _weeklyAnchor = null;
       _monthlyAnchor = null;
+      _verifiedModulesCount = null;
+      _verifiedQuizzesCount = null;
 
       if (newUid == null) {
         _isLoading = false;
@@ -53,7 +74,8 @@ class MissionProvider extends ChangeNotifier {
   }
 
   DocumentReference _docRef(String uid) {
-    return _firestore
+    final db = _firestore ?? FirebaseFirestore.instance;
+    return db
         .collection('users')
         .doc(uid)
         .collection('gamification')
@@ -160,10 +182,32 @@ class MissionProvider extends ChangeNotifier {
   String _claimKey(MissionItem mission) =>
       '${_periodKey(mission.period)}:${mission.id}';
 
-  bool _syncOneTimeFromProfile() {
+  int? _effectiveCompletedModulesCount() {
+    if (_verifiedModulesCount != null) return _verifiedModulesCount;
     final profile = _userProvider?.profile;
-    if (profile == null || profile.uid != _uid) return false;
+    if (profile != null && profile.uid == _uid) {
+      return profile.completedModules.length;
+    }
+    return null;
+  }
 
+  int? _effectiveCompletedQuizzesCount() {
+    if (_verifiedQuizzesCount != null) return _verifiedQuizzesCount;
+    final profile = _userProvider?.profile;
+    if (profile != null && profile.uid == _uid) {
+      return profile.completedQuizzes.length;
+    }
+    return null;
+  }
+
+  bool _syncOneTimeFromProfile() {
+    final modulesCount = _effectiveCompletedModulesCount();
+    final quizzesCount = _effectiveCompletedQuizzesCount();
+    if (modulesCount == null || quizzesCount == null) return false;
+    return _applyOneTimeLearningCounts(modulesCount, quizzesCount);
+  }
+
+  bool _applyOneTimeLearningCounts(int modulesCount, int quizzesCount) {
     bool changed = false;
     final moduleKey = _counterKey(
       MissionPeriod.oneTime,
@@ -174,43 +218,73 @@ class MissionProvider extends ChangeNotifier {
       MissionTrigger.passQuiz,
     );
 
-    final completedModulesCount = profile.completedModules.length;
-    if ((_counters[moduleKey] ?? 0) < completedModulesCount) {
-      _counters[moduleKey] = completedModulesCount;
+    if (_counters[moduleKey] != modulesCount) {
+      _counters[moduleKey] = modulesCount;
       changed = true;
     }
 
-    final completedQuizzesCount = profile.completedQuizzes.length;
-    if ((_counters[quizKey] ?? 0) < completedQuizzesCount) {
-      _counters[quizKey] = completedQuizzesCount;
+    if (_counters[quizKey] != quizzesCount) {
+      _counters[quizKey] = quizzesCount;
       changed = true;
+    }
+
+    for (final mission in MissionCatalog.byPeriod(MissionPeriod.oneTime)) {
+      late final int validProgress;
+      if (mission.trigger == MissionTrigger.completeModule) {
+        validProgress = modulesCount;
+      } else if (mission.trigger == MissionTrigger.passQuiz) {
+        validProgress = quizzesCount;
+      } else {
+        validProgress =
+            _counters[_counterKey(mission.period, mission.trigger)] ?? 0;
+      }
+
+      if (validProgress < mission.targetCount &&
+          _claimedKeys.remove(_claimKey(mission))) {
+        changed = true;
+      }
     }
 
     return changed;
   }
 
+  Future<void> syncOneTimeLearningProgress({
+    required int completedModulesCount,
+    required int completedQuizzesCount,
+  }) async {
+    _verifiedModulesCount = completedModulesCount;
+    _verifiedQuizzesCount = completedQuizzesCount;
+    if (_uid == null || _isLoading) return;
+    if (_applyOneTimeLearningCounts(
+      completedModulesCount,
+      completedQuizzesCount,
+    )) {
+      notifyListeners();
+      await _persist();
+    }
+  }
+
   int currentProgress(MissionItem mission) {
     int raw = _counters[_counterKey(mission.period, mission.trigger)] ?? 0;
     if (mission.period == MissionPeriod.oneTime) {
-      final profile = _userProvider?.profile;
-      if (profile != null && profile.uid == _uid) {
-        if (mission.trigger == MissionTrigger.completeModule &&
-            profile.completedModules.length > raw) {
-          raw = profile.completedModules.length;
-        } else if (mission.trigger == MissionTrigger.passQuiz &&
-            profile.completedQuizzes.length > raw) {
-          raw = profile.completedQuizzes.length;
-        }
+      if (mission.trigger == MissionTrigger.completeModule) {
+        final effective = _effectiveCompletedModulesCount();
+        if (effective != null) raw = effective;
+      } else if (mission.trigger == MissionTrigger.passQuiz) {
+        final effective = _effectiveCompletedQuizzesCount();
+        if (effective != null) raw = effective;
       }
     }
     return raw > mission.targetCount ? mission.targetCount : raw;
   }
 
   MissionClaimStatus statusOf(MissionItem mission) {
-    if (_claimedKeys.contains(_claimKey(mission))) {
+    final progress = currentProgress(mission);
+    if (_claimedKeys.contains(_claimKey(mission)) &&
+        progress >= mission.targetCount) {
       return MissionClaimStatus.claimed;
     }
-    if (currentProgress(mission) >= mission.targetCount) {
+    if (progress >= mission.targetCount) {
       return MissionClaimStatus.claimable;
     }
     return MissionClaimStatus.inProgress;
@@ -228,10 +302,15 @@ class MissionProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final snap = await _docRef(targetUid).get();
+      final Object? rawData;
+      if (_loadDocOverride != null) {
+        rawData = await _loadDocOverride(targetUid);
+      } else {
+        final snap = await _docRef(targetUid).get();
+        rawData = snap.data();
+      }
       if (_uid != targetUid) return;
 
-      final rawData = snap.data();
       final data = rawData is Map
           ? Map<String, dynamic>.from(rawData)
           : <String, dynamic>{};
@@ -257,6 +336,11 @@ class MissionProvider extends ChangeNotifier {
       if (anchorUpdated || keysPruned || profileSynced) {
         await _persist();
       }
+      unawaited(
+        NotificationService.instance.syncDailyMissionReminder(
+          hasCompletedAnyDailyToday: hasCompletedAnyDailyToday,
+        ),
+      );
     } catch (e) {
       debugPrint('Gagal memuat misi: $e');
     } finally {
@@ -272,13 +356,18 @@ class MissionProvider extends ChangeNotifier {
     if (targetUid == null) return;
     _ensureValidAnchors();
     try {
-      await _docRef(targetUid).set({
+      final payload = <String, dynamic>{
         'weeklyAnchor': _formatDate(_weeklyAnchor!),
         'monthlyAnchor': _formatDate(_monthlyAnchor!),
-        'counters': _counters,
+        'counters': Map<String, int>.from(_counters),
         'claimedKeys': _claimedKeys.toList(),
-        'updatedAt': FieldValue.serverTimestamp(),
-      });
+      };
+      if (_saveDocOverride != null) {
+        await _saveDocOverride(targetUid, payload);
+      } else {
+        payload['updatedAt'] = FieldValue.serverTimestamp();
+        await _docRef(targetUid).set(payload);
+      }
     } catch (e) {
       debugPrint('Gagal menyimpan progres misi: $e');
     }
@@ -291,10 +380,22 @@ class MissionProvider extends ChangeNotifier {
     _pruneExpiredKeys();
 
     for (final period in MissionPeriod.values) {
+      if (period == MissionPeriod.oneTime &&
+          ((trigger == MissionTrigger.completeModule &&
+                  _effectiveCompletedModulesCount() != null) ||
+              (trigger == MissionTrigger.passQuiz &&
+                  _effectiveCompletedQuizzesCount() != null))) {
+        continue;
+      }
       final key = _counterKey(period, trigger);
       _counters[key] = (_counters[key] ?? 0) + amount;
     }
     notifyListeners();
+    unawaited(
+      NotificationService.instance.syncDailyMissionReminder(
+        hasCompletedAnyDailyToday: hasCompletedAnyDailyToday,
+      ),
+    );
     await _persist();
   }
 
@@ -316,6 +417,11 @@ class MissionProvider extends ChangeNotifier {
       if (_userProvider != null) {
         await _userProvider!.addXp(mission.xpReward);
       }
+      unawaited(
+        NotificationService.instance.syncDailyMissionReminder(
+          hasCompletedAnyDailyToday: hasCompletedAnyDailyToday,
+        ),
+      );
       return true;
     } catch (e) {
       _claimedKeys.remove(_claimKey(mission));
