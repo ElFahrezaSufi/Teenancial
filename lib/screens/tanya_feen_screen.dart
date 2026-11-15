@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
-
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
+import '../config/app_routes.dart';
+import '../providers/user_provider.dart';
 import '../theme/app_colors.dart';
-
-
+import '../widgets/feen/feen_avatar.dart';
 
 class TanyaFeenScreen extends StatefulWidget {
   const TanyaFeenScreen({super.key});
@@ -15,7 +16,88 @@ class TanyaFeenScreen extends StatefulWidget {
 class _TanyaFeenScreenState extends State<TanyaFeenScreen> {
   final TextEditingController _chatController = TextEditingController();
 
+  static const List<String> _suggestions = [
+    'Cara mulai menabung',
+    'Apa itu dana darurat?',
+    'Tips atur uang jajan',
+  ];
+
+  @override
+  void dispose() {
+    _chatController.dispose();
+    super.dispose();
+  }
+
+  Widget _buildFeenMessage(UserProvider user, String text) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: [
+        FeenAvatar(level: user.level, equipped: user.feenEquipped, size: 48),
+        const SizedBox(width: 8),
+        Flexible(
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: BoxDecoration(
+              color: cardBg,
+              border: Border.all(color: primaryGreen, width: 1.5),
+              borderRadius: const BorderRadius.only(
+                topLeft: Radius.circular(18),
+                topRight: Radius.circular(18),
+                bottomRight: Radius.circular(18),
+                bottomLeft: Radius.circular(4),
+              ),
+            ),
+            child: Text(
+              text,
+              style: const TextStyle(
+                color: primaryGreen,
+                fontSize: 14,
+                fontFamily: 'Inter',
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSuggestionChips() {
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: [
+        for (final label in _suggestions)
+          GestureDetector(
+            onTap: () {
+              _chatController.text = label;
+              _chatController.selection =
+                  TextSelection.collapsed(offset: label.length);
+            },
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+              decoration: BoxDecoration(
+                color: inputBg,
+                borderRadius: BorderRadius.circular(100),
+                border: Border.all(color: primaryGreen, width: 1),
+              ),
+              child: Text(
+                label,
+                style: const TextStyle(
+                  color: primaryGreen,
+                  fontSize: 12,
+                  fontFamily: 'Inter',
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+
   void _showFeenMenu() {
+    final user = context.read<UserProvider>();
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
@@ -38,23 +120,45 @@ class _TanyaFeenScreenState extends State<TanyaFeenScreen> {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const SizedBox(height: 8),
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(24, 16, 24, 8),
+                      child: Row(
+                        children: [
+                          FeenAvatar(
+                            level: user.level,
+                            equipped: user.feenEquipped,
+                            size: 48,
+                          ),
+                          const SizedBox(width: 12),
+                          const Expanded(
+                            child: Text(
+                              'Mau lihat apa?',
+                              style: TextStyle(
+                                color: primaryGreen,
+                                fontSize: 18,
+                                fontFamily: 'Inter',
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const Divider(color: primaryGreen, height: 1, thickness: 1),
                     _buildMenuItem(
                       icon: Icons.history,
                       title: 'Riwayat',
                       subtitle: 'semua transaksi kamu',
                       onTap: () => Navigator.pop(context),
                     ),
-                    const Divider(
-                        color: primaryGreen, height: 1, thickness: 1),
+                    const Divider(color: primaryGreen, height: 1, thickness: 1),
                     _buildMenuItem(
                       icon: Icons.account_balance_wallet,
                       title: 'Dompet',
                       subtitle: 'Saldo tunai dan digital',
                       onTap: () => Navigator.pop(context),
                     ),
-                    const Divider(
-                        color: primaryGreen, height: 1, thickness: 1),
+                    const Divider(color: primaryGreen, height: 1, thickness: 1),
                     _buildMenuItem(
                       icon: Icons.track_changes,
                       title: 'Target menabung',
@@ -115,6 +219,8 @@ class _TanyaFeenScreenState extends State<TanyaFeenScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final user = context.watch<UserProvider>();
+
     return Scaffold(
       backgroundColor: scaffoldBg,
       //header
@@ -141,14 +247,44 @@ class _TanyaFeenScreenState extends State<TanyaFeenScreen> {
                     ),
                   ),
                 ),
-                const Center(
-                  child: Text(
-                    'Tanya Feen',
-                    style: TextStyle(
-                      color: primaryGreen,
-                      fontSize: 25,
-                      fontFamily: 'Inter',
-                      fontWeight: FontWeight.w700,
+                Center(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 56.0),
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          FeenAvatar(
+                            level: user.level,
+                            equipped: user.feenEquipped,
+                            size: 40,
+                          ),
+                          const SizedBox(width: 6),
+                          const Text(
+                            'Tanya Feen',
+                            maxLines: 1,
+                            style: TextStyle(
+                              color: primaryGreen,
+                              fontSize: 20,
+                              fontFamily: 'Inter',
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: Padding(
+                    padding: const EdgeInsets.only(right: 8.0),
+                    child: IconButton(
+                      tooltip: 'Lemari Feen',
+                      icon: const Icon(Icons.checkroom_rounded,
+                          color: primaryGreen, size: 26),
+                      onPressed: () => context.push(AppRoutes.feenWardrobe),
                     ),
                   ),
                 ),
@@ -180,7 +316,18 @@ class _TanyaFeenScreenState extends State<TanyaFeenScreen> {
               Expanded(
                 child: ListView(
                   padding: const EdgeInsets.all(24.0),
-                  children: [],
+                  children: [
+                    _buildFeenMessage(
+                      user,
+                      'Hai ${user.displayName}! Aku Feen, teman keuanganmu. '
+                      'Mau tanya apa soal uangmu hari ini?',
+                    ),
+                    const SizedBox(height: 16),
+                    Padding(
+                      padding: const EdgeInsets.only(left: 56),
+                      child: _buildSuggestionChips(),
+                    ),
+                  ],
                 ),
               ),
 

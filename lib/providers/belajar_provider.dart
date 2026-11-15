@@ -1,6 +1,9 @@
+import 'dart:async';
 import 'package:flutter/foundation.dart';
 import '../models/belajar_model.dart';
+import '../models/mission_model.dart';
 import '../repositories/belajar_repository.dart';
+import 'mission_provider.dart';
 
 class BelajarProvider extends ChangeNotifier {
   final BelajarRepository _repository;
@@ -9,6 +12,7 @@ class BelajarProvider extends ChangeNotifier {
       : _repository = repository ?? BelajarRepository();
 
   String? _uid;
+  MissionProvider? _missionProvider;
   List<LevelData> _baseLevels = const [];
   List<LevelData> _levels = const [];
   Set<String> _completedModules = {};
@@ -16,12 +20,20 @@ class BelajarProvider extends ChangeNotifier {
   Set<String> _expandedModules = {};
   bool _isLoading = false;
   String? _errorMessage;
+  DateTime? _lastLearnedAt;
 
   List<LevelData> get levels => List<LevelData>.unmodifiable(_levels);
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
+  bool get isRecentlyLearned =>
+      _lastLearnedAt != null &&
+      DateTime.now().difference(_lastLearnedAt!).inMinutes < 5;
+  bool get needsLearning => currentModule != null;
 
-  // ─── Current module untuk home screen ────────────────────────────────────────
+  void bindDependencies(String? newUid, MissionProvider missionProvider) {
+    _missionProvider = missionProvider;
+    updateUser(newUid);
+  }
 
   ({ModuleData module, LevelData level, double levelProgress})?
       get currentModule {
@@ -44,8 +56,7 @@ class BelajarProvider extends ChangeNotifier {
     return null;
   }
 
-  // ─── updateUser ──────────────────────────────────────────────────────────────
-
+  // updateUser
   void updateUser(String? newUid) {
     if (_uid == newUid) return;
     _uid = newUid;
@@ -53,6 +64,7 @@ class BelajarProvider extends ChangeNotifier {
     _completedQuizzes = {};
     _expandedModules = {};
     _errorMessage = null;
+    _lastLearnedAt = null;
 
     if (newUid == null) {
       _baseLevels = const [];
@@ -69,8 +81,7 @@ class BelajarProvider extends ChangeNotifier {
     });
   }
 
-  // ─── loadAll: fetch levels + modules dari Firestore ───────────────────────────
-
+  // loadAll: fetch levels + modules dari Firestore
   Future<void> loadAll({bool silent = false}) async {
     final targetUid = _uid;
     if (targetUid == null) return;
@@ -124,8 +135,7 @@ class BelajarProvider extends ChangeNotifier {
     }
   }
 
-  // ─── loadProgress: hanya refresh progres user ─────────────────────────────────
-
+  // loadProgress: hanya refresh progres user
   Future<void> loadProgress({bool silent = false}) async {
     final targetUid = _uid;
     if (targetUid == null) return;
@@ -155,8 +165,7 @@ class BelajarProvider extends ChangeNotifier {
     _recomputeLocks();
   }
 
-  // ─── Aksi user ────────────────────────────────────────────────────────────────
-
+  // Aksi user
   void toggleExpand(int levelIndex, int moduleIndex) {
     final mod = _moduleAt(levelIndex, moduleIndex);
     if (mod == null || mod.status == ModuleStatus.locked) return;
@@ -174,10 +183,17 @@ class BelajarProvider extends ChangeNotifier {
     final mod = _moduleAt(levelIndex, moduleIndex);
     if (mod == null || mod.status != ModuleStatus.available) return;
 
+    final isFirstTime = !_completedModules.contains(mod.id);
     _completedModules.add(mod.id);
+    _lastLearnedAt = DateTime.now();
     _recomputeLocks();
     notifyListeners();
     await _persistProgress();
+    if (isFirstTime && _missionProvider != null) {
+      unawaited(
+        _missionProvider!.recordTrigger(MissionTrigger.completeModule),
+      );
+    }
   }
 
   Future<bool> completeQuiz(
@@ -191,16 +207,30 @@ class BelajarProvider extends ChangeNotifier {
       return false;
     }
 
+    final wasModuleCompleted = _completedModules.contains(mod.id);
+    final wasQuizCompleted = _completedQuizzes.contains(mod.id);
     _completedModules.add(mod.id);
     _completedQuizzes.add(mod.id);
+    _lastLearnedAt = DateTime.now();
     _recomputeLocks();
     notifyListeners();
     await _persistProgress();
+    if (_missionProvider != null) {
+      if (!wasModuleCompleted) {
+        unawaited(
+          _missionProvider!.recordTrigger(MissionTrigger.completeModule),
+        );
+      }
+      if (!wasQuizCompleted) {
+        unawaited(
+          _missionProvider!.recordTrigger(MissionTrigger.passQuiz),
+        );
+      }
+    }
     return true;
   }
 
-  // ─── Helper ──────────────────────────────────────────────────────────────────
-
+  // Helper
   ModuleData? _moduleAt(int levelIndex, int moduleIndex) {
     if (levelIndex < 0 || levelIndex >= _levels.length) return null;
     final modules = _levels[levelIndex].modules;

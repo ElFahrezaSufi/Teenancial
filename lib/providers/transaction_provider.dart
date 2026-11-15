@@ -1,11 +1,13 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
 import '../data/category_catalog.dart';
+import '../models/mission_model.dart';
 import '../models/transaction_model.dart';
 import '../repositories/transaction_repository.dart';
 import '../services/notification_service.dart';
 import '../utils/error_mapper.dart';
 import 'dompet_provider.dart';
+import 'mission_provider.dart';
 
 class TransactionProvider extends ChangeNotifier {
   final TransactionRepository _repository;
@@ -15,14 +17,25 @@ class TransactionProvider extends ChangeNotifier {
 
   String? _uid;
   DompetProvider? _dompetProvider;
+  MissionProvider? _missionProvider;
   List<TransactionModel> _transactions = [];
   bool _isLoading = false;
   String? _errorMessage;
+  DateTime? _lastExpenseAt;
+  DateTime? _lastDebtAt;
 
   List<TransactionModel> get transactions =>
       List<TransactionModel>.unmodifiable(_transactions);
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
+
+  bool get isRecentlySpent =>
+      _lastExpenseAt != null &&
+      DateTime.now().difference(_lastExpenseAt!).inMinutes < 5;
+
+  bool get isRecentlyDebt =>
+      _lastDebtAt != null &&
+      DateTime.now().difference(_lastDebtAt!).inMinutes < 5;
 
   List<TransactionModel> get debts =>
       _transactions.where((t) => t.type == TransactionType.debt).toList();
@@ -34,8 +47,13 @@ class TransactionProvider extends ChangeNotifier {
   List<CategoryModel> getCategoriesByType(TransactionType type) =>
       CategoryCatalog.getByType(type);
 
-  void bindDependencies(String? newUid, DompetProvider dompetProvider) {
+  void bindDependencies(
+    String? newUid,
+    DompetProvider dompetProvider,
+    MissionProvider missionProvider,
+  ) {
     _dompetProvider = dompetProvider;
+    _missionProvider = missionProvider;
     updateUser(newUid);
   }
 
@@ -44,6 +62,8 @@ class TransactionProvider extends ChangeNotifier {
     _uid = newUid;
     _transactions = [];
     _errorMessage = null;
+    _lastExpenseAt = null;
+    _lastDebtAt = null;
 
     if (newUid == null) {
       _isLoading = false;
@@ -106,6 +126,16 @@ class TransactionProvider extends ChangeNotifier {
       throw Exception('Sesi pengguna tidak ditemukan');
     }
     await _repository.addTransaction(targetUid, transaction);
+    if (transaction.type == TransactionType.expense) {
+      _lastExpenseAt = DateTime.now();
+    } else if (transaction.type == TransactionType.debt) {
+      _lastDebtAt = DateTime.now();
+    }
+    if (_missionProvider != null) {
+      unawaited(
+        _missionProvider!.recordTrigger(MissionTrigger.addTransaction),
+      );
+    }
     await _refreshAfterMutation();
   }
 

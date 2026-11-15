@@ -1,9 +1,12 @@
+import 'dart:async';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
+import '../models/mission_model.dart';
 import '../models/target_model.dart';
 import '../repositories/target_repository.dart';
 import '../utils/currency_formatter.dart';
 import '../utils/error_mapper.dart';
+import 'mission_provider.dart';
 
 class TargetProvider extends ChangeNotifier {
   final TargetRepository _repository;
@@ -12,13 +15,23 @@ class TargetProvider extends ChangeNotifier {
       : _repository = repository ?? TargetRepository();
 
   String? _uid;
+  MissionProvider? _missionProvider;
   List<TargetItem> _items = [];
   bool _isLoading = false;
   String? _errorMessage;
+  DateTime? _lastSavedAt;
 
   List<TargetItem> get items => List<TargetItem>.unmodifiable(_items);
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
+  bool get isRecentlySaved =>
+      _lastSavedAt != null &&
+      DateTime.now().difference(_lastSavedAt!).inMinutes < 5;
+  bool get hasActiveSavingProgress {
+    final item = pinnedItem;
+    if (item == null) return false;
+    return item.savedAmount > 0 && item.savedAmount < item.targetAmount;
+  }
 
   TargetItem? get pinnedItem {
     for (final item in _items) {
@@ -27,14 +40,16 @@ class TargetProvider extends ChangeNotifier {
     return _items.isNotEmpty ? _items.first : null;
   }
 
-  /// Total dana yang sudah dialokasikan ke seluruh target menabung.
   double get totalAllocated =>
       _items.fold(0.0, (sum, item) => sum + item.savedAmount);
-
-  /// Sisa saldo dompet yang belum dialokasikan ke target mana pun.
   double availableToAllocate(double totalWalletBalance) {
     final remaining = totalWalletBalance - totalAllocated;
     return remaining > 0 ? remaining : 0.0;
+  }
+
+  void bindDependencies(String? newUid, MissionProvider missionProvider) {
+    _missionProvider = missionProvider;
+    updateUser(newUid);
   }
 
   void updateUser(String? newUid) {
@@ -42,6 +57,7 @@ class TargetProvider extends ChangeNotifier {
     _uid = newUid;
     _items = [];
     _errorMessage = null;
+    _lastSavedAt = null;
 
     if (newUid == null) {
       _isLoading = false;
@@ -122,6 +138,11 @@ class TargetProvider extends ChangeNotifier {
       isPinned: shouldAutoPin,
       deadline: deadline,
     );
+    if (_missionProvider != null) {
+      unawaited(
+        _missionProvider!.recordTrigger(MissionTrigger.createTarget),
+      );
+    }
     await loadTargets(silent: true);
     return created;
   }
@@ -193,8 +214,8 @@ class TargetProvider extends ChangeNotifier {
           'Nominal melebihi saldo bebas yang tersedia untuk dialokasikan.',
         );
       }
-      final remainingNeeded =
-          (target.targetAmount - target.savedAmount).clamp(0.0, double.infinity);
+      final remainingNeeded = (target.targetAmount - target.savedAmount)
+          .clamp(0.0, double.infinity);
       if (amountDelta > remainingNeeded + 0.0001) {
         throw Exception('Nominal melebihi sisa target yang dibutuhkan.');
       }
@@ -214,6 +235,14 @@ class TargetProvider extends ChangeNotifier {
       targetId: targetId,
       savedAmount: newSavedAmount,
     );
+    if (amountDelta > 0) {
+      _lastSavedAt = DateTime.now();
+      if (_missionProvider != null) {
+        unawaited(
+          _missionProvider!.recordTrigger(MissionTrigger.saveTarget),
+        );
+      }
+    }
     await loadTargets(silent: true);
   }
 

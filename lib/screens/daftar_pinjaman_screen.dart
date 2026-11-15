@@ -2,15 +2,18 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../config/app_routes.dart';
+import '../data/feen_catalog.dart';
 import '../models/transaction_model.dart';
 import '../providers/dompet_provider.dart';
 import '../providers/transaction_provider.dart';
+import '../providers/user_provider.dart';
 import '../theme/app_colors.dart';
 import '../utils/confirm_dialog.dart';
 import '../utils/currency_formatter.dart';
 import '../utils/error_mapper.dart';
 import '../widgets/common/async_state_view.dart';
 import '../widgets/common/custom_filter_chip.dart';
+import '../widgets/feen/feen_avatar.dart';
 import '../widgets/transaction/loan_card.dart';
 import '../widgets/transaction/loan_payment_dialog.dart';
 import '../widgets/transaction/loan_payment_history_sheet.dart';
@@ -26,7 +29,7 @@ class DaftarPinjamanScreen extends StatefulWidget {
 }
 
 class _DaftarPinjamanScreenState extends State<DaftarPinjamanScreen> {
-  int _selectedTab = 0; // 0 = Hutang Saya, 1 = Piutang Saya
+  int _selectedTab = 0;
   _LoanFilter _filter = _LoanFilter.unpaid;
   bool _isProcessing = false;
 
@@ -182,8 +185,7 @@ class _DaftarPinjamanScreenState extends State<DaftarPinjamanScreen> {
           child: Container(
             padding: const EdgeInsets.symmetric(vertical: 12),
             decoration: BoxDecoration(
-              color:
-                  isSelected ? const Color(0xFFF8FFE8) : Colors.transparent,
+              color: isSelected ? const Color(0xFFF8FFE8) : Colors.transparent,
               borderRadius: BorderRadius.circular(50),
               border: Border.all(
                 color: isSelected
@@ -207,29 +209,40 @@ class _DaftarPinjamanScreenState extends State<DaftarPinjamanScreen> {
     );
   }
 
-  Widget _buildSummary(TransactionProvider txProvider) {
+  Widget _buildSummary(TransactionProvider txProvider, UserProvider user) {
     final isDebt = _selectedTab == 0;
+    final outstanding = _totalOutstanding(txProvider);
+    final bool showAlertPose = isDebt && outstanding > 0;
+
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
         color: cardBg,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: primaryGreen, width: 1.5),
       ),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(
-            isDebt ? 'Total sisa hutang' : 'Total sisa piutang',
-            style: const TextStyle(
-              color: primaryGreen,
-              fontSize: 12,
-              fontFamily: 'Inter',
-              fontWeight: FontWeight.w600,
+          FeenAvatar(
+            level: user.level,
+            pose: showAlertPose ? FeenPose.alert : FeenPose.normal,
+            equipped: user.feenEquipped,
+            size: 48,
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              isDebt ? 'Total sisa hutang' : 'Total sisa piutang',
+              style: const TextStyle(
+                color: primaryGreen,
+                fontSize: 12,
+                fontFamily: 'Inter',
+                fontWeight: FontWeight.w600,
+              ),
             ),
           ),
           Text(
-            Formatters.rupiah(_totalOutstanding(txProvider)),
+            Formatters.rupiah(outstanding),
             style: const TextStyle(
               color: primaryGreen,
               fontSize: 16,
@@ -255,9 +268,8 @@ class _DaftarPinjamanScreenState extends State<DaftarPinjamanScreen> {
         message = 'Belum ada pinjaman yang berstatus lunas.';
         break;
       case _LoanFilter.all:
-        message = isDebt
-            ? 'Belum ada catatan hutang.'
-            : 'Belum ada catatan piutang.';
+        message =
+            isDebt ? 'Belum ada catatan hutang.' : 'Belum ada catatan piutang.';
         break;
     }
 
@@ -271,7 +283,7 @@ class _DaftarPinjamanScreenState extends State<DaftarPinjamanScreen> {
   @override
   Widget build(BuildContext context) {
     final txProvider = context.watch<TransactionProvider>();
-    // Watch DompetProvider too so settlement balances stay reactive
+    final user = context.watch<UserProvider>();
     context.watch<DompetProvider>();
     final loans = _visibleLoans(txProvider);
 
@@ -298,7 +310,7 @@ class _DaftarPinjamanScreenState extends State<DaftarPinjamanScreen> {
                 ),
               ),
               const SizedBox(height: 16),
-              _buildSummary(txProvider),
+              _buildSummary(txProvider, user),
               const SizedBox(height: 16),
               SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
@@ -307,8 +319,7 @@ class _DaftarPinjamanScreenState extends State<DaftarPinjamanScreen> {
                     CustomFilterChip(
                       label: 'Belum Lunas',
                       selected: _filter == _LoanFilter.unpaid,
-                      onTap: () =>
-                          setState(() => _filter = _LoanFilter.unpaid),
+                      onTap: () => setState(() => _filter = _LoanFilter.unpaid),
                     ),
                     const SizedBox(width: 8),
                     CustomFilterChip(
