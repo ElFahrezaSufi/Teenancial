@@ -1,5 +1,5 @@
 import 'dart:async';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
 import '../data/feen_catalog.dart';
 import '../data/mission_catalog.dart';
@@ -61,11 +61,11 @@ class _MisiScreenState extends State<MisiScreen> {
 
     if (diff.inDays >= 1) {
       final hours = diff.inHours % 24;
-      return 'Reset dalam ${diff.inDays} hari ${hours} jam';
+      return 'Reset dalam ${diff.inDays} hari $hours jam';
     }
     final hours = diff.inHours;
     final minutes = diff.inMinutes % 60;
-    return 'Reset dalam ${hours} jam ${minutes} menit';
+    return 'Reset dalam $hours jam $minutes menit';
   }
 
   Future<void> _handleClaim(MissionItem mission) async {

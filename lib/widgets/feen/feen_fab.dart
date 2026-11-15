@@ -1,6 +1,6 @@
 import 'dart:async';
 import 'dart:math' as math;
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
 import '../../data/feen_catalog.dart';
 import '../../providers/belajar_provider.dart';
@@ -129,7 +129,7 @@ class _FeenFabState extends State<FeenFab> with SingleTickerProviderStateMixin {
               decoration: BoxDecoration(
                 color: cardBg,
                 borderRadius: BorderRadius.circular(12),
-                border: Border.fromBorderSide(border),
+                border: const Border.fromBorderSide(border),
               ),
               child: Text(
                 text,
