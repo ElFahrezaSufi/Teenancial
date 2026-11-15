@@ -19,7 +19,7 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
   });
 
   @override
-  Size get preferredSize => const Size.fromHeight(80);
+  Size get preferredSize => const Size.fromHeight(72);
 
   @override
   Widget build(BuildContext context) {
@@ -43,7 +43,7 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
                     icon: Icon(
                       backIcon,
                       color: primaryGreen,
-                      size: 20,
+                      size: 19,
                     ),
                     onPressed: onBack ?? () => context.pop(),
                   ),
@@ -51,7 +51,9 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
               ),
             Center(
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 52.0),
+                padding: EdgeInsets.symmetric(
+                  horizontal: trailing != null ? 84.0 : 52.0,
+                ),
                 child: FittedBox(
                   fit: BoxFit.scaleDown,
                   child: Text(
@@ -59,7 +61,7 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
                     maxLines: 1,
                     style: const TextStyle(
                       color: primaryGreen,
-                      fontSize: 25,
+                      fontSize: 20,
                       fontFamily: 'Inter',
                       fontWeight: FontWeight.w700,
                     ),

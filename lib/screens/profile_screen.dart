@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:firebase_auth/firebase_auth.dart' show FirebaseAuthException;
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
@@ -7,12 +8,14 @@ import 'package:provider/provider.dart';
 import '../config/app_routes.dart';
 import '../models/user_model.dart';
 import '../providers/auth_provider.dart';
+import '../providers/mission_provider.dart';
 import '../providers/user_provider.dart';
 import '../services/local_storage_service.dart';
 import '../theme/app_colors.dart';
 import '../utils/error_mapper.dart';
 import '../widgets/common/custom_app_bar.dart';
 import '../widgets/common/custom_card.dart';
+import '../widgets/feen/feen_avatar.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -24,6 +27,8 @@ class ProfileScreen extends StatefulWidget {
 class _ProfileScreenState extends State<ProfileScreen> {
   bool _isEditing = false;
   bool _isSaving = false;
+  bool _isDeletingAccount = false;
+  bool _dailyReminder = true;
 
   File? _pendingImageFile;
   bool _removeExistingImage = false;
@@ -177,7 +182,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
       if (parsedAge == null || parsedAge < 10 || parsedAge > 100) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Umur harus berupa angka antara 10 hingga 100 tahun.'),
+            content:
+                Text('Umur harus berupa angka antara 10 hingga 100 tahun.'),
             backgroundColor: Colors.redAccent,
           ),
         );
@@ -257,7 +263,66 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<void> _handleLogout() async {
-    if (_isSaving) return;
+    if (_isSaving || _isDeletingAccount) return;
+
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: appBarBg,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text(
+          'Keluar Akun',
+          style: TextStyle(
+            color: primaryGreen,
+            fontFamily: 'Inter',
+            fontWeight: FontWeight.w800,
+            fontSize: 18,
+          ),
+        ),
+        content: Text(
+          'Apakah kamu yakin ingin keluar dari akun ini?',
+          style: TextStyle(
+            color: primaryGreen.withValues(alpha: 0.85),
+            fontFamily: 'Inter',
+            fontSize: 13,
+            height: 1.5,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: Text(
+              'Batal',
+              style: TextStyle(
+                color: primaryGreen.withValues(alpha: 0.7),
+                fontFamily: 'Inter',
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.redAccent,
+              foregroundColor: Colors.white,
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(100),
+              ),
+            ),
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text(
+              'Keluar',
+              style: TextStyle(
+                fontFamily: 'Inter',
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+    if (confirm != true || !mounted) return;
+
     setState(() => _isSaving = true);
     _pendingImageFile = null;
     _removeExistingImage = false;
@@ -285,6 +350,211 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
+  Future<String?> _promptPasswordForReauth() async {
+    final controller = TextEditingController();
+    bool obscure = true;
+
+    final result = await showDialog<String>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          backgroundColor: appBarBg,
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: const Text(
+            'Verifikasi Password',
+            style: TextStyle(
+              color: primaryGreen,
+              fontFamily: 'Inter',
+              fontWeight: FontWeight.w800,
+              fontSize: 18,
+            ),
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Demi keamanan, masukkan password akunmu untuk mengonfirmasi penghapusan permanen.',
+                style: TextStyle(
+                  color: primaryGreen.withValues(alpha: 0.85),
+                  fontFamily: 'Inter',
+                  fontSize: 13,
+                  height: 1.4,
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: controller,
+                obscureText: obscure,
+                style: const TextStyle(
+                  color: primaryGreen,
+                  fontFamily: 'Inter',
+                  fontWeight: FontWeight.w600,
+                ),
+                decoration: InputDecoration(
+                  hintText: 'Password',
+                  filled: true,
+                  fillColor: Colors.white,
+                  contentPadding:
+                      const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(14),
+                    borderSide: const BorderSide(color: primaryGreen),
+                  ),
+                  suffixIcon: IconButton(
+                    icon: Icon(
+                      obscure ? Icons.visibility_off : Icons.visibility,
+                      color: primaryGreen,
+                      size: 18,
+                    ),
+                    onPressed: () => setDialogState(() => obscure = !obscure),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(null),
+              child: Text(
+                'Batal',
+                style: TextStyle(
+                  color: primaryGreen.withValues(alpha: 0.7),
+                  fontFamily: 'Inter',
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.redAccent,
+                foregroundColor: Colors.white,
+                elevation: 0,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(100),
+                ),
+              ),
+              onPressed: () => Navigator.of(ctx).pop(controller.text),
+              child: const Text(
+                'Hapus Permanen',
+                style: TextStyle(
+                  fontFamily: 'Inter',
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+    controller.dispose();
+    return result;
+  }
+
+  Future<void> _handleDeleteAccount() async {
+    if (_isSaving || _isDeletingAccount) return;
+
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: appBarBg,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text(
+          'Hapus Akun Permanen?',
+          style: TextStyle(
+            color: Colors.redAccent,
+            fontFamily: 'Inter',
+            fontWeight: FontWeight.w800,
+            fontSize: 18,
+          ),
+        ),
+        content: Text(
+          'Semua data profil, dompet, transaksi, target menabung, dan progres Feen akan dihapus secara permanen dan tidak bisa dikembalikan.',
+          style: TextStyle(
+            color: primaryGreen.withValues(alpha: 0.85),
+            fontFamily: 'Inter',
+            fontSize: 13,
+            height: 1.5,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: Text(
+              'Batal',
+              style: TextStyle(
+                color: primaryGreen.withValues(alpha: 0.7),
+                fontFamily: 'Inter',
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.redAccent,
+              foregroundColor: Colors.white,
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(100),
+              ),
+            ),
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text(
+              'Ya, Hapus',
+              style: TextStyle(
+                fontFamily: 'Inter',
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+    if (confirm != true || !mounted) return;
+
+    setState(() => _isDeletingAccount = true);
+
+    try {
+      await LocalStorageService.instance.setHasSeenGetStarted(true);
+      if (!mounted) return;
+      final authProvider = context.read<AuthProvider>();
+
+      try {
+        await authProvider.deleteAccount();
+      } on FirebaseAuthException catch (e) {
+        if (e.code == 'requires-recent-login' &&
+            !authProvider.isGoogleSignInUser &&
+            mounted) {
+          final password = await _promptPasswordForReauth();
+          if (password == null || password.isEmpty) {
+            return;
+          }
+          await authProvider.deleteAccount(password: password);
+        } else {
+          rethrow;
+        }
+      }
+
+      if (!mounted) return;
+      context.go(AppRoutes.login);
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Gagal menghapus akun: ${ErrorMapper.message(e)}',
+          ),
+          backgroundColor: Colors.redAccent,
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isDeletingAccount = false);
+      }
+    }
+  }
+
   void _handleBackButton() {
     if (_isEditing) {
       final profile = context.read<UserProvider>().profile;
@@ -304,6 +574,47 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
+  void _showAboutDialog() {
+    showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: appBarBg,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text(
+          'Tentang Aplikasi',
+          style: TextStyle(
+            color: primaryGreen,
+            fontFamily: 'Inter',
+            fontWeight: FontWeight.w800,
+            fontSize: 18,
+          ),
+        ),
+        content: Text(
+          'Aplikasi pencatat keuangan harian, target menabung, dan edukasi literasi finansial bersama maskot Feen.\n\nVersi 1.0.0',
+          style: TextStyle(
+            color: primaryGreen.withValues(alpha: 0.85),
+            fontFamily: 'Inter',
+            fontSize: 13,
+            height: 1.5,
+          ),
+        ),
+        actions: [
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: primaryGreen,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(100),
+              ),
+            ),
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('Tutup'),
+          ),
+        ],
+      ),
+    );
+  }
+
   ImageProvider? _getAvatarImage(String? remoteUrl) {
     if (_pendingImageFile != null) {
       return FileImage(_pendingImageFile!);
@@ -317,6 +628,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   Widget build(BuildContext context) {
     final userProvider = context.watch<UserProvider>();
+    final missionProvider = context.watch<MissionProvider>();
     _syncControllersFromProfile(userProvider.profile);
 
     final remoteImageUrl = userProvider.profileImageUrl;
@@ -329,23 +641,32 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return Scaffold(
       backgroundColor: scaffoldBg,
       appBar: CustomAppBar(
-        title: 'Profil',
+        title: _isEditing ? 'Edit Profil' : 'Akun',
         backIcon: _isEditing ? Icons.close : Icons.arrow_back_ios,
         onBack: _handleBackButton,
         trailing: _isEditing
             ? Padding(
-                padding: const EdgeInsets.only(right: 24.0),
+                padding: const EdgeInsets.only(right: 20.0),
                 child: GestureDetector(
                   onTap: _isSaving ? null : _saveProfile,
-                  child: Text(
-                    _isSaving ? 'Menyimpan...' : 'Simpan',
-                    style: TextStyle(
-                      color: _isSaving ? Colors.grey : primaryGreen,
-                      fontSize: 15,
-                      fontFamily: 'Inter',
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
+                  child: _isSaving
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            color: primaryGreen,
+                            strokeWidth: 2.5,
+                          ),
+                        )
+                      : const Text(
+                          'Simpan',
+                          style: TextStyle(
+                            color: primaryGreen,
+                            fontSize: 15,
+                            fontFamily: 'Inter',
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
                 ),
               )
             : null,
@@ -365,147 +686,581 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
           SafeArea(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 40),
+              child: _isEditing
+                  ? _buildEditProfileForm(avatarImage, hasDisplayedPhoto)
+                  : _buildAccountHub(
+                      userProvider,
+                      missionProvider,
+                      avatarImage,
+                    ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAccountHub(
+    UserProvider userProvider,
+    MissionProvider missionProvider,
+    ImageProvider? avatarImage,
+  ) {
+    final profile = userProvider.profile;
+    final displayName = (profile != null && profile.name.isNotEmpty)
+        ? profile.name
+        : 'Pengguna';
+    final displayEmail =
+        (profile != null && profile.email.isNotEmpty) ? profile.email : '-';
+    final claimableCount = missionProvider.claimableCount;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        // 1. Kotak Profil Utama
+        CustomCard(
+          backgroundColor: cardBg,
+          borderRadius: 20,
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            children: [
+              Row(
                 children: [
-                  const SizedBox(height: 16),
-                  Center(
-                    child: Stack(
-                      alignment: Alignment.bottomRight,
+                  Container(
+                    width: 68,
+                    height: 68,
+                    decoration: BoxDecoration(
+                      color: inputBg,
+                      shape: BoxShape.circle,
+                      border: Border.all(color: primaryGreen, width: 2),
+                      image: avatarImage != null
+                          ? DecorationImage(
+                              image: avatarImage,
+                              fit: BoxFit.cover,
+                            )
+                          : null,
+                    ),
+                    child: avatarImage == null
+                        ? const Icon(
+                            Icons.person,
+                            color: primaryGreen,
+                            size: 38,
+                          )
+                        : null,
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
+                        Text(
+                          displayName,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: primaryGreen,
+                            fontSize: 17,
+                            fontFamily: 'Inter',
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          displayEmail,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: primaryGreen.withValues(alpha: 0.75),
+                            fontSize: 12,
+                            fontFamily: 'Inter',
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
                         Container(
-                          width: 100,
-                          height: 100,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 4,
+                          ),
                           decoration: BoxDecoration(
                             color: inputBg,
-                            shape: BoxShape.circle,
-                            border: Border.all(color: primaryGreen, width: 2),
-                            image: avatarImage != null
-                                ? DecorationImage(
-                                    image: avatarImage,
-                                    fit: BoxFit.cover,
-                                  )
-                                : null,
+                            borderRadius: BorderRadius.circular(100),
+                            border: Border.all(color: primaryGreen, width: 1),
                           ),
-                          child: avatarImage == null
-                              ? const Icon(
-                                  Icons.person,
-                                  color: primaryGreen,
-                                  size: 60,
-                                )
-                              : null,
-                        ),
-                        GestureDetector(
-                          onTap: _isEditing
-                              ? (hasDisplayedPhoto
-                                  ? () => setState(() {
-                                        _pendingImageFile = null;
-                                        _removeExistingImage = true;
-                                      })
-                                  : _changeProfilePicture)
-                              : _startEditing,
-                          child: Container(
-                            width: 32,
-                            height: 32,
-                            decoration: BoxDecoration(
-                              color: _isEditing
-                                  ? (hasDisplayedPhoto
-                                      ? Colors.redAccent
-                                      : const Color(0xFFDAB62C))
-                                  : primaryGreen,
-                              shape: BoxShape.circle,
-                              border: Border.all(color: scaffoldBg, width: 3),
-                            ),
-                            child: Icon(
-                              _isEditing
-                                  ? (hasDisplayedPhoto
-                                      ? Icons.delete_outline
-                                      : Icons.camera_alt)
-                                  : Icons.edit,
-                              color: Colors.white,
-                              size: 16,
+                          child: Text(
+                            'Level ${userProvider.level} • ${userProvider.xpIntoLevel}/${userProvider.xpNeededForNext} XP',
+                            style: const TextStyle(
+                              color: primaryGreen,
+                              fontSize: 11,
+                              fontFamily: 'Inter',
+                              fontWeight: FontWeight.w700,
                             ),
                           ),
                         ),
                       ],
                     ),
                   ),
-                  const SizedBox(height: 32),
-                  _EditableProfileField(
-                    label: 'Nama Lengkap',
-                    controller: _fullNameController,
-                    isEditing: _isEditing,
+                ],
+              ),
+              const SizedBox(height: 14),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: _startEditing,
+                  icon: const Icon(Icons.edit_outlined, size: 17),
+                  label: const Text(
+                    'Edit Profil',
+                    style: TextStyle(
+                      fontFamily: 'Inter',
+                      fontWeight: FontWeight.w700,
+                      fontSize: 13,
+                    ),
                   ),
-                  _EditableProfileField(
-                    label: 'Umur',
-                    controller: _ageController,
-                    isEditing: _isEditing,
-                    keyboardType: TextInputType.number,
-                    suffixIcon: _isEditing
-                        ? IconButton(
-                            tooltip: 'Pilih Tanggal Lahir',
-                            icon: const Icon(
-                              Icons.calendar_month_outlined,
-                              color: primaryGreen,
-                              size: 20,
-                            ),
-                            onPressed: _pickBirthDate,
-                          )
-                        : null,
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: primaryGreen,
+                    backgroundColor: inputBg,
+                    side: const BorderSide(color: primaryGreen, width: 1.5),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(100),
+                    ),
+                    padding: const EdgeInsets.symmetric(vertical: 10),
                   ),
-                  _EditableDropdownField(
-                    label: 'Jenis Kelamin',
-                    value: _selectedGender,
-                    items: const ['Laki-Laki', 'Perempuan'],
-                    isEditing: _isEditing,
-                    onChanged: (value) {
-                      setState(() {
-                        _selectedGender = value;
-                      });
-                    },
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 20),
+
+        // 2. Kotak Maskot & Misi
+        const _SectionLabel(title: 'Maskot & Gamifikasi'),
+        const SizedBox(height: 8),
+        GestureDetector(
+          onTap: () => context.push(AppRoutes.feenWardrobe),
+          child: CustomCard(
+            borderRadius: 20,
+            backgroundColor: inputBg,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            child: Row(
+              children: [
+                FeenAvatar(
+                  level: userProvider.level,
+                  equipped: userProvider.feenEquipped,
+                  size: 48,
+                ),
+                const SizedBox(width: 12),
+                const Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Lemari Feen',
+                        style: TextStyle(
+                          color: primaryGreen,
+                          fontSize: 15,
+                          fontFamily: 'Inter',
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                      SizedBox(height: 2),
+                      Text(
+                        'Ganti aksesoris & tampilan maskotmu',
+                        style: TextStyle(
+                          color: primaryGreen,
+                          fontSize: 12,
+                          fontFamily: 'Inter',
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
                   ),
-                  _EditableProfileField(
-                    label: 'Email',
-                    controller: _emailController,
-                    isEditing: false,
-                    keyboardType: TextInputType.emailAddress,
+                ),
+                const Icon(
+                  Icons.arrow_forward_ios,
+                  color: primaryGreen,
+                  size: 16,
+                ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 10),
+        GestureDetector(
+          onTap: () => context.push(AppRoutes.misi),
+          child: CustomCard(
+            borderRadius: 20,
+            backgroundColor: inputBg,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            child: Row(
+              children: [
+                Container(
+                  width: 48,
+                  height: 48,
+                  decoration: BoxDecoration(
+                    color: cardBg,
+                    shape: BoxShape.circle,
+                    border: Border.all(color: primaryGreen, width: 1.5),
                   ),
-                  const SizedBox(height: 24),
-                  GestureDetector(
-                    onTap: _isSaving ? null : _handleLogout,
-                    child: CustomCard(
-                      borderRadius: 100,
-                      backgroundColor: primaryGreen,
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      child: Center(
-                        child: _isSaving
-                            ? const SizedBox(
-                                width: 24,
-                                height: 24,
-                                child: CircularProgressIndicator(
-                                  color: inputBg,
-                                  strokeWidth: 2.5,
-                                ),
-                              )
-                            : const Text(
-                                'Keluar',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 16,
-                                  fontFamily: 'Inter',
-                                  fontWeight: FontWeight.w700,
-                                ),
-                              ),
+                  child: const Icon(
+                    Icons.emoji_events_rounded,
+                    color: Color(0xFFDAB62C),
+                    size: 26,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                const Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Misi & XP',
+                        style: TextStyle(
+                          color: primaryGreen,
+                          fontSize: 15,
+                          fontFamily: 'Inter',
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                      SizedBox(height: 2),
+                      Text(
+                        'Klaim hadiah XP harian, mingguan & bulanan',
+                        style: TextStyle(
+                          color: primaryGreen,
+                          fontSize: 12,
+                          fontFamily: 'Inter',
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                if (claimableCount > 0) ...[
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFDAB62C),
+                      borderRadius: BorderRadius.circular(100),
+                      border: Border.all(color: primaryGreen, width: 1),
+                    ),
+                    child: Text(
+                      '$claimableCount',
+                      style: const TextStyle(
+                        color: primaryGreen,
+                        fontSize: 11,
+                        fontFamily: 'Inter',
+                        fontWeight: FontWeight.w800,
                       ),
                     ),
                   ),
-                  const SizedBox(height: 32),
+                  const SizedBox(width: 8),
+                ],
+                const Icon(
+                  Icons.arrow_forward_ios,
+                  color: primaryGreen,
+                  size: 16,
+                ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 20),
+
+        // 3. Kotak Informasi & Pengaturan Akun
+        const _SectionLabel(title: 'Informasi & Pengaturan'),
+        const SizedBox(height: 8),
+        CustomCard(
+          backgroundColor: cardBg,
+          borderRadius: 20,
+          padding: const EdgeInsets.symmetric(vertical: 4),
+          child: Column(
+            children: [
+              _AccountMenuTile(
+                icon: Icons.notifications_none_rounded,
+                title: 'Pengingat Harian',
+                subtitle: 'Notifikasi catat transaksi & pinjaman',
+                trailing: Switch(
+                  value: _dailyReminder,
+                  activeTrackColor: primaryGreen,
+                  onChanged: (val) => setState(() => _dailyReminder = val),
+                ),
+              ),
+              Divider(
+                height: 1,
+                indent: 60,
+                endIndent: 16,
+                color: primaryGreen.withValues(alpha: 0.15),
+              ),
+              _AccountMenuTile(
+                icon: Icons.info_outline_rounded,
+                title: 'Tentang Aplikasi',
+                subtitle: 'Versi aplikasi & informasi pengembang',
+                onTap: _showAboutDialog,
+              ),
+              Divider(
+                height: 1,
+                indent: 60,
+                endIndent: 16,
+                color: primaryGreen.withValues(alpha: 0.15),
+              ),
+              _AccountMenuTile(
+                icon: Icons.delete_forever_outlined,
+                title: 'Hapus Akun',
+                subtitle: 'Hapus permanen akun anda',
+                isDestructive: true,
+                trailing: _isDeletingAccount
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(
+                          color: Colors.redAccent,
+                          strokeWidth: 2,
+                        ),
+                      )
+                    : null,
+                onTap: _isDeletingAccount ? null : _handleDeleteAccount,
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 24),
+
+        // 4. Tombol Keluar
+        GestureDetector(
+          onTap: (_isSaving || _isDeletingAccount) ? null : _handleLogout,
+          child: CustomCard(
+            borderRadius: 100,
+            backgroundColor: primaryGreen,
+            padding: const EdgeInsets.symmetric(vertical: 16),
+            child: Center(
+              child: _isSaving
+                  ? const SizedBox(
+                      width: 24,
+                      height: 24,
+                      child: CircularProgressIndicator(
+                        color: inputBg,
+                        strokeWidth: 2.5,
+                      ),
+                    )
+                  : const Text(
+                      'Keluar',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontFamily: 'Inter',
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildEditProfileForm(
+    ImageProvider? avatarImage,
+    bool hasDisplayedPhoto,
+  ) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const SizedBox(height: 8),
+        Center(
+          child: Stack(
+            alignment: Alignment.bottomRight,
+            children: [
+              Container(
+                width: 100,
+                height: 100,
+                decoration: BoxDecoration(
+                  color: inputBg,
+                  shape: BoxShape.circle,
+                  border: Border.all(color: primaryGreen, width: 2),
+                  image: avatarImage != null
+                      ? DecorationImage(
+                          image: avatarImage,
+                          fit: BoxFit.cover,
+                        )
+                      : null,
+                ),
+                child: avatarImage == null
+                    ? const Icon(
+                        Icons.person,
+                        color: primaryGreen,
+                        size: 60,
+                      )
+                    : null,
+              ),
+              GestureDetector(
+                onTap: hasDisplayedPhoto
+                    ? () => setState(() {
+                          _pendingImageFile = null;
+                          _removeExistingImage = true;
+                        })
+                    : _changeProfilePicture,
+                child: Container(
+                  width: 32,
+                  height: 32,
+                  decoration: BoxDecoration(
+                    color: hasDisplayedPhoto
+                        ? Colors.redAccent
+                        : const Color(0xFFDAB62C),
+                    shape: BoxShape.circle,
+                    border: Border.all(color: scaffoldBg, width: 3),
+                  ),
+                  child: Icon(
+                    hasDisplayedPhoto ? Icons.delete_outline : Icons.camera_alt,
+                    color: Colors.white,
+                    size: 16,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 28),
+        _EditableProfileField(
+          label: 'Nama Lengkap',
+          controller: _fullNameController,
+          isEditing: true,
+        ),
+        _EditableProfileField(
+          label: 'Umur',
+          controller: _ageController,
+          isEditing: true,
+          keyboardType: TextInputType.number,
+          suffixIcon: IconButton(
+            tooltip: 'Pilih Tanggal Lahir',
+            icon: const Icon(
+              Icons.calendar_month_outlined,
+              color: primaryGreen,
+              size: 20,
+            ),
+            onPressed: _pickBirthDate,
+          ),
+        ),
+        _EditableDropdownField(
+          label: 'Jenis Kelamin',
+          value: _selectedGender,
+          items: const ['Laki-Laki', 'Perempuan'],
+          isEditing: true,
+          onChanged: (value) {
+            setState(() {
+              _selectedGender = value;
+            });
+          },
+        ),
+        _EditableProfileField(
+          label: 'Email',
+          controller: _emailController,
+          isEditing: false,
+          keyboardType: TextInputType.emailAddress,
+        ),
+      ],
+    );
+  }
+}
+
+class _SectionLabel extends StatelessWidget {
+  final String title;
+  const _SectionLabel({required this.title});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(left: 4),
+      child: Text(
+        title,
+        style: const TextStyle(
+          color: primaryGreen,
+          fontSize: 13,
+          fontFamily: 'Inter',
+          fontWeight: FontWeight.w800,
+        ),
+      ),
+    );
+  }
+}
+
+class _AccountMenuTile extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final VoidCallback? onTap;
+  final Widget? trailing;
+  final bool isDestructive;
+
+  const _AccountMenuTile({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    this.onTap,
+    this.trailing,
+    this.isDestructive = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final accentColor = isDestructive ? Colors.redAccent : primaryGreen;
+
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(16),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        child: Row(
+          children: [
+            Container(
+              width: 38,
+              height: 38,
+              decoration: BoxDecoration(
+                color: isDestructive
+                    ? Colors.redAccent.withValues(alpha: 0.1)
+                    : inputBg,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: accentColor.withValues(alpha: 0.3),
+                  width: 1,
+                ),
+              ),
+              child: Icon(icon, color: accentColor, size: 20),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: TextStyle(
+                      color: accentColor,
+                      fontSize: 14,
+                      fontFamily: 'Inter',
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    subtitle,
+                    style: TextStyle(
+                      color: accentColor.withValues(alpha: 0.7),
+                      fontSize: 11,
+                      fontFamily: 'Inter',
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
                 ],
               ),
             ),
-          ),
-        ],
+            trailing ??
+                Icon(
+                  Icons.arrow_forward_ios,
+                  color: accentColor.withValues(alpha: 0.6),
+                  size: 14,
+                ),
+          ],
+        ),
       ),
     );
   }
