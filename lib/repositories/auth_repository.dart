@@ -234,22 +234,6 @@ class AuthRepository {
     return expected == picked;
   }
 
-  /// Mengecek apakah sesi autentikasi Firebase masih baru (< 2 menit berdasar
-  /// timestamp server pada ID token) sehingga penghapusan akun dapat langsung
-  /// dilakukan tanpa memaksa picker akun Google ulang.
-  Future<bool> _hasRecentAuthSession(User user) async {
-    try {
-      final tokenResult = await user.getIdTokenResult(true);
-      final authTime = tokenResult.authTime;
-      final issuedAt = tokenResult.issuedAtTime;
-      if (authTime == null || issuedAt == null) return false;
-      final elapsed = issuedAt.difference(authTime);
-      return !elapsed.isNegative && elapsed < const Duration(minutes: 2);
-    } catch (_) {
-      return false;
-    }
-  }
-
   Future<void> _clearGoogleCredentialSelection() async {
     if (kIsWeb) return;
     try {
@@ -274,39 +258,14 @@ class AuthRepository {
       }
 
       await _ensureGoogleInitialized();
-      GoogleSignInAccount? googleUser;
-
-      // Utamakan verifikasi ringan tanpa memunculkan modal pemilih akun bila
-      // hanya ada satu akun Google yang sudah terotorisasi.
+      final GoogleSignInAccount googleUser;
       try {
-        final attempt = GoogleSignIn.instance.attemptLightweightAuthentication(
-          reportAllExceptions: true,
-        );
-        if (attempt != null) {
-          googleUser = await attempt;
-        }
+        googleUser = await GoogleSignIn.instance.authenticate();
       } on GoogleSignInException catch (e) {
         if (e.code == GoogleSignInExceptionCode.canceled) {
           throw const ReauthCanceledException();
         }
-        googleUser = null;
-      }
-
-      if (googleUser != null &&
-          !isMatchingGoogleEmail(user.email, googleUser.email)) {
-        await _clearGoogleCredentialSelection();
-        googleUser = null;
-      }
-
-      if (googleUser == null) {
-        try {
-          googleUser = await GoogleSignIn.instance.authenticate();
-        } on GoogleSignInException catch (e) {
-          if (e.code == GoogleSignInExceptionCode.canceled) {
-            throw const ReauthCanceledException();
-          }
-          rethrow;
-        }
+        rethrow;
       }
 
       if (!isMatchingGoogleEmail(user.email, googleUser.email)) {
@@ -346,10 +305,7 @@ class AuthRepository {
     final bool isGoogleUser = _isGoogleAccount(user);
 
     if (isGoogleUser) {
-      final hasRecentAuth = await _hasRecentAuthSession(user);
-      if (!hasRecentAuth) {
-        await _reauthenticateUser(user);
-      }
+      await _reauthenticateUser(user);
     } else {
       if (password == null || password.trim().isEmpty) {
         throw FirebaseAuthException(
