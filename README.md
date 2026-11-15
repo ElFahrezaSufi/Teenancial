@@ -5,8 +5,10 @@ Teenancial adalah aplikasi manajemen keuangan Android berbasis Flutter yang dira
 - **Manajemen Dompet:** Pengelolaan dompet Tunai, Rekening & E-Wallet, serta Kartu dengan jejak penyesuaian saldo otomatis pada riwayat.
 - **Target Menabung (*Allocation Model*):** Alokasi tabungan per target impian (Tabung & Tarik) tanpa mencampuradukkan saldo dompet utama.
 - **Pengingat Jatuh Tempo Pinjaman:** Notifikasi lokal terjadwal (H-1 dan Hari-H pukul 09.00) serta notifikasi instan saat pencatatan pinjaman.
-- **Tren Saldo & Riwayat Dinamis:** Grafik tren saldo aktual berdasarkan efek mutasi dompet dan filter rentang waktu.
-- **Ruang Belajar & Tanya Feen:** Modul edukasi literasi keuangan remaja.
+- **Transaksi Berulang (*Recurring Transactions*):** Penjadwalan otomatis (harian, mingguan, bulanan, tahunan) untuk pemasukan, pengeluaran, dan transfer beserta eksekusi *catch-up* otomatis.
+- **Kategori Kustom (*Custom Categories*):** Pengelolaan kategori kustom lengkap dengan pilihan ikon dan warna untuk setiap jenis transaksi.
+- **Laporan Keuangan, Tren Saldo & Ekspor Data (CSV & PDF):** Grafik tren saldo aktual, proporsi kategori (*Donut Chart*), perbandingan pemasukan vs pengeluaran 6 bulan terakhir (*Bar Chart*), wawasan singkat otomatis, serta ekspor riwayat & laporan ke format `.csv` dan `.pdf`.
+- **Ruang Belajar, Tanya Feen & Gamifikasi:** Modul edukasi literasi keuangan remaja, asisten interaktif Feen, sistem Level & Misi berkala (XP), serta Lemari Feen (*Wardrobe*).
 
 ## Kelompok Pura-Pura Galiat
 
@@ -19,7 +21,7 @@ Teenancial adalah aplikasi manajemen keuangan Android berbasis Flutter yang dira
 ## Prasyarat Lingkungan (Setup)
 
 Untuk menjalankan atau mem-build proyek ini, pastikan lingkungan pengembangan Anda memenuhi spesifikasi berikut:
-- **Flutter SDK:** `>= 3.24.0` (kompatibel dengan Dart SDK `^3.5.0`).
+- **Flutter SDK:** `>= 3.50.0` (channel `stable`, Dart SDK `>= 3.14.0`). Jika versi Flutter di perangkat Anda masih di bawah `3.50.0`, jalankan `flutter upgrade` terlebih dahulu di terminal.
 - **Android SDK:** Compile SDK 37, Min SDK 24 (Android 7.0+), dengan *Core Library Desugaring* aktif.
 - **Layanan Cloud (Gratis / Free Tier):**
   - **Firebase Authentication** (Email/Password & Google Sign-In) dan **Cloud Firestore** (konfigurasi di `lib/firebase_options.dart` & `android/app/google-services.json`).
