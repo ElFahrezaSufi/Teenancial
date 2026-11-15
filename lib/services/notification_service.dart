@@ -25,11 +25,12 @@ class NotificationService {
 
   List<TransactionModel> _cachedTransactions = const [];
   List<RecurringModel> _cachedRecurring = const [];
+  bool _hasCompletedDailyMissionToday = false;
 
   static const String _channelId = 'teenancial_loan_reminders';
-  static const String _channelName = 'Pengingat Pinjaman & Transaksi Berulang';
+  static const String _channelName = 'Pengingat Keuangan & Misi Teenancial';
   static const String _channelDescription =
-      'Notifikasi pengingat batas waktu pinjaman/piutang dan jadwal transaksi berulang.';
+      'Notifikasi pencatatan transaksi, pengingat pinjaman/berulang, dan misi harian Feen.';
 
   static const AndroidNotificationDetails _androidDetails =
       AndroidNotificationDetails(
@@ -98,9 +99,137 @@ class NotificationService {
   int _dayBeforeId(String loanId) => _hashId('loan_h1_$loanId');
   int _dueDayId(String loanId) => _hashId('loan_h0_$loanId');
   int _instantId(String key) => _hashId('loan_instant_$key');
+  int _txInstantId(String key) => _hashId('tx_instant_$key');
   int _recurringScheduledId(String recurringId) =>
       _hashId('rec_sched_$recurringId');
   int _recurringInstantId(String key) => _hashId('rec_instant_$key');
+  int get _dailyMissionReminderId => _hashId('daily_mission_reminder_20h');
+
+  /// Menampilkan notifikasi instan saat transaksi Pemasukan, Pengeluaran, atau Transfer berhasil disimpan.
+  Future<void> showTransactionSavedNotification(TransactionModel tx) async {
+    if (kIsWeb ||
+        tx.isBalanceAdjustment ||
+        !LocalStorageService.instance.dailyReminderEnabled) {
+      return;
+    }
+    if (!_initialized) {
+      await init();
+    }
+    if (!_initialized) return;
+
+    try {
+      await requestPermissionIfNeeded();
+
+      final formattedAmount = Formatters.rupiah(tx.amount);
+      final label = tx.title.trim().isNotEmpty ? tx.title.trim() : 'Transaksi';
+      late final String title;
+      late final String body;
+
+      switch (tx.type) {
+        case TransactionType.income:
+          title = '💰 Pemasukan Tercatat!';
+          body =
+              'Pemasukan $formattedAmount ("$label") berhasil ditambahkan ke dompetmu.';
+          break;
+        case TransactionType.expense:
+          title = '💸 Pengeluaran Tercatat';
+          body =
+              'Pengeluaran $formattedAmount untuk "$label" telah berhasil dicatat.';
+          break;
+        case TransactionType.transfer:
+          final isSelfTransfer = tx.destinationDompetId != null &&
+              tx.destinationDompetId!.isNotEmpty;
+          if (isSelfTransfer) {
+            title = '🔄 Transfer Antar Dompet Berhasil';
+            body =
+                'Dana sebesar $formattedAmount berhasil dipindahkan antar dompetmu.';
+          } else {
+            final target = (tx.counterpartyName != null &&
+                    tx.counterpartyName!.trim().isNotEmpty)
+                ? tx.counterpartyName!.trim()
+                : label;
+            title = '📤 Transfer Berhasil Dicatat';
+            body =
+                'Transfer $formattedAmount ke $target telah berhasil dicatat.';
+          }
+          break;
+        case TransactionType.debt:
+        case TransactionType.receivable:
+          return;
+      }
+
+      final idKey = tx.id.isNotEmpty
+          ? tx.id
+          : '${tx.type.name}_${DateTime.now().millisecondsSinceEpoch}';
+
+      await _plugin.show(
+        id: _txInstantId(idKey),
+        title: title,
+        body: body,
+        notificationDetails: _notificationDetails,
+        payload: 'tx_${tx.type.name}',
+      );
+    } catch (e) {
+      debugPrint('Gagal menampilkan notifikasi transaksi baru: $e');
+    }
+  }
+
+  /// Menampilkan notifikasi instan saat cicilan atau pelunasan pinjaman/piutang berhasil dicatat.
+  Future<void> showLoanPaymentNotification({
+    required TransactionModel loan,
+    required double paymentAmount,
+    bool forceSettled = false,
+  }) async {
+    if (kIsWeb || !LocalStorageService.instance.dailyReminderEnabled) return;
+    if (!_initialized) {
+      await init();
+    }
+    if (!_initialized) return;
+
+    try {
+      await requestPermissionIfNeeded();
+
+      final isDebt = loan.type == TransactionType.debt;
+      final counterparty = LoanHelper.counterpartyName(loan);
+      final remainingAfter = forceSettled
+          ? 0.0
+          : (loan.remainingAmount - paymentAmount).clamp(0.0, double.infinity);
+      final isNowPaid = forceSettled || remainingAfter <= 0.0001;
+
+      late final String title;
+      late final String body;
+
+      if (isNowPaid) {
+        final formattedTotal = Formatters.rupiah(loan.amount);
+        title = isDebt ? '🎉 Hutang Lunas!' : '🎉 Piutang Lunas!';
+        body = isDebt
+            ? 'Selamat! Hutang sebesar $formattedTotal kepada $counterparty telah lunas sepenuhnya.'
+            : 'Piutang sebesar $formattedTotal dari $counterparty telah lunas sepenuhnya.';
+      } else {
+        final formattedPay = Formatters.rupiah(paymentAmount);
+        final formattedRem = Formatters.rupiah(remainingAfter);
+        title = isDebt
+            ? '🧾 Cicilan Hutang Tercatat'
+            : '🧾 Cicilan Piutang Tercatat';
+        body = isDebt
+            ? 'Cicilan $formattedPay kepada $counterparty berhasil dicatat. Sisa hutang: $formattedRem.'
+            : 'Cicilan $formattedPay dari $counterparty berhasil dicatat. Sisa piutang: $formattedRem.';
+      }
+
+      final idKey =
+          '${loan.id}_pay_${DateTime.now().millisecondsSinceEpoch}';
+
+      await _plugin.show(
+        id: _txInstantId(idKey),
+        title: title,
+        body: body,
+        notificationDetails: _notificationDetails,
+        payload: 'loan_payment_${loan.id}',
+      );
+    } catch (e) {
+      debugPrint('Gagal menampilkan notifikasi cicilan pinjaman: $e');
+    }
+  }
 
   /// Menampilkan notifikasi instan saat pinjaman/piutang baru berhasil disimpan.
   Future<void> showLoanCreatedNotification(TransactionModel loan) async {
@@ -108,54 +237,63 @@ class NotificationService {
     if (!_initialized) {
       await init();
     }
-    if (!_initialized || loan.dueDate == null) return;
+    if (!_initialized) return;
 
     try {
       await requestPermissionIfNeeded();
 
-      final due = loan.dueDate!;
-      final days = LoanHelper.daysUntilDue(due);
+      final due = loan.dueDate;
       final isDebt = loan.type == TransactionType.debt;
       final counterparty = LoanHelper.counterpartyName(loan);
       final formattedAmount = Formatters.rupiah(loan.remainingAmount);
-      final formattedDate = LoanHelper.formatDueDate(due);
 
       late final String title;
       late final String body;
 
-      if (days < 0) {
+      if (due == null) {
         title = isDebt
-            ? '⚠️ Hutang Melewati Batas Waktu!'
-            : '⚠️ Piutang Melewati Batas Waktu!';
+            ? '📌 Hutang Berhasil Dicatat'
+            : '📌 Piutang Berhasil Dicatat';
         body = isDebt
-            ? 'Hutang $formattedAmount kepada $counterparty telah jatuh tempo pada $formattedDate.'
-            : 'Piutang $formattedAmount dari $counterparty telah jatuh tempo pada $formattedDate.';
-      } else if (days == 0) {
-        title = isDebt
-            ? '🔔 Hutang Jatuh Tempo Hari Ini!'
-            : '🔔 Piutang Jatuh Tempo Hari Ini!';
-        body = isDebt
-            ? 'Jangan lupa melunasi hutang $formattedAmount kepada $counterparty hari ini ($formattedDate).'
-            : 'Ingatkan $counterparty untuk piutang $formattedAmount yang jatuh tempo hari ini ($formattedDate).';
-      } else if (days == 1) {
-        title = isDebt
-            ? '⏰ Pengingat Hutang Besok Jatuh Tempo'
-            : '⏰ Pengingat Piutang Besok Jatuh Tempo';
-        body = isDebt
-            ? 'Pengingat aktif: siapkan $formattedAmount untuk $counterparty besok ($formattedDate).'
-            : 'Pengingat aktif: piutang $formattedAmount dari $counterparty jatuh tempo besok ($formattedDate).';
+            ? 'Hutang $formattedAmount kepada $counterparty telah berhasil dicatat.'
+            : 'Piutang $formattedAmount dari $counterparty telah berhasil dicatat.';
       } else {
-        title = isDebt
-            ? '📌 Pengingat Hutang Diaktifkan'
-            : '📌 Pengingat Piutang Diaktifkan';
-        body = isDebt
-            ? 'Kami akan mengingatkanmu sebelum batas waktu pelunasan $formattedAmount ke $counterparty ($formattedDate).'
-            : 'Kami akan mengingatkanmu sebelum batas waktu penagihan $formattedAmount dari $counterparty ($formattedDate).';
+        final days = LoanHelper.daysUntilDue(due);
+        final formattedDate = LoanHelper.formatDueDate(due);
+        if (days < 0) {
+          title = isDebt
+              ? '⚠️ Hutang Melewati Batas Waktu!'
+              : '⚠️ Piutang Melewati Batas Waktu!';
+          body = isDebt
+              ? 'Hutang $formattedAmount kepada $counterparty telah jatuh tempo pada $formattedDate.'
+              : 'Piutang $formattedAmount dari $counterparty telah jatuh tempo pada $formattedDate.';
+        } else if (days == 0) {
+          title = isDebt
+              ? '🔔 Hutang Jatuh Tempo Hari Ini!'
+              : '🔔 Piutang Jatuh Tempo Hari Ini!';
+          body = isDebt
+              ? 'Jangan lupa melunasi hutang $formattedAmount kepada $counterparty hari ini ($formattedDate).'
+              : 'Ingatkan $counterparty untuk piutang $formattedAmount yang jatuh tempo hari ini ($formattedDate).';
+        } else if (days == 1) {
+          title = isDebt
+              ? '⏰ Pengingat Hutang Besok Jatuh Tempo'
+              : '⏰ Pengingat Piutang Besok Jatuh Tempo';
+          body = isDebt
+              ? 'Pengingat aktif: siapkan $formattedAmount untuk $counterparty besok ($formattedDate).'
+              : 'Pengingat aktif: piutang $formattedAmount dari $counterparty jatuh tempo besok ($formattedDate).';
+        } else {
+          title = isDebt
+              ? '📌 Pengingat Hutang Diaktifkan'
+              : '📌 Pengingat Piutang Diaktifkan';
+          body = isDebt
+              ? 'Kami akan mengingatkanmu sebelum batas waktu pelunasan $formattedAmount ke $counterparty ($formattedDate).'
+              : 'Kami akan mengingatkanmu sebelum batas waktu penagihan $formattedAmount dari $counterparty ($formattedDate).';
+        }
       }
 
       final idKey = loan.id.isNotEmpty
           ? loan.id
-          : '${loan.title}_${due.millisecondsSinceEpoch}';
+          : '${loan.title}_${DateTime.now().millisecondsSinceEpoch}';
 
       await _plugin.show(
         id: _instantId(idKey),
@@ -249,6 +387,7 @@ class NotificationService {
   Future<void> cancelAll() async {
     _cachedTransactions = const [];
     _cachedRecurring = const [];
+    _hasCompletedDailyMissionToday = false;
     if (!_initialized || kIsWeb) return;
     try {
       await _plugin.cancelAll();
@@ -274,6 +413,49 @@ class NotificationService {
     await _rescheduleAllPending();
   }
 
+  Future<void> syncDailyMissionReminder({
+    required bool hasCompletedAnyDailyToday,
+  }) async {
+    _hasCompletedDailyMissionToday = hasCompletedAnyDailyToday;
+    await _scheduleDailyMissionReminder();
+  }
+
+  Future<void> _scheduleDailyMissionReminder() async {
+    if (!_initialized || kIsWeb) return;
+    try {
+      await _plugin.cancel(id: _dailyMissionReminderId);
+      if (!LocalStorageService.instance.dailyReminderEnabled) return;
+
+      await requestPermissionIfNeeded();
+
+      final now = tz.TZDateTime.now(tz.local);
+      tz.TZDateTime scheduledEightPm = tz.TZDateTime(
+        tz.local,
+        now.year,
+        now.month,
+        now.day,
+        20,
+      );
+
+      if (_hasCompletedDailyMissionToday || !scheduledEightPm.isAfter(now)) {
+        scheduledEightPm = scheduledEightPm.add(const Duration(days: 1));
+      }
+
+      await _plugin.zonedSchedule(
+        id: _dailyMissionReminderId,
+        title: '🔥 Jangan Lewatkan Misi Harianmu!',
+        body:
+            'Hari tinggal 4 jam lagi! Yuk selesaikan misi harianmu bersama Feen dan klaim hadiah XP hari ini.',
+        scheduledDate: scheduledEightPm,
+        notificationDetails: _notificationDetails,
+        androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+        payload: 'daily_mission_reminder',
+      );
+    } catch (e) {
+      debugPrint('Gagal menjadwalkan pengingat misi harian: $e');
+    }
+  }
+
   Future<void> syncLoanReminders(List<TransactionModel> transactions) async {
     _cachedTransactions = List<TransactionModel>.unmodifiable(transactions);
     await _rescheduleAllPending();
@@ -290,6 +472,8 @@ class NotificationService {
     try {
       await _plugin.cancelAllPendingNotifications();
       if (!LocalStorageService.instance.dailyReminderEnabled) return;
+
+      await _scheduleDailyMissionReminder();
 
       final unpaidLoans = _cachedTransactions
           .where(
