@@ -104,6 +104,64 @@ class NotificationService {
       _hashId('rec_sched_$recurringId');
   int _recurringInstantId(String key) => _hashId('rec_instant_$key');
   int get _dailyMissionReminderId => _hashId('daily_mission_reminder_20h');
+  int get _dailyMissionInstantId => _hashId('daily_mission_reminder_instant');
+
+  Future<void> _dailyReminderQueue = Future.value();
+  String? _inMemoryLastRemindedDate;
+  String? _inMemoryArmedDate;
+
+  static String _formatDateKey(DateTime dt) {
+    final month = dt.month.toString().padLeft(2, '0');
+    final day = dt.day.toString().padLeft(2, '0');
+    return '${dt.year}-$month-$day';
+  }
+
+  /// Menghitung jadwal alarm berulang pukul 20:00 (`DateTimeComponents.time`)
+  /// serta apakah pengingat instan jendela 20:00–23:59 perlu ditampilkan saat
+  /// aplikasi dibuka (maksimal 1x/hari bila belum ada misi harian selesai).
+  @visibleForTesting
+  static DailyMissionReminderPlan buildDailyMissionReminderPlan({
+    required DateTime now,
+    required bool hasCompletedAnyDailyToday,
+    String? lastRemindedDate,
+    String? armedDate,
+    bool hasActiveDailyMissionNotification = false,
+  }) {
+    final todayStr = _formatDateKey(now);
+    final eightPmToday = DateTime(now.year, now.month, now.day, 20);
+    final isBeforeEightPm = eightPmToday.isAfter(now);
+
+    if (hasCompletedAnyDailyToday) {
+      return DailyMissionReminderPlan(
+        scheduledDate: eightPmToday.add(const Duration(days: 1)),
+        shouldShowInstantNow: false,
+        lastRemindedDateToRecord: lastRemindedDate,
+        shouldClearArmedDate: true,
+      );
+    }
+
+    if (isBeforeEightPm) {
+      return DailyMissionReminderPlan(
+        scheduledDate: eightPmToday,
+        shouldShowInstantNow: false,
+        lastRemindedDateToRecord: lastRemindedDate,
+        armedDateToRecord: todayStr,
+        shouldClearArmedDate: false,
+      );
+    }
+
+    final alreadyCoveredToday =
+        lastRemindedDate == todayStr ||
+        armedDate == todayStr ||
+        hasActiveDailyMissionNotification;
+
+    return DailyMissionReminderPlan(
+      scheduledDate: eightPmToday.add(const Duration(days: 1)),
+      shouldShowInstantNow: !alreadyCoveredToday,
+      lastRemindedDateToRecord: todayStr,
+      shouldClearArmedDate: true,
+    );
+  }
 
   /// Menampilkan notifikasi instan saat transaksi Pemasukan, Pengeluaran, atau Transfer berhasil disimpan.
   Future<void> showTransactionSavedNotification(TransactionModel tx) async {
@@ -384,10 +442,32 @@ class NotificationService {
     }
   }
 
+  String? _safelyReadString(String? Function() getter) {
+    try {
+      return getter();
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<void> _safelyRun(Future<void> Function() action) async {
+    try {
+      await action();
+    } catch (_) {}
+  }
+
+  Future<void> _clearArmedDateSafely() async {
+    _inMemoryArmedDate = null;
+    await _safelyRun(
+      () => LocalStorageService.instance.setDailyMissionArmedDate(null),
+    );
+  }
+
   Future<void> cancelAll() async {
     _cachedTransactions = const [];
     _cachedRecurring = const [];
     _hasCompletedDailyMissionToday = false;
+    await _clearArmedDateSafely();
     if (!_initialized || kIsWeb) return;
     try {
       await _plugin.cancelAll();
@@ -399,6 +479,7 @@ class NotificationService {
   Future<void> setRemindersEnabled(bool enabled) async {
     await LocalStorageService.instance.setDailyReminderEnabled(enabled);
     if (!enabled) {
+      await _clearArmedDateSafely();
       if (_initialized && !kIsWeb) {
         try {
           await _plugin.cancelAll();
@@ -420,26 +501,98 @@ class NotificationService {
     await _scheduleDailyMissionReminder();
   }
 
-  Future<void> _scheduleDailyMissionReminder() async {
+  Future<void> _scheduleDailyMissionReminder() {
+    final next = _dailyReminderQueue.then(
+      (_) => _runScheduleDailyMissionReminder(),
+      onError: (_) => _runScheduleDailyMissionReminder(),
+    );
+    _dailyReminderQueue = next.catchError((_) {});
+    return next;
+  }
+
+  Future<void> _runScheduleDailyMissionReminder() async {
     if (!_initialized || kIsWeb) return;
     try {
-      await _plugin.cancel(id: _dailyMissionReminderId);
-      if (!LocalStorageService.instance.dailyReminderEnabled) return;
+      final storage = LocalStorageService.instance;
+      if (!storage.dailyReminderEnabled) {
+        await _plugin.cancel(id: _dailyMissionReminderId);
+        await _plugin.cancel(id: _dailyMissionInstantId);
+        await _clearArmedDateSafely();
+        return;
+      }
 
       await requestPermissionIfNeeded();
 
+      bool hasActiveDailyNotification = false;
+      try {
+        final active = await _plugin.getActiveNotifications();
+        hasActiveDailyNotification = active.any(
+          (n) =>
+              n.id == _dailyMissionReminderId ||
+              n.id == _dailyMissionInstantId,
+        );
+      } catch (_) {}
+
       final now = tz.TZDateTime.now(tz.local);
-      tz.TZDateTime scheduledEightPm = tz.TZDateTime(
-        tz.local,
-        now.year,
-        now.month,
-        now.day,
-        20,
+      final effectiveLastReminded =
+          _inMemoryLastRemindedDate ??
+          _safelyReadString(() => storage.dailyMissionLastRemindedDate);
+      final effectiveArmedDate =
+          _inMemoryArmedDate ??
+          _safelyReadString(() => storage.dailyMissionArmedDate);
+
+      final completedToday = _hasCompletedDailyMissionToday;
+      final plan = buildDailyMissionReminderPlan(
+        now: now,
+        hasCompletedAnyDailyToday: completedToday,
+        lastRemindedDate: effectiveLastReminded,
+        armedDate: effectiveArmedDate,
+        hasActiveDailyMissionNotification: hasActiveDailyNotification,
       );
 
-      if (_hasCompletedDailyMissionToday || !scheduledEightPm.isAfter(now)) {
-        scheduledEightPm = scheduledEightPm.add(const Duration(days: 1));
+      await _plugin.cancel(id: _dailyMissionReminderId);
+      if (completedToday) {
+        await _plugin.cancel(id: _dailyMissionInstantId);
       }
+
+      if (plan.lastRemindedDateToRecord != null &&
+          plan.lastRemindedDateToRecord != effectiveLastReminded) {
+        _inMemoryLastRemindedDate = plan.lastRemindedDateToRecord;
+        await _safelyRun(
+          () => storage.setDailyMissionLastRemindedDate(
+            plan.lastRemindedDateToRecord,
+          ),
+        );
+      }
+
+      if (plan.shouldClearArmedDate) {
+        await _clearArmedDateSafely();
+      } else if (plan.armedDateToRecord != null) {
+        _inMemoryArmedDate = plan.armedDateToRecord;
+        await _safelyRun(
+          () => storage.setDailyMissionArmedDate(plan.armedDateToRecord),
+        );
+      }
+
+      if (plan.shouldShowInstantNow) {
+        await _plugin.show(
+          id: _dailyMissionInstantId,
+          title: '🔥 Jangan Lewatkan Misi Harianmu!',
+          body:
+              'Hari tinggal beberapa jam lagi! Yuk selesaikan misi harianmu bersama Feen dan klaim hadiah XP hari ini.',
+          notificationDetails: _notificationDetails,
+          payload: 'daily_mission_reminder',
+        );
+      }
+
+      final scheduledEightPm = tz.TZDateTime(
+        tz.local,
+        plan.scheduledDate.year,
+        plan.scheduledDate.month,
+        plan.scheduledDate.day,
+        plan.scheduledDate.hour,
+        plan.scheduledDate.minute,
+      );
 
       await _plugin.zonedSchedule(
         id: _dailyMissionReminderId,
@@ -449,6 +602,7 @@ class NotificationService {
         scheduledDate: scheduledEightPm,
         notificationDetails: _notificationDetails,
         androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+        matchDateTimeComponents: DateTimeComponents.time,
         payload: 'daily_mission_reminder',
       );
     } catch (e) {
@@ -577,4 +731,22 @@ class NotificationService {
       debugPrint('Gagal menyinkronkan pengingat notifikasi: $e');
     }
   }
+}
+
+/// Hasil perhitungan rencana penjadwalan alarm harian 20:00 dan pengingat
+/// instan pada jendela 20:00–23:59 untuk misi harian.
+class DailyMissionReminderPlan {
+  final DateTime scheduledDate;
+  final bool shouldShowInstantNow;
+  final String? lastRemindedDateToRecord;
+  final String? armedDateToRecord;
+  final bool shouldClearArmedDate;
+
+  const DailyMissionReminderPlan({
+    required this.scheduledDate,
+    required this.shouldShowInstantNow,
+    this.lastRemindedDateToRecord,
+    this.armedDateToRecord,
+    this.shouldClearArmedDate = false,
+  });
 }
