@@ -112,17 +112,32 @@ void main() {
 
     test('BelajarProgressModel serialisasi toMap & fromMap secara terurut', () {
       const progress = BelajarProgressModel(
-        completedModules: {'0_1', '0_0'},
-        completedQuizzes: {'0_0'},
+        completedModules: {'mod_b', 'mod_a'},
+        completedQuizzes: {'mod_a'},
       );
 
       final map = progress.toMap();
-      expect(map['completedModules'], ['0_0', '0_1']);
-      expect(map['completedQuizzes'], ['0_0']);
+      expect(map['completedModules'], ['mod_a', 'mod_b']);
+      expect(map['completedQuizzes'], ['mod_a']);
 
       final restored = BelajarProgressModel.fromMap(map);
-      expect(restored.completedModules, {'0_0', '0_1'});
-      expect(restored.completedQuizzes, {'0_0'});
+      expect(restored.completedModules, {'mod_a', 'mod_b'});
+      expect(restored.completedQuizzes, {'mod_a'});
+    });
+
+    test('BelajarProgressModel memfilter key legacy indeks dan key kosong', () {
+      expect(BelajarProgressModel.isLegacyKey('0_0'), isTrue);
+      expect(BelajarProgressModel.isLegacyKey('1_2'), isTrue);
+      expect(BelajarProgressModel.isLegacyKey('mod_1'), isFalse);
+      expect(BelajarProgressModel.isLegacyKey(''), isFalse);
+
+      final restored = BelajarProgressModel.fromMap({
+        'completedModules': ['0_0', '0_1', 'mod_1', '', 'mod_2'],
+        'completedQuizzes': ['0_0', 'mod_1', '  '],
+      });
+
+      expect(restored.completedModules, {'mod_1', 'mod_2'});
+      expect(restored.completedQuizzes, {'mod_1'});
     });
   });
 
