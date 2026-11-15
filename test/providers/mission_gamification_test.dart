@@ -515,6 +515,42 @@ void main() {
         expect(plan.shouldShowInstantNow, isFalse);
       },
     );
+
+    test(
+      'saat status misi hari ini masih null (belum selesai load dari Firestore) -> tidak memicu notif instan dan menjaga jadwal 20:00',
+      () {
+        final planEvening = NotificationService.buildDailyMissionReminderPlan(
+          now: DateTime(2026, 11, 15, 21, 0),
+          hasCompletedAnyDailyToday: null,
+          lastRemindedDate: '2026-11-14',
+          armedDate: '2026-11-14',
+        );
+
+        expect(planEvening.scheduledDate, DateTime(2026, 11, 16, 20));
+        expect(planEvening.shouldShowInstantNow, isFalse);
+        expect(planEvening.lastRemindedDateToRecord, '2026-11-14');
+        expect(planEvening.armedDateToRecord, '2026-11-14');
+        expect(planEvening.shouldClearArmedDate, isFalse);
+      },
+    );
+
+    test(
+      'dailyMissionResponseDateKey hanya menandai hari ini pada jendela 20:00-23:59',
+      () {
+        expect(
+          NotificationService.dailyMissionResponseDateKey(
+            DateTime(2026, 11, 15, 8, 30),
+          ),
+          isNull,
+        );
+        expect(
+          NotificationService.dailyMissionResponseDateKey(
+            DateTime(2026, 11, 15, 20, 5),
+          ),
+          '2026-11-15',
+        );
+      },
+    );
   });
 
   group('AuthRepository.isMatchingGoogleEmail & ErrorMapper', () {

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_timezone/flutter_timezone.dart';
@@ -25,7 +27,7 @@ class NotificationService {
 
   List<TransactionModel> _cachedTransactions = const [];
   List<RecurringModel> _cachedRecurring = const [];
-  bool _hasCompletedDailyMissionToday = false;
+  bool? _hasCompletedDailyMissionToday;
 
   static const String _channelId = 'teenancial_loan_reminders';
   static const String _channelName = 'Pengingat Keuangan & Misi Teenancial';
@@ -64,8 +66,20 @@ class NotificationService {
         iOS: DarwinInitializationSettings(),
       );
 
-      await _plugin.initialize(settings: initSettings);
+      await _plugin.initialize(
+        settings: initSettings,
+        onDidReceiveNotificationResponse: _handleNotificationResponse,
+      );
       _initialized = true;
+
+      try {
+        final launchDetails = await _plugin.getNotificationAppLaunchDetails();
+        if (launchDetails != null && launchDetails.didNotificationLaunchApp) {
+          await _handleDailyReminderResponse(
+            launchDetails.notificationResponse,
+          );
+        }
+      } catch (_) {}
     } catch (e) {
       debugPrint('Gagal menginisialisasi NotificationService: $e');
     }
@@ -116,13 +130,52 @@ class NotificationService {
     return '${dt.year}-$month-$day';
   }
 
+  /// Mengembalikan key tanggal `yyyy-MM-dd` bila interaksi notifikasi
+  /// pengingat misi harian terjadi pada jendela 20:00–23:59, agar interaksi
+  /// notifikasi kemarin pada pagi/siang hari tidak menandai hari ini sebagai
+  /// sudah diingatkan.
+  @visibleForTesting
+  static String? dailyMissionResponseDateKey(DateTime now) {
+    if (now.hour < 20) return null;
+    return _formatDateKey(now);
+  }
+
+  bool _isDailyMissionNotificationResponse(NotificationResponse? response) {
+    if (response == null) return false;
+    return response.id == _dailyMissionReminderId ||
+        response.id == _dailyMissionInstantId ||
+        response.payload == 'daily_mission_reminder';
+  }
+
+  void _handleNotificationResponse(NotificationResponse response) {
+    unawaited(_handleDailyReminderResponse(response));
+  }
+
+  Future<void> _handleDailyReminderResponse(
+    NotificationResponse? response,
+  ) async {
+    if (!_isDailyMissionNotificationResponse(response)) return;
+    final dateKey = dailyMissionResponseDateKey(tz.TZDateTime.now(tz.local));
+    if (dateKey == null) return;
+    _inMemoryLastRemindedDate = dateKey;
+    await _safelyRun(
+      () => LocalStorageService.instance.setDailyMissionLastRemindedDate(
+        dateKey,
+      ),
+    );
+  }
+
   /// Menghitung jadwal alarm berulang pukul 20:00 (`DateTimeComponents.time`)
   /// serta apakah pengingat instan jendela 20:00–23:59 perlu ditampilkan saat
   /// aplikasi dibuka (maksimal 1x/hari bila belum ada misi harian selesai).
+  ///
+  /// Bila `hasCompletedAnyDailyToday` bernilai `null` (status misi dari
+  /// `MissionProvider` belum selesai dimuat), pengingat instan tidak dipicu
+  /// agar tidak mendahului hasil sinkronisasi progres misi hari ini.
   @visibleForTesting
   static DailyMissionReminderPlan buildDailyMissionReminderPlan({
     required DateTime now,
-    required bool hasCompletedAnyDailyToday,
+    required bool? hasCompletedAnyDailyToday,
     String? lastRemindedDate,
     String? armedDate,
     bool hasActiveDailyMissionNotification = false,
@@ -130,6 +183,18 @@ class NotificationService {
     final todayStr = _formatDateKey(now);
     final eightPmToday = DateTime(now.year, now.month, now.day, 20);
     final isBeforeEightPm = eightPmToday.isAfter(now);
+
+    if (hasCompletedAnyDailyToday == null) {
+      return DailyMissionReminderPlan(
+        scheduledDate: isBeforeEightPm
+            ? eightPmToday
+            : eightPmToday.add(const Duration(days: 1)),
+        shouldShowInstantNow: false,
+        lastRemindedDateToRecord: lastRemindedDate,
+        armedDateToRecord: armedDate,
+        shouldClearArmedDate: false,
+      );
+    }
 
     if (hasCompletedAnyDailyToday) {
       return DailyMissionReminderPlan(
@@ -466,7 +531,7 @@ class NotificationService {
   Future<void> cancelAll() async {
     _cachedTransactions = const [];
     _cachedRecurring = const [];
-    _hasCompletedDailyMissionToday = false;
+    _hasCompletedDailyMissionToday = null;
     await _clearArmedDateSafely();
     if (!_initialized || kIsWeb) return;
     try {
@@ -551,7 +616,7 @@ class NotificationService {
       );
 
       await _plugin.cancel(id: _dailyMissionReminderId);
-      if (completedToday) {
+      if (completedToday == true) {
         await _plugin.cancel(id: _dailyMissionInstantId);
       }
 
@@ -567,7 +632,8 @@ class NotificationService {
 
       if (plan.shouldClearArmedDate) {
         await _clearArmedDateSafely();
-      } else if (plan.armedDateToRecord != null) {
+      } else if (plan.armedDateToRecord != null &&
+          plan.armedDateToRecord != effectiveArmedDate) {
         _inMemoryArmedDate = plan.armedDateToRecord;
         await _safelyRun(
           () => storage.setDailyMissionArmedDate(plan.armedDateToRecord),
