@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../data/feen_catalog.dart';
 import '../models/belajar_model.dart';
 import '../providers/belajar_provider.dart';
+import '../providers/user_provider.dart';
 import '../theme/app_colors.dart';
 import '../widgets/common/custom_app_bar.dart';
 import '../widgets/common/custom_card.dart';
 import '../widgets/common/skeleton.dart';
+import '../widgets/feen/feen_avatar.dart';
 
 class MateriScreen extends StatefulWidget {
   final int levelIndex;
@@ -36,6 +39,7 @@ class _MateriScreenState extends State<MateriScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final user = context.watch<UserProvider>();
     final module = widget.module;
     final bool isAvailable = module.status == ModuleStatus.available;
     final bool isCompleted = module.status == ModuleStatus.completed;
@@ -67,44 +71,29 @@ class _MateriScreenState extends State<MateriScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      // Header card
                       CustomCard(
                         backgroundColor: cardBg,
                         padding: const EdgeInsets.all(16),
                         child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                          crossAxisAlignment: CrossAxisAlignment.center,
                           children: [
-                            Container(
-                              width: 48,
-                              height: 48,
-                              decoration: BoxDecoration(
-                                color: lightGreen.withValues(alpha: 0.4),
-                                shape: BoxShape.circle,
-                              ),
-                              child: const Icon(
-                                Icons.menu_book_outlined,
-                                color: primaryGreen,
-                                size: 24,
-                              ),
+                            FeenAvatar(
+                              level: user.level,
+                              pose: FeenPose.learning,
+                              equipped: user.feenEquipped,
+                              size: 56,
                             ),
                             const SizedBox(width: 12),
                             Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    module.title,
-                                    style: const TextStyle(
-                                      color: primaryGreen,
-                                      fontSize: 15,
-                                      fontFamily: 'Inter',
-                                      fontWeight: FontWeight.w700,
-                                      height: 1.4,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 6),
-                                  _StatusBadge(status: module.status),
-                                ],
+                              child: Text(
+                                module.title,
+                                style: const TextStyle(
+                                  color: primaryGreen,
+                                  fontSize: 15,
+                                  fontFamily: 'Inter',
+                                  fontWeight: FontWeight.w700,
+                                  height: 1.4,
+                                ),
                               ),
                             ),
                           ],
@@ -156,13 +145,17 @@ class _MateriScreenState extends State<MateriScreen> {
                           ),
                         ),
                         const SizedBox(height: 12),
-                        const Skeleton(width: double.infinity, height: 20, radius: 8),
+                        const Skeleton(
+                            width: double.infinity, height: 20, radius: 8),
                         const SizedBox(height: 8),
-                        const Skeleton(width: double.infinity, height: 80, radius: 8),
+                        const Skeleton(
+                            width: double.infinity, height: 80, radius: 8),
                         const SizedBox(height: 8),
-                        const Skeleton(width: double.infinity, height: 20, radius: 8),
+                        const Skeleton(
+                            width: double.infinity, height: 20, radius: 8),
                         const SizedBox(height: 8),
-                        const Skeleton(width: double.infinity, height: 80, radius: 8),
+                        const Skeleton(
+                            width: double.infinity, height: 80, radius: 8),
                       ] else ...[
                         ...module.sections.map(
                           (section) => Padding(
@@ -336,57 +329,6 @@ class _MateriScreenState extends State<MateriScreen> {
                   ),
                 ),
             ],
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _StatusBadge extends StatelessWidget {
-  final ModuleStatus status;
-  const _StatusBadge({required this.status});
-
-  @override
-  Widget build(BuildContext context) {
-    final String label;
-    final Color bg;
-    final IconData icon;
-
-    switch (status) {
-      case ModuleStatus.available:
-        label = 'Tersedia';
-        bg = lightGreen.withValues(alpha: 0.5);
-        icon = Icons.play_circle_outline;
-      case ModuleStatus.completed:
-        label = 'Selesai';
-        bg = primaryGreen.withValues(alpha: 0.15);
-        icon = Icons.check_circle_outline;
-      case ModuleStatus.locked:
-        label = 'Terkunci';
-        bg = Colors.grey.withValues(alpha: 0.15);
-        icon = Icons.lock_outline;
-    }
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(
-        color: bg,
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 13, color: primaryGreen),
-          const SizedBox(width: 4),
-          Text(
-            label,
-            style: const TextStyle(
-              color: primaryGreen,
-              fontSize: 12,
-              fontFamily: 'Inter',
-              fontWeight: FontWeight.w600,
-            ),
           ),
         ],
       ),

@@ -1,8 +1,10 @@
 import 'dart:io';
 import 'package:flutter/foundation.dart';
+import '../data/feen_catalog.dart';
 import '../models/user_model.dart';
 import '../repositories/user_repository.dart';
 import '../utils/error_mapper.dart';
+import '../utils/xp_helper.dart';
 
 class UserProvider extends ChangeNotifier {
   final UserRepository _repository;
@@ -27,6 +29,82 @@ class UserProvider extends ChangeNotifier {
   String? get profileImageUrl {
     final url = _profile?.profileImageUrl?.trim() ?? '';
     return url.isNotEmpty ? url : null;
+  }
+
+  int get xp => _profile?.xp ?? 0;
+  int get level => XpHelper.levelFromXp(xp);
+  int get xpIntoLevel => XpHelper.xpIntoLevel(xp);
+  int get xpNeededForNext => XpHelper.xpNeededForNext(level);
+  Map<String, String> get feenEquipped => _profile?.feenEquipped ?? const {};
+  Future<XpGainResult?> addXp(int amount) async {
+    final uid = _uid;
+    final current = _profile;
+    if (uid == null || current == null || amount <= 0) return null;
+
+    final oldLevel = XpHelper.levelFromXp(current.xp);
+    final newLevel = XpHelper.levelFromXp(current.xp + amount);
+
+    _profile = current.copyWith(xp: current.xp + amount);
+    notifyListeners();
+
+    try {
+      await _repository.incrementXp(uid, amount);
+      return XpGainResult(oldLevel: oldLevel, newLevel: newLevel);
+    } catch (e) {
+      final latest = _profile;
+      if (_uid == uid && latest != null) {
+        final rolledBack = latest.xp - amount;
+        _profile = latest.copyWith(xp: rolledBack < 0 ? 0 : rolledBack);
+        _errorMessage = ErrorMapper.message(e);
+        notifyListeners();
+      }
+      return null;
+    }
+  }
+
+  Future<void> equipFeen(FeenSlot slot, String? accessoryId) async {
+    final uid = _uid;
+    final current = _profile;
+    if (uid == null || current == null) return;
+
+    if (accessoryId != null) {
+      final accessory = feenById(accessoryId);
+      if (accessory == null || accessory.slot != slot) return;
+      if (level < accessory.unlockLevel) return;
+    }
+
+    final next = Map<String, String>.from(current.feenEquipped);
+    if (accessoryId == null) {
+      next.remove(slot.name);
+    } else {
+      next[slot.name] = accessoryId;
+    }
+    await _saveEquipped(uid, current, next);
+  }
+
+  Future<void> unequipAllFeen() async {
+    final uid = _uid;
+    final current = _profile;
+    if (uid == null || current == null || current.feenEquipped.isEmpty) return;
+    await _saveEquipped(uid, current, const {});
+  }
+
+  Future<void> _saveEquipped(
+    String uid,
+    UserModel previous,
+    Map<String, String> next,
+  ) async {
+    _profile = previous.copyWith(feenEquipped: next);
+    notifyListeners();
+    try {
+      await _repository.saveFeenEquipped(uid, next);
+    } catch (e) {
+      if (_uid == uid && _profile != null) {
+        _profile = _profile!.copyWith(feenEquipped: previous.feenEquipped);
+        _errorMessage = ErrorMapper.message(e);
+        notifyListeners();
+      }
+    }
   }
 
   void updateUser(String? newUid) {

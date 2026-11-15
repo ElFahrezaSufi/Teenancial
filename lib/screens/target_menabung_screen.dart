@@ -3,9 +3,11 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../config/app_routes.dart';
+import '../data/feen_catalog.dart';
 import '../models/target_model.dart';
 import '../providers/dompet_provider.dart';
 import '../providers/target_provider.dart';
+import '../providers/user_provider.dart';
 import '../theme/app_colors.dart';
 import '../utils/confirm_dialog.dart';
 import '../utils/currency_formatter.dart';
@@ -15,6 +17,7 @@ import '../utils/saving_planner.dart';
 import '../widgets/common/custom_app_bar.dart';
 import '../widgets/common/custom_card.dart';
 import '../widgets/common/target_image.dart';
+import '../widgets/feen/feen_avatar.dart';
 
 class TargetMenabungScreen extends StatelessWidget {
   const TargetMenabungScreen({super.key});
@@ -26,10 +29,12 @@ class TargetMenabungScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final targetProvider = context.watch<TargetProvider>();
+    final userProvider = context.watch<UserProvider>();
     final items = targetProvider.items;
     final saldoSekarang = context.watch<DompetProvider>().totalSaldo;
     final totalAllocated = targetProvider.totalAllocated;
     final availableSaldo = targetProvider.availableToAllocate(saldoSekarang);
+    final bool hasAchievedAny = items.any((e) => e.isAchieved);
 
     return Scaffold(
       backgroundColor: scaffoldBg,
@@ -65,9 +70,11 @@ class TargetMenabungScreen extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       if (items.isEmpty)
-                        _buildEmptyState(context)
+                        _buildEmptyState(context, userProvider)
                       else ...[
                         _buildAllocationSummaryCard(
+                          userProvider: userProvider,
+                          hasAchievedAny: hasAchievedAny,
                           saldoSekarang: saldoSekarang,
                           totalAllocated: totalAllocated,
                           availableSaldo: availableSaldo,
@@ -107,6 +114,8 @@ class TargetMenabungScreen extends StatelessWidget {
   }
 
   Widget _buildAllocationSummaryCard({
+    required UserProvider userProvider,
+    required bool hasAchievedAny,
     required double saldoSekarang,
     required double totalAllocated,
     required double availableSaldo,
@@ -120,6 +129,39 @@ class TargetMenabungScreen extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          Row(
+            children: [
+              FeenAvatar(
+                level: userProvider.level,
+                pose: hasAchievedAny ? FeenPose.levelup : FeenPose.saving,
+                equipped: userProvider.feenEquipped,
+                size: 52,
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  isOverAllocated
+                      ? 'Alokasi tabungan melebihi saldo dompet saat ini, yuk cek lagi!'
+                      : hasAchievedAny
+                          ? 'Keren! Ada target impianmu yang sudah tercapai!'
+                          : 'Sisihkan sedikit demi sedikit biar target impianmu cepat tercapai!',
+                  style: const TextStyle(
+                    color: primaryGreen,
+                    fontSize: 12,
+                    fontFamily: 'Inter',
+                    fontWeight: FontWeight.w600,
+                    height: 1.35,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Divider(
+            height: 1,
+            color: primaryGreen.withValues(alpha: 0.15),
+          ),
+          const SizedBox(height: 12),
           Row(
             children: [
               Expanded(
@@ -219,7 +261,7 @@ class TargetMenabungScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildEmptyState(BuildContext context) {
+  Widget _buildEmptyState(BuildContext context, UserProvider userProvider) {
     return CustomCard(
       backgroundColor: appBarBg,
       borderRadius: 16,
@@ -227,10 +269,11 @@ class TargetMenabungScreen extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(
-            Icons.receipt_long_outlined,
-            size: 60,
-            color: primaryGreen.withValues(alpha: 0.5),
+          FeenAvatar(
+            level: userProvider.level,
+            pose: FeenPose.saving,
+            equipped: userProvider.feenEquipped,
+            size: 84,
           ),
           const SizedBox(height: 16),
           const Text(
@@ -457,7 +500,9 @@ class TargetMenabungScreen extends StatelessWidget {
                       ? null
                       : () async {
                           try {
-                            await context.read<TargetProvider>().togglePin(item);
+                            await context
+                                .read<TargetProvider>()
+                                .togglePin(item);
                           } catch (e) {
                             if (context.mounted) {
                               ScaffoldMessenger.of(context).showSnackBar(
@@ -720,8 +765,9 @@ class TargetMenabungScreen extends StatelessWidget {
   }) async {
     final remainingTarget =
         (item.targetAmount - item.savedAmount).clamp(0.0, double.infinity);
-    final double maxAmount =
-        isDeposit ? math.min(availableSaldo, remainingTarget) : item.savedAmount;
+    final double maxAmount = isDeposit
+        ? math.min(availableSaldo, remainingTarget)
+        : item.savedAmount;
 
     final double? submittedAmount = await showDialog<double>(
       context: context,

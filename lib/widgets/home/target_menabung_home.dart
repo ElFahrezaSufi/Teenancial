@@ -32,143 +32,116 @@ class TargetMenabungHome extends StatelessWidget {
               ? LoanHelper.overdueColor
               : (plan.isUrgent ? orangeText : primaryGreen));
 
-      return Column(
-        children: [
-          CustomCard(
-            backgroundColor: cardBg,
-            borderRadius: 20,
-            padding: EdgeInsets.zero,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                ClipRRect(
-                  borderRadius: const BorderRadius.only(
-                    topLeft: Radius.circular(18),
-                    topRight: Radius.circular(18),
-                  ),
-                  child: TargetImage(
-                    imageUrl: currentTarget!.imageUrl,
-                    height: 167,
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.only(
-                    left: 16,
-                    right: 16,
-                    top: 16,
-                    bottom: 12,
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Expanded(
-                        child: Text(
-                          currentTarget!.nama,
-                          style: AppTextStyles.sectionTitle,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        '${formatRupiah(currentTarget!.savedAmount)} / ${formatRupiah(currentTarget!.targetAmount)}',
-                        style: const TextStyle(
-                          color: primaryGreen,
-                          fontSize: 12,
-                          fontFamily: 'Inter',
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                Padding(
-                  padding: EdgeInsets.only(
-                    left: 16,
-                    right: 16,
-                    bottom: plan != null ? 10 : 20,
-                  ),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(100),
-                    child: LinearProgressIndicator(
-                      value: progress,
-                      backgroundColor: lightGreen,
-                      color: primaryGreen,
-                      minHeight: 6,
-                    ),
-                  ),
-                ),
-                if (plan != null)
-                  Padding(
-                    padding: const EdgeInsets.only(
-                      left: 16,
-                      right: 16,
-                      bottom: 16,
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Expanded(
-                          child: Row(
-                            children: [
-                              Icon(Icons.event, size: 13, color: planColor),
-                              const SizedBox(width: 4),
-                              Flexible(
-                                child: Text(
-                                  'Tenggat ${plan.deadlineLabel}',
-                                  style: TextStyle(
-                                    color: planColor,
-                                    fontSize: 11,
-                                    fontFamily: 'Inter',
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          plan.shortSuggestionText ?? plan.badgeText,
-                          style: TextStyle(
-                            color: planColor,
-                            fontSize: 11,
-                            fontFamily: 'Inter',
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-              ],
+      return CustomCard(
+        backgroundColor: cardBg,
+        borderRadius: 20,
+        padding: EdgeInsets.zero,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            ClipRRect(
+              borderRadius: const BorderRadius.only(
+                topLeft: Radius.circular(18),
+                topRight: Radius.circular(18),
+              ),
+              child: TargetImage(
+                imageUrl: currentTarget!.imageUrl,
+                height: 167,
+              ),
             ),
-          ),
-          const SizedBox(height: 16),
-          GestureDetector(
-            onTap: onTambahTarget,
-            child: const Padding(
-              padding: EdgeInsets.symmetric(vertical: 8.0),
+            Padding(
+              padding: const EdgeInsets.only(
+                left: 16,
+                right: 16,
+                top: 16,
+                bottom: 12,
+              ),
               child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Icon(Icons.add, size: 16, color: Color(0xFFDAB62C)),
-                  SizedBox(width: 4),
+                  Expanded(
+                    child: Text(
+                      currentTarget!.nama,
+                      style: AppTextStyles.sectionTitle,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
                   Text(
-                    'Buat Target Baru',
-                    style: TextStyle(
-                      color: Color(0xFFDAB62C),
-                      fontSize: 15,
-                      fontWeight: FontWeight.w800,
+                    '${formatRupiah(currentTarget!.savedAmount)} / ${formatRupiah(currentTarget!.targetAmount)}',
+                    style: const TextStyle(
+                      color: primaryGreen,
+                      fontSize: 12,
                       fontFamily: 'Inter',
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
                 ],
               ),
             ),
-          ),
-        ],
+            Padding(
+              padding: EdgeInsets.only(
+                left: 16,
+                right: 16,
+                bottom: plan != null ? 10 : 20,
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(100),
+                child: LinearProgressIndicator(
+                  value: progress,
+                  backgroundColor: lightGreen,
+                  color: primaryGreen,
+                  minHeight: 6,
+                ),
+              ),
+            ),
+            if (plan != null)
+              Padding(
+                padding: const EdgeInsets.only(
+                  left: 16,
+                  right: 16,
+                  bottom: 16,
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(
+                      child: Row(
+                        children: [
+                          Icon(Icons.event, size: 13, color: planColor),
+                          const SizedBox(width: 4),
+                          Flexible(
+                            child: Text(
+                              'Tenggat ${plan.deadlineLabel}',
+                              style: TextStyle(
+                                color: planColor,
+                                fontSize: 11,
+                                fontFamily: 'Inter',
+                                fontWeight: FontWeight.w600,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      plan.shortSuggestionText ?? plan.badgeText,
+                      style: TextStyle(
+                        color: planColor,
+                        fontSize: 11,
+                        fontFamily: 'Inter',
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+          ],
+        ),
       );
     } else {
       return CustomCard(

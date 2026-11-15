@@ -46,6 +46,10 @@ flutter:
   uses-material-design: true
   assets:
     - assets/images/
+    - assets/feen/base/
+    - assets/feen/accessories/head/
+    - assets/feen/accessories/face/
+    - assets/feen/accessories/neck/
     
   fonts:
     - family: Inter

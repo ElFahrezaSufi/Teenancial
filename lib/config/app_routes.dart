@@ -26,11 +26,13 @@ class AppRoutes {
   static const String ruangBelajar = '/ruang_belajar';
   static const String semuaAktivitas = '/semua_aktivitas';
   static const String tanyaFeen = '/tanya_feen';
+  static const String feenWardrobe = '/feen_wardrobe';
   static const String kategori = '/kategori';
   static const String laporan = '/laporan';
   static const String transaksiBerulang = '/transaksi_berulang';
   static const String buatBerulang = '/buat_berulang';
   static const String ekspor = '/ekspor';
+  static const String misi = '/misi';
 
   static const Set<String> authRoutes = {
     getStarted,

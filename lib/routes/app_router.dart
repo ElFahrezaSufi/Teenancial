@@ -18,6 +18,7 @@ import '../screens/buat_target_screen.dart';
 import '../screens/daftar_pinjaman_screen.dart';
 import '../screens/dompet_screen.dart';
 import '../screens/ekspor_screen.dart';
+import '../screens/feen_wardrobe_screen.dart';
 import '../screens/forgot_password_screen.dart';
 import '../screens/get_started.dart';
 import '../screens/home_screen.dart';
@@ -25,6 +26,7 @@ import '../screens/kategori_screen.dart';
 import '../screens/laporan_screen.dart';
 import '../screens/login_screen.dart';
 import '../screens/main_screen.dart';
+import '../screens/misi_screen.dart';
 import '../screens/pemasukan_screen.dart';
 import '../screens/pengeluaran_screen.dart';
 import '../screens/pinjaman_screen.dart';
@@ -293,6 +295,22 @@ final GoRouter appRouter = GoRouter(
       pageBuilder: (context, state) => AppTransitions.slideHorizontal(
         key: state.pageKey,
         child: const TanyaFeenScreen(),
+      ),
+    ),
+    GoRoute(
+      parentNavigatorKey: rootNavigatorKey,
+      path: AppRoutes.feenWardrobe,
+      pageBuilder: (context, state) => AppTransitions.slideHorizontal(
+        key: state.pageKey,
+        child: const FeenWardrobeScreen(),
+      ),
+    ),
+    GoRoute(
+      parentNavigatorKey: rootNavigatorKey,
+      path: AppRoutes.misi,
+      pageBuilder: (context, state) => AppTransitions.slideHorizontal(
+        key: state.pageKey,
+        child: const MisiScreen(),
       ),
     ),
     GoRoute(

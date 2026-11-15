@@ -2,17 +2,21 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../config/app_routes.dart';
+import '../data/mission_catalog.dart';
+import '../models/mission_model.dart';
 import '../models/target_model.dart';
 import '../providers/belajar_provider.dart';
 import '../providers/category_provider.dart';
 import '../providers/dompet_provider.dart';
+import '../providers/mission_provider.dart';
 import '../providers/recurring_provider.dart';
 import '../providers/target_provider.dart';
 import '../providers/transaction_provider.dart';
 import '../providers/user_provider.dart';
 import '../theme/app_colors.dart';
 import '../utils/currency_formatter.dart';
-
+import '../widgets/common/custom_card.dart';
+import '../widgets/feen/feen_fab.dart';
 import '../widgets/home/action_menu.dart';
 import '../widgets/home/belajar_card.dart';
 import '../widgets/home/pinjaman_home.dart';
@@ -29,11 +33,6 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  // Visual XP & Level di-hold (tetap dipertahankan secara UI di Beranda)
-  int currentXP = 0;
-  int maxXP = 1000;
-  int level = 1;
-
   double _feenX = 0;
   double _feenY = 0;
   bool _isFeenInitialized = false;
@@ -53,17 +52,6 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  void _tambahTabunganMock() {
-    setState(() {
-      currentXP += 50;
-      if (currentXP >= maxXP) {
-        level++;
-        currentXP = currentXP - maxXP;
-        maxXP = (maxXP * 1.5).toInt();
-      }
-    });
-  }
-
   Future<void> _handleRefresh() async {
     final belajarProvider = context.read<BelajarProvider>();
     final catProvider = Provider.of<CategoryProvider?>(context, listen: false);
@@ -73,6 +61,7 @@ class _HomeScreenState extends State<HomeScreen> {
       context.read<DompetProvider>().loadDompets(silent: true),
       context.read<TransactionProvider>().loadTransactions(silent: true),
       context.read<TargetProvider>().loadTargets(silent: true),
+      context.read<MissionProvider>().loadMissions(),
       if (catProvider != null) catProvider.loadCategories(silent: true),
       if (recProvider != null) recProvider.loadRecurring(silent: true),
       belajarProvider.levels.isEmpty
@@ -85,11 +74,132 @@ class _HomeScreenState extends State<HomeScreen> {
     await context.push(AppRoutes.buatTarget);
   }
 
+  Widget _buildDailyMissionBanner(MissionProvider missionProvider) {
+    final dailyMissions = MissionCatalog.byPeriod(MissionPeriod.daily);
+    final totalDaily = dailyMissions.length;
+    final completedDaily = dailyMissions
+        .where(
+            (m) => missionProvider.statusOf(m) != MissionClaimStatus.inProgress)
+        .length;
+    final claimableTotal = missionProvider.claimableCount;
+    final progressRatio =
+        totalDaily > 0 ? (completedDaily / totalDaily).clamp(0.0, 1.0) : 0.0;
+
+    return GestureDetector(
+      onTap: () => context.push(AppRoutes.misi),
+      child: CustomCard(
+        backgroundColor: cardBg,
+        borderRadius: 18,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        child: Row(
+          children: [
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: inputBg,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: primaryGreen, width: 1.5),
+              ),
+              child: const Icon(
+                Icons.emoji_events_rounded,
+                color: primaryGreen,
+                size: 24,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      const Text(
+                        'Misi Harian',
+                        style: TextStyle(
+                          color: primaryGreen,
+                          fontSize: 14,
+                          fontFamily: 'Inter',
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      if (claimableTotal > 0)
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 2,
+                          ),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFDAB62C),
+                            borderRadius: BorderRadius.circular(100),
+                            border: Border.all(color: primaryGreen, width: 1),
+                          ),
+                          child: Text(
+                            '$claimableTotal Klaim XP!',
+                            style: const TextStyle(
+                              color: primaryGreen,
+                              fontSize: 10,
+                              fontFamily: 'Inter',
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(100),
+                          child: LinearProgressIndicator(
+                            value: progressRatio,
+                            minHeight: 7,
+                            backgroundColor: lightGreen,
+                            valueColor: const AlwaysStoppedAnimation<Color>(
+                              primaryGreen,
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        '$completedDaily/$totalDaily',
+                        style: const TextStyle(
+                          color: primaryGreen,
+                          fontSize: 11,
+                          fontFamily: 'Inter',
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            const Icon(
+              Icons.chevron_right_rounded,
+              color: primaryGreen,
+              size: 22,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final userProvider = context.watch<UserProvider>();
     final dompetProvider = context.watch<DompetProvider>();
     final targetProvider = context.watch<TargetProvider>();
+    final missionProvider = context.watch<MissionProvider>();
+
+    final int level = userProvider.level;
+    final int currentXP = userProvider.xpIntoLevel;
+    final int maxXP = userProvider.xpNeededForNext;
 
     final screenSize = MediaQuery.sizeOf(context);
     final double maxFeenX =
@@ -155,7 +265,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             maxXP: maxXP,
                             level: level,
                             formatRupiah: Formatters.rupiah,
-                            onTap: _tambahTabunganMock,
+                            onTap: () {},
                           ),
                           const SizedBox(height: 32),
 
@@ -187,7 +297,11 @@ class _HomeScreenState extends State<HomeScreen> {
                               ),
                             ],
                           ),
-                          const SizedBox(height: 32),
+                          const SizedBox(height: 24),
+
+                          // Misi Harian Banner
+                          _buildDailyMissionBanner(missionProvider),
+                          const SizedBox(height: 24),
 
                           // Target Menabung
                           SectionHeader(
@@ -257,8 +371,8 @@ class _HomeScreenState extends State<HomeScreen> {
               onPanUpdate: (details) {
                 final size = MediaQuery.sizeOf(context);
                 setState(() {
-                  _feenX = (_feenX + details.delta.dx)
-                      .clamp(0.0, (size.width - 80).clamp(0.0, double.infinity));
+                  _feenX = (_feenX + details.delta.dx).clamp(
+                      0.0, (size.width - 80).clamp(0.0, double.infinity));
                   _feenY = (_feenY + details.delta.dy).clamp(
                     0.0,
                     (size.height - _feenBottomMargin)
@@ -281,47 +395,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 });
               },
               onTap: () => context.push(AppRoutes.tanyaFeen),
-              child: Column(
-                children: [
-                  Container(
-                    width: 60,
-                    height: 60,
-                    decoration: BoxDecoration(
-                      color: feenButtonBg,
-                      shape: BoxShape.circle,
-                      border: Border.all(color: primaryGreen, width: 2),
-                    ),
-                    child: const Center(
-                      child: Text(
-                        '?',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 32,
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                    decoration: BoxDecoration(
-                      color: inputBg,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: primaryGreen, width: 1),
-                    ),
-                    child: const Text(
-                      'Tanya Feen',
-                      style: TextStyle(
-                        color: primaryGreen,
-                        fontSize: 10,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
+              child: const FeenFab(),
             ),
           ),
         ],
