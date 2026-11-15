@@ -126,15 +126,17 @@ class TransactionProvider extends ChangeNotifier {
       throw Exception('Sesi pengguna tidak ditemukan');
     }
     await _repository.addTransaction(targetUid, transaction);
-    if (transaction.type == TransactionType.expense) {
-      _lastExpenseAt = DateTime.now();
-    } else if (transaction.type == TransactionType.debt) {
-      _lastDebtAt = DateTime.now();
-    }
-    if (_missionProvider != null) {
-      unawaited(
-        _missionProvider!.recordTrigger(MissionTrigger.addTransaction),
-      );
+    if (!transaction.isBalanceAdjustment) {
+      if (transaction.type == TransactionType.expense) {
+        _lastExpenseAt = DateTime.now();
+      } else if (transaction.type == TransactionType.debt) {
+        _lastDebtAt = DateTime.now();
+      }
+      if (_missionProvider != null) {
+        unawaited(
+          _missionProvider!.recordTrigger(MissionTrigger.addTransaction),
+        );
+      }
     }
     await _refreshAfterMutation();
   }

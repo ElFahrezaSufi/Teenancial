@@ -22,8 +22,8 @@ enum FeenPose { normal, saving, learning, levelup, alert }
 
 FeenTier tierForLevel(int level) {
   if (level >= 11) return FeenTier.pro;
-  if (level >= 6) return FeenTier.rookie;
-  return FeenTier.saver;
+  if (level >= 6) return FeenTier.saver;
+  return FeenTier.rookie;
 }
 
 class FeenAccessory {

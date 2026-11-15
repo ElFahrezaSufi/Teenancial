@@ -11,6 +11,7 @@ import '../providers/auth_provider.dart';
 import '../providers/mission_provider.dart';
 import '../providers/user_provider.dart';
 import '../services/local_storage_service.dart';
+import '../services/notification_service.dart';
 import '../theme/app_colors.dart';
 import '../utils/error_mapper.dart';
 import '../widgets/common/custom_app_bar.dart';
@@ -28,7 +29,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   bool _isEditing = false;
   bool _isSaving = false;
   bool _isDeletingAccount = false;
-  bool _dailyReminder = true;
+  bool _dailyReminder = LocalStorageService.instance.dailyReminderEnabled;
 
   File? _pendingImageFile;
   bool _removeExistingImage = false;
@@ -44,6 +45,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   void initState() {
     super.initState();
+    _dailyReminder = LocalStorageService.instance.dailyReminderEnabled;
     _fullNameController = TextEditingController(text: 'Memuat...');
     _emailController = TextEditingController(text: 'Memuat...');
     _ageController = TextEditingController(text: '');
@@ -788,7 +790,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             border: Border.all(color: primaryGreen, width: 1),
                           ),
                           child: Text(
-                            'Level ${userProvider.level} • ${userProvider.xpIntoLevel}/${userProvider.xpNeededForNext} XP',
+                            'Level ${userProvider.level}  |  ${userProvider.xpIntoLevel}/${userProvider.xpNeededForNext} XP',
                             style: const TextStyle(
                               color: primaryGreen,
                               fontSize: 11,
@@ -982,7 +984,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 trailing: Switch(
                   value: _dailyReminder,
                   activeTrackColor: primaryGreen,
-                  onChanged: (val) => setState(() => _dailyReminder = val),
+                  onChanged: (val) {
+                    setState(() => _dailyReminder = val);
+                    NotificationService.instance.setRemindersEnabled(val);
+                  },
                 ),
               ),
               Divider(

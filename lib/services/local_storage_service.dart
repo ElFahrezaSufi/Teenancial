@@ -34,4 +34,12 @@ class LocalStorageService {
     final prefs = _prefs ??= await SharedPreferences.getInstance();
     await prefs.setInt(AppConstants.prefRiwayatFilterIndex, index.clamp(0, 2));
   }
+
+  bool get dailyReminderEnabled =>
+      _prefs?.getBool(AppConstants.prefDailyReminderEnabled) ?? true;
+
+  Future<void> setDailyReminderEnabled(bool value) async {
+    final prefs = _prefs ??= await SharedPreferences.getInstance();
+    await prefs.setBool(AppConstants.prefDailyReminderEnabled, value);
+  }
 }

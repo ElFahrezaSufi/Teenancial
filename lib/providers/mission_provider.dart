@@ -43,6 +43,12 @@ class MissionProvider extends ChangeNotifier {
       Future.microtask(() {
         if (_uid == newUid) loadMissions();
       });
+      return;
+    }
+
+    if (!_isLoading && _uid != null && _syncOneTimeFromProfile()) {
+      _persist();
+      Future.microtask(notifyListeners);
     }
   }
 
@@ -154,8 +160,49 @@ class MissionProvider extends ChangeNotifier {
   String _claimKey(MissionItem mission) =>
       '${_periodKey(mission.period)}:${mission.id}';
 
+  bool _syncOneTimeFromProfile() {
+    final profile = _userProvider?.profile;
+    if (profile == null || profile.uid != _uid) return false;
+
+    bool changed = false;
+    final moduleKey = _counterKey(
+      MissionPeriod.oneTime,
+      MissionTrigger.completeModule,
+    );
+    final quizKey = _counterKey(
+      MissionPeriod.oneTime,
+      MissionTrigger.passQuiz,
+    );
+
+    final completedModulesCount = profile.completedModules.length;
+    if ((_counters[moduleKey] ?? 0) < completedModulesCount) {
+      _counters[moduleKey] = completedModulesCount;
+      changed = true;
+    }
+
+    final completedQuizzesCount = profile.completedQuizzes.length;
+    if ((_counters[quizKey] ?? 0) < completedQuizzesCount) {
+      _counters[quizKey] = completedQuizzesCount;
+      changed = true;
+    }
+
+    return changed;
+  }
+
   int currentProgress(MissionItem mission) {
-    final raw = _counters[_counterKey(mission.period, mission.trigger)] ?? 0;
+    int raw = _counters[_counterKey(mission.period, mission.trigger)] ?? 0;
+    if (mission.period == MissionPeriod.oneTime) {
+      final profile = _userProvider?.profile;
+      if (profile != null && profile.uid == _uid) {
+        if (mission.trigger == MissionTrigger.completeModule &&
+            profile.completedModules.length > raw) {
+          raw = profile.completedModules.length;
+        } else if (mission.trigger == MissionTrigger.passQuiz &&
+            profile.completedQuizzes.length > raw) {
+          raw = profile.completedQuizzes.length;
+        }
+      }
+    }
     return raw > mission.targetCount ? mission.targetCount : raw;
   }
 
@@ -206,7 +253,8 @@ class MissionProvider extends ChangeNotifier {
 
       final anchorUpdated = _ensureValidAnchors();
       final keysPruned = _pruneExpiredKeys();
-      if (anchorUpdated || keysPruned) {
+      final profileSynced = _syncOneTimeFromProfile();
+      if (anchorUpdated || keysPruned || profileSynced) {
         await _persist();
       }
     } catch (e) {

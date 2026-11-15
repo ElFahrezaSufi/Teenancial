@@ -10,6 +10,7 @@ import '../repositories/recurring_repository.dart';
 import '../utils/currency_formatter.dart';
 import '../utils/date_helper.dart';
 import '../utils/loan_helper.dart';
+import 'local_storage_service.dart';
 
 class NotificationService {
   NotificationService._();
@@ -103,7 +104,7 @@ class NotificationService {
 
   /// Menampilkan notifikasi instan saat pinjaman/piutang baru berhasil disimpan.
   Future<void> showLoanCreatedNotification(TransactionModel loan) async {
-    if (kIsWeb) return;
+    if (kIsWeb || !LocalStorageService.instance.dailyReminderEnabled) return;
     if (!_initialized) {
       await init();
     }
@@ -174,7 +175,11 @@ class NotificationService {
   Future<void> showRecurringCatchUpNotification(
     RecurringCatchUpResult result,
   ) async {
-    if (kIsWeb || !result.hasChanges) return;
+    if (kIsWeb ||
+        !result.hasChanges ||
+        !LocalStorageService.instance.dailyReminderEnabled) {
+      return;
+    }
     if (!_initialized) {
       await init();
     }
@@ -252,6 +257,23 @@ class NotificationService {
     }
   }
 
+  Future<void> setRemindersEnabled(bool enabled) async {
+    await LocalStorageService.instance.setDailyReminderEnabled(enabled);
+    if (!enabled) {
+      if (_initialized && !kIsWeb) {
+        try {
+          await _plugin.cancelAll();
+        } catch (e) {
+          debugPrint(
+            'Gagal membatalkan notifikasi saat pengingat dimatikan: $e',
+          );
+        }
+      }
+      return;
+    }
+    await _rescheduleAllPending();
+  }
+
   Future<void> syncLoanReminders(List<TransactionModel> transactions) async {
     _cachedTransactions = List<TransactionModel>.unmodifiable(transactions);
     await _rescheduleAllPending();
@@ -267,6 +289,7 @@ class NotificationService {
 
     try {
       await _plugin.cancelAllPendingNotifications();
+      if (!LocalStorageService.instance.dailyReminderEnabled) return;
 
       final unpaidLoans = _cachedTransactions
           .where(
