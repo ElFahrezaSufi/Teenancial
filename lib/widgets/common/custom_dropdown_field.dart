@@ -6,6 +6,7 @@ class CustomDropdownField extends StatelessWidget {
   final String hint;
   final String? value;
   final List<String> items;
+  final Map<String, Widget>? itemLeading;
   final void Function(String?)? onChanged;
   final String? Function(String?)? validator;
 
@@ -14,6 +15,7 @@ class CustomDropdownField extends StatelessWidget {
     required this.label,
     required this.hint,
     required this.items,
+    this.itemLeading,
     this.value,
     this.onChanged,
     this.validator,
@@ -99,9 +101,24 @@ class CustomDropdownField extends StatelessWidget {
                       ),
                     ),
                     items: uniqueItems.map((String item) {
+                      final leading = itemLeading?[item];
                       return DropdownMenuItem<String>(
                         value: item,
-                        child: Text(item),
+                        child: leading == null
+                            ? Text(item)
+                            : Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  leading,
+                                  const SizedBox(width: 10),
+                                  Flexible(
+                                    child: Text(
+                                      item,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                ],
+                              ),
                       );
                     }).toList(),
                   ),

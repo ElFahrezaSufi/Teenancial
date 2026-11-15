@@ -32,7 +32,7 @@ class CustomBottomNavBar extends StatelessWidget {
               index: 1,
             ),
             _buildNavItem(icon: Icons.history, label: 'Riwayat', index: 2),
-            _buildNavItem(icon: Icons.person, label: 'Profil', index: 3),
+            _buildNavItem(icon: Icons.person, label: 'Akun', index: 3),
           ],
         ),
       ),

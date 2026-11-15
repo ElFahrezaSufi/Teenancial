@@ -1,17 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
+import '../../config/app_routes.dart';
 import '../../data/category_catalog.dart';
 import '../../models/dompet_model.dart';
 import '../../models/transaction_model.dart';
+import '../../providers/category_provider.dart';
 import '../../providers/dompet_provider.dart';
 import '../../providers/transaction_provider.dart';
 import '../../theme/app_colors.dart';
 import '../../utils/currency_formatter.dart';
+import '../../utils/date_helper.dart';
 import '../../utils/error_mapper.dart';
-import '../common/custom_dropdown_field.dart';
 import '../common/custom_text_field.dart';
+import '../common/date_picker_field.dart';
 import '../common/primary_button.dart';
+import 'category_selection_field.dart';
 import 'dompet_selection_dropdown.dart';
 import 'transaction_scaffold.dart';
 
@@ -36,6 +40,7 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
 
   String? _selectedDompetId;
   String? _selectedCategoryId;
+  DateTime _selectedTransactionDate = DateTime.now();
   bool _isLoading = false;
 
   late final List<CategoryModel> _categories;
@@ -55,6 +60,7 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
       _catatanController.text = t.notes;
       _selectedCategoryId = t.categoryId;
       _selectedDompetId = t.dompetId;
+      _selectedTransactionDate = t.date;
     }
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -62,6 +68,15 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
       final dompetProvider = context.read<DompetProvider>();
       if (dompetProvider.items.isEmpty && !dompetProvider.isLoading) {
         dompetProvider.loadDompets();
+      }
+      final catProvider = Provider.of<CategoryProvider?>(
+        context,
+        listen: false,
+      );
+      if (catProvider != null &&
+          catProvider.customCategories.isEmpty &&
+          !catProvider.isLoading) {
+        catProvider.loadCategories(silent: true);
       }
     });
   }
@@ -99,23 +114,35 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
       final amountStr =
           _jumlahController.text.replaceAll(RegExp(r'[^0-9]'), '');
       final amount = double.tryParse(amountStr) ?? 0.0;
-      final categoryId = _selectedCategoryId ?? _categories.first.id;
-      final cat = CategoryCatalog.getById(
-        categoryId,
-        fallbackType: widget.type,
+      final catProvider = Provider.of<CategoryProvider?>(
+        context,
+        listen: false,
       );
+      final categoryId = _selectedCategoryId ?? _categories.first.id;
+      final cat = catProvider != null
+          ? catProvider.resolve(categoryId, fallbackType: widget.type)
+          : CategoryCatalog.getById(
+              categoryId,
+              fallbackType: widget.type,
+            );
 
+      final trimmedNotes = _catatanController.text.trim();
       final transaction = TransactionModel(
         id: widget.transactionToEdit?.id ?? '',
-        title: _catatanController.text.isNotEmpty
-            ? _catatanController.text
+        title: (widget.transactionToEdit?.isBalanceAdjustment ?? false)
+            ? widget.transactionToEdit!.title
             : cat.name,
         amount: amount,
-        date: widget.transactionToEdit?.date ?? DateTime.now(),
-        notes: _catatanController.text,
+        date: DateHelper.withCurrentTime(
+          _selectedTransactionDate,
+          original: widget.transactionToEdit?.date,
+        ),
+        notes: trimmedNotes,
         categoryId: categoryId,
         type: widget.type,
         dompetId: _selectedDompetId!,
+        isAdjustment: widget.transactionToEdit?.isAdjustment ?? false,
+        recurringId: widget.transactionToEdit?.recurringId,
       );
 
       final txProvider = context.read<TransactionProvider>();
@@ -157,18 +184,26 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
     final title = widget.transactionToEdit != null
         ? 'Edit $_baseTitle'
         : _baseTitle;
-    final dropdownItems = _categories.map((c) => c.name).toList();
-    final selectedCatName = _selectedCategoryId != null
-        ? _categories
-            .firstWhere(
-              (c) => c.id == _selectedCategoryId,
-              orElse: () => _categories.first,
-            )
-            .name
-        : null;
 
     return TransactionScaffold(
       title: title,
+      trailing: widget.transactionToEdit == null
+          ? Padding(
+              padding: const EdgeInsets.only(right: 8),
+              child: IconButton(
+                tooltip: 'Jadwal $_baseTitle Berulang',
+                icon: const Icon(
+                  Icons.event_repeat_rounded,
+                  color: primaryGreen,
+                  size: 22,
+                ),
+                onPressed: () => context.push(
+                  AppRoutes.transaksiBerulang,
+                  extra: widget.type,
+                ),
+              ),
+            )
+          : null,
       child: SafeArea(
         child: dompetProvider.isLoading && dompets.isEmpty
             ? const Center(
@@ -205,23 +240,11 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
                           return null;
                         },
                       ),
-                      CustomDropdownField(
-                        label: 'Kategori',
-                        hint: 'Pilih Kategori',
-                        value: selectedCatName,
-                        items: dropdownItems,
-                        onChanged: (value) {
-                          setState(() {
-                            _selectedCategoryId = _categories
-                                .firstWhere((c) => c.name == value)
-                                .id;
-                          });
-                        },
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Kategori tidak boleh kosong';
-                          }
-                          return null;
+                      CategorySelectionField(
+                        type: widget.type,
+                        selectedCategoryId: _selectedCategoryId,
+                        onChanged: (catId) {
+                          setState(() => _selectedCategoryId = catId);
                         },
                       ),
                       CustomTextField(
@@ -231,6 +254,27 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
                         validator: (value) {
                           if (value != null && value.length > 50) {
                             return 'Catatan maksimal 50 karakter';
+                          }
+                          return null;
+                        },
+                      ),
+                      DatePickerField(
+                        label: 'Tanggal Transaksi',
+                        hint: 'Pilih tanggal transaksi',
+                        value: _selectedTransactionDate,
+                        lastDate: DateTime.now(),
+                        onChanged: (picked) {
+                          if (picked != null) {
+                            setState(() => _selectedTransactionDate = picked);
+                          }
+                        },
+                        validator: (value) {
+                          if (value == null) {
+                            return 'Tanggal transaksi harus dipilih';
+                          }
+                          if (DateHelper.daysBetween(DateTime.now(), value) >
+                              0) {
+                            return 'Tanggal transaksi tidak boleh di masa depan';
                           }
                           return null;
                         },

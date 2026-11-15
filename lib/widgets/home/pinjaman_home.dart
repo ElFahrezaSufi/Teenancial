@@ -25,9 +25,10 @@ class PinjamanHome extends StatelessWidget {
     final unpaidReceivables =
         txProvider.receivables.where((t) => !t.isPaid).toList();
 
-    final double totalDebt = unpaidDebts.fold(0.0, (s, t) => s + t.amount);
+    final double totalDebt =
+        unpaidDebts.fold(0.0, (s, t) => s + t.remainingAmount);
     final double totalReceivable =
-        unpaidReceivables.fold(0.0, (s, t) => s + t.amount);
+        unpaidReceivables.fold(0.0, (s, t) => s + t.remainingAmount);
 
     final List<TransactionModel> allUnpaid = [
       ...unpaidDebts,

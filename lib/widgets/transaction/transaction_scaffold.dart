@@ -5,11 +5,13 @@ import '../common/custom_app_bar.dart';
 class TransactionScaffold extends StatelessWidget {
   final String title;
   final Widget child;
+  final Widget? trailing;
 
   const TransactionScaffold({
     super.key,
     required this.title,
     required this.child,
+    this.trailing,
   });
 
   @override
@@ -18,7 +20,7 @@ class TransactionScaffold extends StatelessWidget {
       onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
       child: Scaffold(
         backgroundColor: scaffoldBg,
-        appBar: CustomAppBar(title: title),
+        appBar: CustomAppBar(title: title, trailing: trailing),
         body: Stack(
           fit: StackFit.expand,
           children: [

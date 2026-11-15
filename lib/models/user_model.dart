@@ -10,6 +10,8 @@ class UserModel {
   final String? profileImageUrl;
   final List<String> completedModules;
   final List<String> completedQuizzes;
+  final int xp;
+  final Map<String, String> feenEquipped;
 
   const UserModel({
     required this.uid,
@@ -21,9 +23,10 @@ class UserModel {
     this.profileImageUrl,
     this.completedModules = const [],
     this.completedQuizzes = const [],
+    this.xp = 0,
+    this.feenEquipped = const {},
   });
 
-  /// Menghitung umur (dalam tahun) dari [birthDate] terhadap [now].
   static int calculateAge(DateTime birthDate, {DateTime? now}) {
     final today = now ?? DateTime.now();
     int years = today.year - birthDate.year;
@@ -47,6 +50,8 @@ class UserModel {
       'profileImageUrl': profileImageUrl,
       'completedModules': completedModules,
       'completedQuizzes': completedQuizzes,
+      'xp': xp,
+      'feenEquipped': feenEquipped,
       if (includeCreatedAt) 'createdAt': FieldValue.serverTimestamp(),
     };
   }
@@ -58,6 +63,8 @@ class UserModel {
     final rawModules = map['completedModules'];
     final rawQuizzes = map['completedQuizzes'];
     final rawBirthDate = map['birthDate'];
+    final rawXp = map['xp'];
+    final rawEquipped = map['feenEquipped'];
 
     DateTime? parsedBirthDate;
     if (rawBirthDate is Timestamp) {
@@ -84,6 +91,13 @@ class UserModel {
       completedQuizzes: rawQuizzes is Iterable
           ? rawQuizzes.map((e) => e.toString()).toList()
           : const [],
+      xp: rawXp is num ? rawXp.toInt() : 0,
+      feenEquipped: rawEquipped is Map
+          ? {
+              for (final e in rawEquipped.entries)
+                if (e.value != null) e.key.toString(): e.value.toString(),
+            }
+          : const {},
     );
   }
 
@@ -99,6 +113,8 @@ class UserModel {
     bool clearProfileImage = false,
     List<String>? completedModules,
     List<String>? completedQuizzes,
+    int? xp,
+    Map<String, String>? feenEquipped,
   }) {
     return UserModel(
       uid: uid ?? this.uid,
@@ -107,11 +123,12 @@ class UserModel {
       age: age ?? this.age,
       birthDate: clearBirthDate ? null : (birthDate ?? this.birthDate),
       gender: gender ?? this.gender,
-      profileImageUrl: clearProfileImage
-          ? null
-          : (profileImageUrl ?? this.profileImageUrl),
+      profileImageUrl:
+          clearProfileImage ? null : (profileImageUrl ?? this.profileImageUrl),
       completedModules: completedModules ?? this.completedModules,
       completedQuizzes: completedQuizzes ?? this.completedQuizzes,
+      xp: xp ?? this.xp,
+      feenEquipped: feenEquipped ?? this.feenEquipped,
     );
   }
 }

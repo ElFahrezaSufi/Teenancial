@@ -17,9 +17,6 @@ class AuthRepository {
         _firestoreService = firestoreService ?? FirestoreService.instance;
 
   FirebaseAuth get _auth => _firebaseAuth ?? FirebaseAuth.instance;
-
-  /// Memastikan dokumen profil `users/{uid}` dan dompet awal `wallets/d1`
-  /// sudah terbuat secara idempoten dan atomik.
   Future<void> ensureUserBootstrapped(
     User user, {
     String? name,
@@ -176,6 +173,104 @@ class AuthRepository {
     } catch (e) {
       debugPrint('Error Login Google: $e');
       throw Exception('Gagal masuk dengan Google: $e');
+    }
+  }
+
+  Future<void> _deleteCollectionDocs(Query colRef) async {
+    while (true) {
+      final snap = await colRef.limit(300).get();
+      if (snap.docs.isEmpty) break;
+      final batch = _firestoreService.batch();
+      for (final doc in snap.docs) {
+        batch.delete(doc.reference);
+      }
+      await batch.commit();
+    }
+  }
+
+  Future<void> deleteUserFirestoreData(String uid) async {
+    final txSnap = await _firestoreService.transactionsCol(uid).get();
+    for (final txDoc in txSnap.docs) {
+      await _deleteCollectionDocs(txDoc.reference.collection('payments'));
+    }
+    await _deleteCollectionDocs(_firestoreService.transactionsCol(uid));
+    await _deleteCollectionDocs(_firestoreService.walletsCol(uid));
+    await _deleteCollectionDocs(_firestoreService.contactsCol(uid));
+    await _deleteCollectionDocs(_firestoreService.targetsCol(uid));
+    await _deleteCollectionDocs(_firestoreService.categoriesCol(uid));
+    await _deleteCollectionDocs(_firestoreService.recurringCol(uid));
+    await _deleteCollectionDocs(
+      _firestoreService.userDoc(uid).collection('gamification'),
+    );
+    await _firestoreService.userDoc(uid).delete();
+  }
+
+  Future<void> _reauthenticateUser(User user, {String? password}) async {
+    final isGoogleUser = user.providerData.any(
+      (info) => info.providerId == GoogleAuthProvider.PROVIDER_ID,
+    );
+
+    if (isGoogleUser) {
+      if (kIsWeb) {
+        await user.reauthenticateWithPopup(GoogleAuthProvider());
+      } else {
+        await _ensureGoogleInitialized();
+        final googleUser = await GoogleSignIn.instance.authenticate();
+        final googleAuth = googleUser.authentication;
+        if (googleAuth.idToken == null) {
+          throw Exception('Verifikasi Google gagal.');
+        }
+        final cred = GoogleAuthProvider.credential(idToken: googleAuth.idToken);
+        await user.reauthenticateWithCredential(cred);
+      }
+      return;
+    }
+
+    if (password != null && password.isNotEmpty && user.email != null) {
+      final cred = EmailAuthProvider.credential(
+        email: user.email!,
+        password: password,
+      );
+      await user.reauthenticateWithCredential(cred);
+    }
+  }
+
+  Future<void> deleteAccount({String? password}) async {
+    final user = _auth.currentUser;
+    if (user == null) {
+      throw Exception('Sesi pengguna tidak ditemukan.');
+    }
+
+    final uid = user.uid;
+    final bool isGoogleUser = user.providerData.any(
+      (info) => info.providerId == GoogleAuthProvider.PROVIDER_ID,
+    );
+
+    if (password != null && password.isNotEmpty) {
+      await _reauthenticateUser(user, password: password);
+    }
+    await deleteUserFirestoreData(uid);
+
+    try {
+      await user.delete();
+    } on FirebaseAuthException catch (e) {
+      if (e.code == 'requires-recent-login') {
+        if (isGoogleUser) {
+          await _reauthenticateUser(user);
+          await user.delete();
+        } else {
+          rethrow;
+        }
+      } else {
+        rethrow;
+      }
+    }
+
+    if (!kIsWeb && (isGoogleUser || _googleInit != null)) {
+      try {
+        await _ensureGoogleInitialized();
+        await GoogleSignIn.instance.signOut();
+      } catch (_) {}
     }
   }
 

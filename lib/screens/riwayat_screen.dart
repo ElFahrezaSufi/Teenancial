@@ -8,9 +8,9 @@ import '../providers/dompet_provider.dart';
 import '../providers/transaction_provider.dart';
 import '../services/local_storage_service.dart';
 import '../theme/app_colors.dart';
-import '../utils/confirm_dialog.dart';
 import '../utils/currency_formatter.dart';
-import '../utils/error_mapper.dart';
+import '../utils/date_helper.dart';
+import '../utils/transaction_actions.dart';
 import '../widgets/common/async_state_view.dart';
 import '../widgets/common/custom_app_bar.dart';
 import '../widgets/common/custom_card.dart';
@@ -18,18 +18,13 @@ import '../widgets/common/custom_filter_chip.dart';
 import '../widgets/common/skeleton.dart';
 import '../widgets/transaction/transaction_group.dart';
 import '../widgets/transaction/trend_chart_painter.dart';
+import 'semua_aktivitas_screen.dart';
 
 class RiwayatScreen extends StatefulWidget {
   const RiwayatScreen({super.key});
 
   static DateTime cutoffForFilter(int filterIndex) {
-    final now = DateTime.now();
-    if (filterIndex == 0) {
-      return now.subtract(const Duration(days: 7));
-    } else if (filterIndex == 1) {
-      return now.subtract(const Duration(days: 30));
-    }
-    return now.subtract(const Duration(days: 365));
+    return DateHelper.periodStartForFilter(filterIndex);
   }
 
   static List<TransactionGroupData> buildFilteredGroups(
@@ -38,7 +33,7 @@ class RiwayatScreen extends StatefulWidget {
   ) {
     final cutoff = cutoffForFilter(filterIndex);
     final filtered =
-        allTransactions.where((t) => t.date.isAfter(cutoff)).toList();
+        allTransactions.where((t) => !t.date.isBefore(cutoff)).toList();
     if (filtered.isEmpty) return [];
 
     final Map<String, List<TransactionModel>> groups = {};
@@ -52,10 +47,6 @@ class RiwayatScreen extends StatefulWidget {
         .toList();
     result.sort((a, b) => b.items.first.date.compareTo(a.items.first.date));
     return result;
-  }
-
-  static double _netWalletDelta(TransactionModel t) {
-    return t.walletEffects().values.fold(0.0, (sum, delta) => sum + delta);
   }
 
   @override
@@ -75,51 +66,6 @@ class _RiwayatScreenState extends State<RiwayatScreen> {
     if (_selectedFilter == index) return;
     setState(() => _selectedFilter = index);
     LocalStorageService.instance.setRiwayatFilterIndex(index);
-  }
-
-  Future<void> _deleteTransaction(String id) async {
-    final bool confirm = await showConfirmDialog(
-      context,
-      title: 'Hapus Transaksi',
-      message:
-          'Apakah Anda yakin ingin menghapus data ini? Aksi ini tidak dapat dibatalkan.',
-    );
-
-    if (!confirm || !mounted) return;
-
-    try {
-      await context.read<TransactionProvider>().deleteTransaction(id);
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('✅ Data berhasil dihapus!'),
-            backgroundColor: primaryGreen,
-          ),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              '❌ Gagal menghapus: ${ErrorMapper.message(e)}',
-            ),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    }
-  }
-
-  Future<void> _editTransaction(TransactionModel item) async {
-    if (item.type != TransactionType.income &&
-        item.type != TransactionType.expense) {
-      return;
-    }
-    final route = item.type == TransactionType.income
-        ? AppRoutes.pemasukan
-        : AppRoutes.pengeluaran;
-    await context.push(route, extra: item);
   }
 
   Widget _buildLoading() {
@@ -175,21 +121,27 @@ class _RiwayatScreenState extends State<RiwayatScreen> {
     final visibleGroups = filteredGroups.take(5).toList();
 
     final cutoff = RiwayatScreen.cutoffForFilter(_selectedFilter);
-    final filteredAsc =
-        allTransactions.where((t) => t.date.isAfter(cutoff)).toList()
-          ..sort((a, b) => a.date.compareTo(b.date));
+    final periodEvents = <({DateTime date, double delta})>[];
+    for (final t in allTransactions) {
+      for (final ev in t.balanceEvents()) {
+        if (!ev.date.isBefore(cutoff)) {
+          periodEvents.add(ev);
+        }
+      }
+    }
+    periodEvents.sort((a, b) => a.date.compareTo(b.date));
 
     final double currentTotalSaldo = dompetProvider.totalSaldo;
-    final double periodNetDelta = filteredAsc.fold(
+    final double periodNetDelta = periodEvents.fold(
       0.0,
-      (sum, t) => sum + RiwayatScreen._netWalletDelta(t),
+      (sum, ev) => sum + ev.delta,
     );
     final double openingBalance = currentTotalSaldo - periodNetDelta;
 
     double runningBalance = openingBalance;
     final List<double> trendData = [openingBalance];
-    for (final t in filteredAsc) {
-      runningBalance += RiwayatScreen._netWalletDelta(t);
+    for (final ev in periodEvents) {
+      runningBalance += ev.delta;
       trendData.add(runningBalance);
     }
 
@@ -199,9 +151,21 @@ class _RiwayatScreenState extends State<RiwayatScreen> {
 
     return Scaffold(
       backgroundColor: scaffoldBg,
-      appBar: const CustomAppBar(
+      appBar: CustomAppBar(
         title: 'Riwayat',
         showBackButton: false,
+        trailing: Padding(
+          padding: const EdgeInsets.only(right: 8),
+          child: IconButton(
+            tooltip: 'Transaksi Berulang',
+            icon: const Icon(
+              Icons.event_repeat_rounded,
+              color: primaryGreen,
+              size: 22,
+            ),
+            onPressed: () => context.push(AppRoutes.transaksiBerulang),
+          ),
+        ),
       ),
       body: Stack(
         fit: StackFit.expand,
@@ -256,21 +220,126 @@ class _RiwayatScreenState extends State<RiwayatScreen> {
                           ),
                         ],
                       ),
-                      if (filteredGroups.isEmpty)
-                        Padding(
-                          padding: const EdgeInsets.only(top: 60),
-                          child: _buildEmpty(),
-                        )
-                      else ...[
-                        const SizedBox(height: 20),
-                        const Text(
-                          'Tren Saldo',
-                          style: TextStyle(
-                            color: primaryGreen,
-                            fontSize: 14,
-                            fontFamily: 'Inter',
-                            fontWeight: FontWeight.w700,
+                      const SizedBox(height: 14),
+                      GestureDetector(
+                        onTap: () => context.push(
+                          AppRoutes.semuaAktivitas,
+                          extra: SemuaAktivitasArgs(
+                            filterIndex: _selectedFilter,
+                            autoFocusSearch: true,
                           ),
+                        ),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 14,
+                            vertical: 12,
+                          ),
+                          decoration: BoxDecoration(
+                            color: inputBg,
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(
+                              color: primaryGreen,
+                              width: 1.5,
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              const Icon(
+                                Icons.search_rounded,
+                                color: primaryGreen,
+                                size: 20,
+                              ),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Text(
+                                  'Cari transaksi, kategori, atau nominal...',
+                                  style: TextStyle(
+                                    color: primaryGreen.withValues(alpha: 0.6),
+                                    fontSize: 13,
+                                    fontFamily: 'Inter',
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ),
+                              const Icon(
+                                Icons.tune_rounded,
+                                color: primaryGreen,
+                                size: 18,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      if (filteredGroups.isEmpty) ...[
+                        const SizedBox(height: 16),
+                        Align(
+                          alignment: Alignment.centerRight,
+                          child: GestureDetector(
+                            onTap: () => context.push(AppRoutes.laporan),
+                            child: const Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  Icons.donut_large_rounded,
+                                  size: 15,
+                                  color: orangeText,
+                                ),
+                                SizedBox(width: 5),
+                                Text(
+                                  'Laporan Keuangan ›',
+                                  style: TextStyle(
+                                    color: orangeText,
+                                    fontSize: 13,
+                                    fontFamily: 'Inter',
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.only(top: 40),
+                          child: _buildEmpty(),
+                        ),
+                      ] else ...[
+                        const SizedBox(height: 20),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Text(
+                              'Tren Saldo',
+                              style: TextStyle(
+                                color: primaryGreen,
+                                fontSize: 14,
+                                fontFamily: 'Inter',
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                            GestureDetector(
+                              onTap: () => context.push(AppRoutes.laporan),
+                              child: const Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    Icons.donut_large_rounded,
+                                    size: 15,
+                                    color: orangeText,
+                                  ),
+                                  SizedBox(width: 5),
+                                  Text(
+                                    'Laporan Keuangan ›',
+                                    style: TextStyle(
+                                      color: orangeText,
+                                      fontSize: 13,
+                                      fontFamily: 'Inter',
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
                         ),
                         const SizedBox(height: 10),
                         CustomCard(
@@ -352,8 +421,10 @@ class _RiwayatScreenState extends State<RiwayatScreen> {
                           (group) => TransactionGroupList(
                             group: group,
                             formatCurrency: Formatters.rupiah,
-                            onEdit: _editTransaction,
-                            onDelete: _deleteTransaction,
+                            onEdit: (item) =>
+                                TransactionActions.edit(context, item),
+                            onDelete: (id) =>
+                                TransactionActions.delete(context, id),
                           ),
                         ),
                       ],

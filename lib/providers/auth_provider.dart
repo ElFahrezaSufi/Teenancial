@@ -9,8 +9,6 @@ class AuthProvider extends ChangeNotifier {
   static final ValueNotifier<bool> _bootstrapNotifier =
       ValueNotifier<bool>(false);
 
-  /// Read-only listenable untuk memberi tahu router saat proses bootstrap
-  /// akun baru (registrasi email / Google Sign-In) sedang berjalan atau selesai.
   static ValueListenable<bool> get bootstrapListenable => _bootstrapNotifier;
 
   final FirebaseAuth _auth;
@@ -23,10 +21,13 @@ class AuthProvider extends ChangeNotifier {
   bool get isBootstrapping => _bootstrapInProgress;
   bool get isAuthenticated => _user != null && !_bootstrapInProgress;
 
-  /// UID aktif untuk seluruh feature provider. Bernilai null saat belum login,
-  /// atau saat proses bootstrap akun baru (registrasi email / Google Sign-In)
-  /// belum selesai menulis profil & dompet awal di Firestore.
   String? get activeUid => _bootstrapInProgress ? null : _user?.uid;
+
+  bool get isGoogleSignInUser =>
+      _user?.providerData.any(
+        (info) => info.providerId == GoogleAuthProvider.PROVIDER_ID,
+      ) ??
+      false;
 
   late final StreamSubscription<User?> _authSub;
 
@@ -112,6 +113,11 @@ class AuthProvider extends ChangeNotifier {
 
   Future<void> sendPasswordResetEmail(String email) async {
     await _repository.sendPasswordResetEmail(email);
+  }
+
+  Future<void> deleteAccount({String? password}) async {
+    await NotificationService.instance.cancelAll();
+    await _repository.deleteAccount(password: password);
   }
 
   Future<void> logout() async {

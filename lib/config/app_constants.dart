@@ -17,6 +17,8 @@ class AppConstants {
   static const String transactionsSubcollection = 'transactions';
   static const String contactsSubcollection = 'contacts';
   static const String targetsSubcollection = 'targets';
+  static const String categoriesSubcollection = 'categories';
+  static const String recurringSubcollection = 'recurring';
   static const String belajarLevelsCollection = 'belajar_levels';
   static const String belajarModulesCollection = 'belajar_modules';
 

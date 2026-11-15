@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../../data/category_catalog.dart';
 import '../../models/transaction_model.dart';
+import '../../providers/category_provider.dart';
 import '../../theme/app_colors.dart';
 import '../../utils/loan_helper.dart';
 import '../common/custom_card.dart';
@@ -21,10 +23,15 @@ class TransactionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cat = CategoryCatalog.getById(
-      item.categoryId,
-      fallbackType: item.type,
-    );
+    final catProvider = Provider.of<CategoryProvider?>(context);
+    final cat = catProvider != null
+        ? catProvider.resolve(item.categoryId, fallbackType: item.type)
+        : CategoryCatalog.getById(
+            item.categoryId,
+            fallbackType: item.type,
+          );
+    final Color iconBgColor = cat.color.withValues(alpha: 0.18);
+    final Color iconFgColor = cat.color;
     // Piutang & Transfer keluar = uang keluar, Hutang & Pemasukan = uang masuk
     final bool isExpense = item.type == TransactionType.expense ||
         item.type == TransactionType.receivable ||
@@ -42,8 +49,35 @@ class TransactionCard extends StatelessWidget {
         ? primaryGreen
         : (isExpense ? Colors.red : primaryGreen);
 
-    final bool canEdit = item.type == TransactionType.income ||
-        item.type == TransactionType.expense;
+    final bool canEdit = item.isEditable;
+    final bool hasRecurringBadge =
+        item.recurringId != null && item.recurringId!.isNotEmpty;
+
+    final bool isStandardIncomeOrExpense =
+        (item.type == TransactionType.income ||
+                item.type == TransactionType.expense) &&
+            !item.isBalanceAdjustment;
+
+    final String displayTitle;
+    String? displaySubtitle;
+
+    if (isStandardIncomeOrExpense) {
+      displayTitle = cat.name;
+      final trimmedNotes = item.notes.trim();
+      final trimmedTitle = item.title.trim();
+      if (trimmedNotes.isNotEmpty &&
+          trimmedNotes.toLowerCase() != cat.name.trim().toLowerCase()) {
+        displaySubtitle = trimmedNotes;
+      } else if (trimmedNotes.isEmpty &&
+          trimmedTitle.isNotEmpty &&
+          trimmedTitle.toLowerCase() != cat.name.trim().toLowerCase()) {
+        displaySubtitle = trimmedTitle;
+      }
+    } else {
+      displayTitle = item.title;
+      displaySubtitle =
+          item.notes.trim().isNotEmpty ? item.notes.trim() : cat.name;
+    }
 
     return CustomCard(
       backgroundColor: cardBg,
@@ -55,39 +89,62 @@ class TransactionCard extends StatelessWidget {
             width: 40,
             height: 40,
             decoration: BoxDecoration(
-              color: lightGreen.withValues(alpha: 0.4),
+              color: iconBgColor,
               borderRadius: BorderRadius.circular(8),
             ),
-            child: Icon(cat.icon, color: primaryGreen, size: 22),
+            child: Icon(cat.icon, color: iconFgColor, size: 22),
           ),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
+              mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  item.title,
-                  style: const TextStyle(
-                    color: primaryGreen,
-                    fontSize: 14,
-                    fontFamily: 'Inter',
-                    fontWeight: FontWeight.w700,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+                Row(
+                  children: [
+                    Flexible(
+                      child: Text(
+                        displayTitle,
+                        style: const TextStyle(
+                          color: primaryGreen,
+                          fontSize: 14,
+                          fontFamily: 'Inter',
+                          fontWeight: FontWeight.w700,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    if (displaySubtitle == null && hasRecurringBadge) ...[
+                      const SizedBox(width: 6),
+                      const _RecurringBadge(),
+                    ],
+                  ],
                 ),
-                const SizedBox(height: 2),
-                Text(
-                  item.notes.isNotEmpty ? item.notes : cat.name,
-                  style: const TextStyle(
-                    color: primaryGreen,
-                    fontSize: 12,
-                    fontFamily: 'Inter',
-                    fontWeight: FontWeight.w500,
+                if (displaySubtitle != null) ...[
+                  const SizedBox(height: 2),
+                  Row(
+                    children: [
+                      Flexible(
+                        child: Text(
+                          displaySubtitle,
+                          style: const TextStyle(
+                            color: primaryGreen,
+                            fontSize: 12,
+                            fontFamily: 'Inter',
+                            fontWeight: FontWeight.w500,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      if (hasRecurringBadge) ...[
+                        const SizedBox(width: 6),
+                        const _RecurringBadge(),
+                      ],
+                    ],
                   ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
+                ],
                 if (isLoan) ...[
                   const SizedBox(height: 4),
                   Wrap(
@@ -121,7 +178,11 @@ class TransactionCard extends StatelessWidget {
                           ],
                         ),
                       _LoanBadge(
-                        label: item.isPaid ? 'Lunas' : 'Belum Lunas',
+                        label: item.isPaid
+                            ? 'Lunas'
+                            : (item.paidAmount > 0
+                                ? 'Sisa ${formatCurrency(item.remainingAmount)}'
+                                : 'Belum Lunas'),
                         color: item.isPaid
                             ? primaryGreen
                             : (dueInfo?.isOverdue == true
@@ -175,6 +236,41 @@ class TransactionCard extends StatelessWidget {
                 ),
               ),
             ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _RecurringBadge extends StatelessWidget {
+  const _RecurringBadge();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
+      decoration: BoxDecoration(
+        color: primaryGreen.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(100),
+      ),
+      child: const Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            Icons.autorenew_rounded,
+            size: 10,
+            color: primaryGreen,
+          ),
+          SizedBox(width: 2.5),
+          Text(
+            'Berulang',
+            style: TextStyle(
+              color: primaryGreen,
+              fontSize: 9.5,
+              fontFamily: 'Inter',
+              fontWeight: FontWeight.w700,
+            ),
           ),
         ],
       ),

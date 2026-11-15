@@ -6,8 +6,11 @@ import 'package:provider/provider.dart';
 import 'firebase_options.dart';
 import 'providers/auth_provider.dart';
 import 'providers/belajar_provider.dart';
+import 'providers/category_provider.dart';
 import 'providers/contact_provider.dart';
 import 'providers/dompet_provider.dart';
+import 'providers/mission_provider.dart';
+import 'providers/recurring_provider.dart';
 import 'providers/target_provider.dart';
 import 'providers/transaction_provider.dart';
 import 'providers/user_provider.dart';
@@ -34,6 +37,13 @@ void main() async {
           update: (_, auth, provider) =>
               (provider ?? UserProvider())..updateUser(auth.activeUid),
         ),
+        ChangeNotifierProxyProvider2<AuthProvider, UserProvider,
+            MissionProvider>(
+          create: (_) => MissionProvider(),
+          update: (_, auth, userProvider, provider) =>
+              (provider ?? MissionProvider())
+                ..bindDependencies(auth.activeUid, userProvider),
+        ),
         ChangeNotifierProxyProvider<AuthProvider, DompetProvider>(
           create: (_) => DompetProvider(),
           update: (_, auth, provider) =>
@@ -44,22 +54,42 @@ void main() async {
           update: (_, auth, provider) =>
               (provider ?? ContactProvider())..updateUser(auth.activeUid),
         ),
-        ChangeNotifierProxyProvider2<AuthProvider, DompetProvider,
-            TransactionProvider>(
+        ChangeNotifierProxyProvider<AuthProvider, CategoryProvider>(
+          create: (_) => CategoryProvider(),
+          update: (_, auth, provider) =>
+              (provider ?? CategoryProvider())..updateUser(auth.activeUid),
+        ),
+        ChangeNotifierProxyProvider3<AuthProvider, DompetProvider,
+            MissionProvider, TransactionProvider>(
           create: (_) => TransactionProvider(),
-          update: (_, auth, dompetProvider, provider) =>
+          update: (_, auth, dompetProvider, missionProvider, provider) =>
               (provider ?? TransactionProvider())
-                ..bindDependencies(auth.activeUid, dompetProvider),
+                ..bindDependencies(
+                  auth.activeUid,
+                  dompetProvider,
+                  missionProvider,
+                ),
         ),
-        ChangeNotifierProxyProvider<AuthProvider, TargetProvider>(
+        ChangeNotifierProxyProvider3<AuthProvider, DompetProvider,
+            TransactionProvider, RecurringProvider>(
+          create: (_) => RecurringProvider(),
+          update: (_, auth, dompetProvider, txProvider, provider) =>
+              (provider ?? RecurringProvider())
+                ..bindDependencies(auth.activeUid, dompetProvider, txProvider),
+        ),
+        ChangeNotifierProxyProvider2<AuthProvider, MissionProvider,
+            TargetProvider>(
           create: (_) => TargetProvider(),
-          update: (_, auth, provider) =>
-              (provider ?? TargetProvider())..updateUser(auth.activeUid),
+          update: (_, auth, missionProvider, provider) =>
+              (provider ?? TargetProvider())
+                ..bindDependencies(auth.activeUid, missionProvider),
         ),
-        ChangeNotifierProxyProvider<AuthProvider, BelajarProvider>(
+        ChangeNotifierProxyProvider2<AuthProvider, MissionProvider,
+            BelajarProvider>(
           create: (_) => BelajarProvider(),
-          update: (_, auth, provider) =>
-              (provider ?? BelajarProvider())..updateUser(auth.activeUid),
+          update: (_, auth, missionProvider, provider) =>
+              (provider ?? BelajarProvider())
+                ..bindDependencies(auth.activeUid, missionProvider),
         ),
       ],
       child: const MyApp(),

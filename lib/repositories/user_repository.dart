@@ -34,9 +34,8 @@ class UserRepository {
     if (doc.exists && doc.data() != null) {
       final parsed = UserModel.fromMap(doc.data()!, uidFallback: uid);
       return parsed.copyWith(
-        email: parsed.email.isNotEmpty
-            ? parsed.email
-            : (currentUser?.email ?? ''),
+        email:
+            parsed.email.isNotEmpty ? parsed.email : (currentUser?.email ?? ''),
         name: parsed.name.isNotEmpty ? parsed.name : fallbackName,
         profileImageUrl: (parsed.profileImageUrl != null &&
                 parsed.profileImageUrl!.isNotEmpty)
@@ -100,5 +99,19 @@ class UserRepository {
     }
 
     return getUserProfile(uid);
+  }
+
+  Future<void> saveFeenEquipped(String uid, Map<String, String> equipped) {
+    return _firestoreService.userDoc(uid).set(
+      {'feenEquipped': equipped},
+      SetOptions(mergeFields: ['feenEquipped']),
+    );
+  }
+
+  Future<void> incrementXp(String uid, int amount) {
+    return _firestoreService.userDoc(uid).set(
+      {'xp': FieldValue.increment(amount)},
+      SetOptions(merge: true),
+    );
   }
 }
