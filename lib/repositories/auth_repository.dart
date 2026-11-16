@@ -99,6 +99,13 @@ class AuthRepository {
           birthDate: birthDate,
           gender: gender,
         );
+
+        // Kirim email verifikasi (kalau gagal, akun tetap dibuat).
+        try {
+          await user.sendEmailVerification();
+        } catch (e) {
+          debugPrint('Gagal mengirim email verifikasi: $e');
+        }
       } catch (_) {
         try {
           await user.delete();
@@ -107,6 +114,23 @@ class AuthRepository {
       }
     }
     return credential;
+  }
+
+  /// Kirim ulang email verifikasi ke user yang sedang login.
+  Future<void> sendEmailVerification() async {
+    final user = _auth.currentUser;
+    if (user == null) {
+      throw Exception('Pengguna belum masuk.');
+    }
+    await user.sendEmailVerification();
+  }
+
+  /// Muat ulang data user dari server untuk mengecek status verifikasi email.
+  Future<User?> reloadUser() async {
+    final user = _auth.currentUser;
+    if (user == null) return null;
+    await user.reload();
+    return _auth.currentUser;
   }
 
   Future<void> sendPasswordResetEmail(String email) async {

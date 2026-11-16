@@ -7,6 +7,14 @@ import '../services/notification_service.dart';
 
 export '../repositories/auth_repository.dart' show ReauthCanceledException;
 
+/// Dilempar saat email & password benar, tetapi email belum diverifikasi.
+class EmailNotVerifiedException implements Exception {
+  const EmailNotVerifiedException();
+
+  @override
+  String toString() => 'Email belum diverifikasi';
+}
+
 class AuthProvider extends ChangeNotifier {
   static final ValueNotifier<bool> _bootstrapNotifier =
       ValueNotifier<bool>(false);
@@ -24,6 +32,9 @@ class AuthProvider extends ChangeNotifier {
   bool get isAuthenticated => _user != null && !_bootstrapInProgress;
 
   String? get activeUid => _bootstrapInProgress ? null : _user?.uid;
+
+  /// Apakah akun email user sudah terverifikasi.
+  bool get isEmailVerified => _user?.emailVerified ?? false;
 
   bool get isGoogleSignInUser =>
       _user?.providerData.any(
@@ -74,8 +85,30 @@ class AuthProvider extends ChangeNotifier {
     unawaited(NotificationService.instance.cancelAll());
   }
 
+  /// True selama proses login berjalan, supaya router tidak melompat ke
+  /// halaman verifikasi sebelum layar login sempat menampilkan pesan error.
+  static bool suppressVerificationRedirect = false;
+
   Future<void> login(String email, String password) async {
-    await _repository.loginWithEmail(email, password);
+    suppressVerificationRedirect = true;
+    try {
+      final credential = await _repository.loginWithEmail(email, password);
+      final user = credential.user;
+      if (user == null) return;
+
+      if (!user.emailVerified) {
+        // Akun ada tetapi belum diverifikasi: kirim ulang link, akhiri sesi,
+        // lalu laporkan ke layar login sebagai "email belum terdaftar".
+        try {
+          await user.sendEmailVerification();
+        } catch (_) {}
+
+        await _repository.logout();
+        throw const EmailNotVerifiedException();
+      }
+    } finally {
+      suppressVerificationRedirect = false;
+    }
   }
 
   Future<void> register({
@@ -115,6 +148,23 @@ class AuthProvider extends ChangeNotifier {
 
   Future<void> sendPasswordResetEmail(String email) async {
     await _repository.sendPasswordResetEmail(email);
+  }
+
+  /// Kirim ulang email verifikasi.
+  Future<void> resendVerificationEmail() async {
+    await _repository.sendEmailVerification();
+  }
+
+  /// Reload user dari server lalu notify, untuk mengecek status verifikasi.
+  /// Mengembalikan true jika email sudah terverifikasi.
+  Future<bool> refreshVerificationStatus() async {
+    final updated = await _repository.reloadUser();
+    if (updated != null) {
+      _user = updated;
+    }
+
+    notifyListeners();
+    return _user?.emailVerified ?? false;
   }
 
   Future<void> deleteAccount({String? password}) async {

@@ -41,6 +41,7 @@ import '../screens/tanya_feen_screen.dart';
 import '../screens/target_menabung_screen.dart';
 import '../screens/transaksi_berulang_screen.dart';
 import '../screens/transfer_screen.dart';
+import '../screens/verify_email_screen.dart';
 
 final GlobalKey<NavigatorState> rootNavigatorKey =
     GlobalKey<NavigatorState>(debugLabel: 'root');
@@ -67,6 +68,33 @@ final GoRouter appRouter = GoRouter(
     }
 
     final isAuthRoute = AppRoutes.authRoutes.contains(state.matchedLocation);
+
+    bool needsVerification = false;
+    if (user != null) {
+      final bool emailUser = user.providerData.any(
+        (info) => info.providerId == EmailAuthProvider.PROVIDER_ID,
+      );
+      needsVerification = emailUser && !user.emailVerified;
+    }
+
+    if (needsVerification) {
+      // Saat proses login berjalan, biarkan layar login menampilkan pesan
+      // "email belum terdaftar" tanpa melompat ke halaman verifikasi.
+      if (AuthProvider.suppressVerificationRedirect) return null;
+
+      // Saat berada di halaman auth (mis. login), biarkan layar login yang
+      // menampilkan pesannya.
+      if (isAuthRoute) return null;
+
+      if (state.matchedLocation != AppRoutes.verifyEmail) {
+        return AppRoutes.verifyEmail;
+      }
+      return null;
+    }
+
+    if (state.matchedLocation == AppRoutes.verifyEmail) {
+      return isLoggedIn ? AppRoutes.home : AppRoutes.login;
+    }
 
     if (isLoggedIn && isAuthRoute) {
       return AppRoutes.home;
@@ -113,6 +141,13 @@ final GoRouter appRouter = GoRouter(
       pageBuilder: (context, state) => AppTransitions.slideUp(
         key: state.pageKey,
         child: const ForgotPasswordScreen(),
+      ),
+    ),
+    GoRoute(
+      path: AppRoutes.verifyEmail,
+      pageBuilder: (context, state) => AppTransitions.fade(
+        key: state.pageKey,
+        child: const VerifyEmailScreen(),
       ),
     ),
     StatefulShellRoute.indexedStack(
