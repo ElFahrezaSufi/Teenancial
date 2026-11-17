@@ -36,6 +36,15 @@ class AuthProvider extends ChangeNotifier {
   /// Apakah akun email user sudah terverifikasi.
   bool get isEmailVerified => _user?.emailVerified ?? false;
 
+  /// Apakah user login memakai email & password (bukan Google).
+  bool get isEmailPasswordUser {
+    final user = _user;
+    if (user == null) return false;
+    return user.providerData.any(
+      (info) => info.providerId == EmailAuthProvider.PROVIDER_ID,
+    );
+  }
+
   bool get isGoogleSignInUser =>
       _user?.providerData.any(
         (info) => info.providerId == GoogleAuthProvider.PROVIDER_ID,
@@ -148,6 +157,17 @@ class AuthProvider extends ChangeNotifier {
 
   Future<void> sendPasswordResetEmail(String email) async {
     await _repository.sendPasswordResetEmail(email);
+  }
+
+  /// Mengubah password akun (butuh password lama).
+  Future<void> changePassword({
+    required String currentPassword,
+    required String newPassword,
+  }) async {
+    await _repository.changePassword(
+      currentPassword: currentPassword,
+      newPassword: newPassword,
+    );
   }
 
   /// Kirim ulang email verifikasi.

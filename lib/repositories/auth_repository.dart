@@ -133,6 +133,29 @@ class AuthRepository {
     return _auth.currentUser;
   }
 
+  /// Mengubah password user yang sedang login.
+  /// Wajib menyertakan password lama untuk verifikasi ulang (reauthenticate).
+  Future<void> changePassword({
+    required String currentPassword,
+    required String newPassword,
+  }) async {
+    final user = _auth.currentUser;
+    if (user == null) {
+      throw Exception('Sesi pengguna tidak ditemukan.');
+    }
+    final email = user.email;
+    if (email == null || email.isEmpty) {
+      throw Exception('Akun ini tidak memakai password.');
+    }
+
+    final credential = EmailAuthProvider.credential(
+      email: email,
+      password: currentPassword,
+    );
+    await user.reauthenticateWithCredential(credential);
+    await user.updatePassword(newPassword);
+  }
+
   Future<void> sendPasswordResetEmail(String email) async {
     await _auth.sendPasswordResetEmail(email: email.trim());
   }

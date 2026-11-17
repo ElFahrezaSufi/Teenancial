@@ -1030,6 +1030,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 endIndent: 16,
                 color: primaryGreen.withValues(alpha: 0.15),
               ),
+              if (context.read<AuthProvider>().isEmailPasswordUser) ...[
+                _AccountMenuTile(
+                  icon: Icons.lock_reset_rounded,
+                  title: 'Ganti Password',
+                  subtitle: 'Ubah password akunmu',
+                  onTap: () => context.push(AppRoutes.gantiPassword),
+                ),
+                Divider(
+                  height: 1,
+                  indent: 60,
+                  endIndent: 16,
+                  color: primaryGreen.withValues(alpha: 0.15),
+                ),
+              ],
               _AccountMenuTile(
                 icon: Icons.info_outline_rounded,
                 title: 'Tentang Aplikasi',
