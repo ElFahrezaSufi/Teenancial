@@ -13,12 +13,17 @@ class TransactionCard extends StatelessWidget {
   final Function(TransactionModel) onEdit;
   final Function(String) onDelete;
 
+  /// Bila true, keterangan transaksi ditampilkan penuh (bisa beberapa baris)
+  /// dan nominal tetap di atas. Dipakai di halaman "Lihat semua".
+  final bool allowSubtitleWrap;
+
   const TransactionCard({
     super.key,
     required this.item,
     required this.formatCurrency,
     required this.onEdit,
     required this.onDelete,
+    this.allowSubtitleWrap = false,
   });
 
   @override
@@ -39,17 +44,29 @@ class TransactionCard extends StatelessWidget {
             item.destinationDompetId == null);
     final bool isInternalTransfer = item.type == TransactionType.transfer &&
         item.destinationDompetId != null;
+    // Alokasi tabungan target = perpindahan dana internal, bukan pengeluaran.
+    final bool isTargetAllocation = item.isBalanceAdjustment &&
+        item.targetId != null &&
+        item.targetId!.isNotEmpty;
     final bool isLoan = LoanHelper.isLoan(item);
     final LoanDueInfo? dueInfo = LoanHelper.describe(item);
 
-    final String prefix = isInternalTransfer
-        ? ''
+    // Penanda nominal:
+    // '+' pemasukan, '-' pengeluaran, '⇄' perpindahan dana internal
+    // (alokasi/tarik tabungan target & transfer antar dompet).
+    final String prefix = (isTargetAllocation || isInternalTransfer)
+        ? '⇄ '
         : (isExpense ? '- ' : '+ ');
-    final Color amountColor = isInternalTransfer
+    final Color amountColor = (isInternalTransfer || isTargetAllocation)
         ? primaryGreen
         : (isExpense ? Colors.red : primaryGreen);
 
     final bool canEdit = item.isEditable;
+    // Transaksi alokasi target tidak boleh diubah/dihapus dari Riwayat:
+    // penghapusan mengembalikan saldo dompet sementara dana target tetap,
+    // sehingga saldo jadi tidak konsisten. Penarikan lewat halaman target.
+    final bool isTargetTransaction =
+        item.targetId != null && item.targetId!.isNotEmpty;
     final bool hasRecurringBadge =
         item.recurringId != null && item.recurringId!.isNotEmpty;
 
@@ -134,8 +151,10 @@ class TransactionCard extends StatelessWidget {
                             fontFamily: 'Inter',
                             fontWeight: FontWeight.w500,
                           ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
+                          maxLines: allowSubtitleWrap ? null : 1,
+                          overflow: allowSubtitleWrap
+                              ? TextOverflow.visible
+                              : TextOverflow.ellipsis,
                         ),
                       ),
                       if (hasRecurringBadge) ...[
@@ -195,47 +214,80 @@ class TransactionCard extends StatelessWidget {
               ],
             ),
           ),
-          Text(
-            prefix + formatCurrency(item.amount),
-            style: TextStyle(
-              color: amountColor,
-              fontSize: 14,
-              fontFamily: 'Inter',
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-          PopupMenuButton<String>(
-            icon: const Icon(Icons.more_vert, color: primaryGreen, size: 20),
-            onSelected: (value) {
-              if (value == 'edit') {
-                onEdit(item);
-              } else if (value == 'delete') {
-                onDelete(item.id);
-              }
-            },
-            itemBuilder: (context) => [
-              if (canEdit)
-                const PopupMenuItem(
-                  value: 'edit',
-                  child: Row(
-                    children: [
-                      Icon(Icons.edit_outlined, color: primaryGreen),
-                      SizedBox(width: 8),
-                      Text('Edit', style: TextStyle(color: primaryGreen)),
-                    ],
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              SizedBox(
+                width: 16,
+                child: Text(
+                  prefix.trim(),
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: amountColor,
+                    fontSize: 14,
+                    fontFamily: 'Inter',
+                    fontWeight: FontWeight.w700,
                   ),
                 ),
-              const PopupMenuItem(
-                value: 'delete',
-                child: Row(
-                  children: [
-                    Icon(Icons.delete_outline, color: Colors.red),
-                    SizedBox(width: 8),
-                    Text('Hapus', style: TextStyle(color: Colors.red)),
-                  ],
+              ),
+              Text(
+                formatCurrency(item.amount),
+                style: TextStyle(
+                  color: amountColor,
+                  fontSize: 14,
+                  fontFamily: 'Inter',
+                  fontWeight: FontWeight.w700,
                 ),
               ),
             ],
+          ),
+          // Slot selebar tombol menu selalu disediakan supaya tepi kanan
+          // nominal tetap sejajar untuk semua baris (termasuk transaksi
+          // tabungan target yang menunya disembunyikan).
+          SizedBox(
+            width: 40,
+            child: isTargetTransaction
+                ? const SizedBox.shrink()
+                : PopupMenuButton<String>(
+                    icon: const Icon(
+                      Icons.more_vert,
+                      color: primaryGreen,
+                      size: 20,
+                    ),
+                    onSelected: (value) {
+                      if (value == 'edit') {
+                        onEdit(item);
+                      } else if (value == 'delete') {
+                        onDelete(item.id);
+                      }
+                    },
+                    itemBuilder: (context) => [
+                      if (canEdit)
+                        const PopupMenuItem(
+                          value: 'edit',
+                          child: Row(
+                            children: [
+                              Icon(Icons.edit_outlined, color: primaryGreen),
+                              SizedBox(width: 8),
+                              Text(
+                                'Edit',
+                                style: TextStyle(color: primaryGreen),
+                              ),
+                            ],
+                          ),
+                        ),
+                      const PopupMenuItem(
+                        value: 'delete',
+                        child: Row(
+                          children: [
+                            Icon(Icons.delete_outline, color: Colors.red),
+                            SizedBox(width: 8),
+                            Text('Hapus', style: TextStyle(color: Colors.red)),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
           ),
         ],
       ),

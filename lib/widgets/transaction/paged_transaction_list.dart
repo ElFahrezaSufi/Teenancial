@@ -16,6 +16,9 @@ class PagedTransactionList extends StatefulWidget {
   final int pageSize;
   final Object? filterKey;
 
+  /// Menampilkan keterangan transaksi secara penuh (bisa beberapa baris).
+  final bool allowSubtitleWrap;
+
   const PagedTransactionList({
     super.key,
     required this.transactions,
@@ -25,6 +28,7 @@ class PagedTransactionList extends StatefulWidget {
     this.onRefresh,
     this.pageSize = 20,
     this.filterKey,
+    this.allowSubtitleWrap = false,
   });
 
   @override
@@ -166,6 +170,7 @@ class _PagedTransactionListState extends State<PagedTransactionList> {
                 formatCurrency: widget.formatCurrency,
                 onEdit: widget.onEdit,
                 onDelete: widget.onDelete,
+                allowSubtitleWrap: widget.allowSubtitleWrap,
               ),
             );
           case _FooterEntry():

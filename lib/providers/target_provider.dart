@@ -29,7 +29,7 @@ class TargetProvider extends ChangeNotifier {
       DateTime.now().difference(_lastSavedAt!).inMinutes < 5;
   bool get hasActiveSavingProgress {
     final item = pinnedItem;
-    if (item == null) return false;
+    if (item == null || item.isSettled) return false;
     return item.savedAmount > 0 && item.savedAmount < item.targetAmount;
   }
 
@@ -40,12 +40,17 @@ class TargetProvider extends ChangeNotifier {
     return _items.isNotEmpty ? _items.first : null;
   }
 
-  double get totalAllocated =>
-      _items.fold(0.0, (sum, item) => sum + item.savedAmount);
-  double availableToAllocate(double totalWalletBalance) {
-    final remaining = totalWalletBalance - totalAllocated;
-    return remaining > 0 ? remaining : 0.0;
-  }
+  double get totalAllocated => _items
+      .where((item) => !item.isSettled)
+      .fold(0.0, (sum, item) => sum + item.savedAmount);
+
+  /// Saldo bebas yang bisa dialokasikan.
+  ///
+  /// Dana target sudah dipindahkan keluar dari dompet saat dialokasikan
+  /// (lihat alur transaksi alokasi), jadi tidak dikurangi [totalAllocated]
+  /// lagi — kalau dikurangi, saldo akan terpotong dua kali.
+  double availableToAllocate(double totalWalletBalance) =>
+      totalWalletBalance > 0 ? totalWalletBalance : 0.0;
 
   void bindDependencies(String? newUid, MissionProvider missionProvider) {
     _missionProvider = missionProvider;
@@ -190,10 +195,12 @@ class TargetProvider extends ChangeNotifier {
     await loadTargets(silent: true);
   }
 
+  /// Menambah/menarik dana target. Perpindahan saldo dompet ditangani oleh
+  /// transaksi riwayat (isAdjustment) yang dibuat oleh pemanggil, sehingga di
+  /// sini hanya divalidasi batas dana target.
   Future<void> allocateTargetFunds({
     required String targetId,
     required double amountDelta,
-    required double totalWalletBalance,
   }) async {
     final targetUid = _uid;
     if (targetUid == null) {
@@ -206,14 +213,11 @@ class TargetProvider extends ChangeNotifier {
       throw Exception('Target menabung tidak ditemukan');
     }
     final target = _items[index];
+    if (target.isSettled) {
+      throw Exception('Target ini sudah diselesaikan.');
+    }
 
     if (amountDelta > 0) {
-      final available = availableToAllocate(totalWalletBalance);
-      if (amountDelta > available + 0.0001) {
-        throw Exception(
-          'Nominal melebihi saldo bebas yang tersedia untuk dialokasikan.',
-        );
-      }
       final remainingNeeded = (target.targetAmount - target.savedAmount)
           .clamp(0.0, double.infinity);
       if (amountDelta > remainingNeeded + 0.0001) {
@@ -243,6 +247,20 @@ class TargetProvider extends ChangeNotifier {
         );
       }
     }
+    await loadTargets(silent: true);
+  }
+
+  /// Menandai target selesai (dana sudah dipakai untuk membeli barang).
+  Future<void> settleTarget(String targetId) async {
+    final targetUid = _uid;
+    if (targetUid == null) {
+      throw Exception('Sesi pengguna tidak ditemukan');
+    }
+    await _repository.markSettled(
+      uid: targetUid,
+      targetId: targetId,
+      isSettled: true,
+    );
     await loadTargets(silent: true);
   }
 

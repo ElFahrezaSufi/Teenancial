@@ -18,6 +18,7 @@ import 'package:teenancial/repositories/dompet_repository.dart';
 import 'package:teenancial/repositories/recurring_repository.dart';
 import 'package:teenancial/repositories/target_repository.dart';
 import 'package:teenancial/repositories/transaction_repository.dart';
+import 'package:teenancial/utils/report_calculator.dart';
 
 class _FakeTargetRepository extends TargetRepository {
   final List<TargetItem> store = [];
@@ -87,6 +88,18 @@ class _FakeTargetRepository extends TargetRepository {
     final index = store.indexWhere((t) => t.id == targetId);
     if (index != -1) {
       store[index] = store[index].copyWith(savedAmount: savedAmount);
+    }
+  }
+
+  @override
+  Future<void> markSettled({
+    required String uid,
+    required String targetId,
+    required bool isSettled,
+  }) async {
+    final index = store.indexWhere((t) => t.id == targetId);
+    if (index != -1) {
+      store[index] = store[index].copyWith(isSettled: isSettled);
     }
   }
 
@@ -201,37 +214,49 @@ void main() {
     });
 
     test(
-        'availableToAllocate menghitung sisa saldo dompet dikurangi total alokasi',
+        'availableToAllocate mengikuti saldo dompet karena dana target sudah dipindahkan',
         () {
       expect(provider.totalAllocated, 50000);
-      expect(provider.availableToAllocate(200000), 150000);
-      expect(provider.availableToAllocate(30000), 0);
+      expect(provider.availableToAllocate(200000), 200000);
+      expect(provider.availableToAllocate(-5000), 0);
     });
 
-    test('allocateTargetFunds menambah dan menarik alokasi sesuai batas saldo',
+    test('allocateTargetFunds menambah dan menarik alokasi sesuai batas target',
         () async {
       await provider.allocateTargetFunds(
         targetId: 'tg_1',
         amountDelta: 100000,
-        totalWalletBalance: 200000,
       );
       expect(provider.items.first.savedAmount, 150000);
 
       await provider.allocateTargetFunds(
         targetId: 'tg_1',
         amountDelta: -50000,
-        totalWalletBalance: 200000,
       );
       expect(provider.items.first.savedAmount, 100000);
     });
 
-    test('allocateTargetFunds menolak alokasi yang melebihi saldo bebas',
+    test('allocateTargetFunds menolak alokasi yang melebihi sisa target',
         () async {
       await expectLater(
         () => provider.allocateTargetFunds(
           targetId: 'tg_1',
-          amountDelta: 200000,
-          totalWalletBalance: 150000,
+          amountDelta: 400000,
+        ),
+        throwsException,
+      );
+    });
+
+    test('settleTarget menandai selesai dan menolak alokasi berikutnya',
+        () async {
+      await provider.settleTarget('tg_1');
+      expect(provider.items.first.isSettled, isTrue);
+      expect(provider.totalAllocated, 0);
+
+      await expectLater(
+        () => provider.allocateTargetFunds(
+          targetId: 'tg_1',
+          amountDelta: 10000,
         ),
         throwsException,
       );
@@ -302,6 +327,47 @@ void main() {
         clearDeadline: true,
       );
       expect(provider.items.first.deadline, isNull);
+    });
+  });
+
+  group('TransactionModel alokasi target menabung', () {
+    TransactionModel buildTx({
+      required bool isAdjustment,
+      required bool skipWalletEffect,
+    }) {
+      return TransactionModel(
+        id: 'tx',
+        title: 'Tabungan: laptop',
+        amount: 200000,
+        date: DateTime(2026, 1, 1),
+        categoryId: 'c6',
+        type: TransactionType.expense,
+        dompetId: 'd1',
+        isAdjustment: isAdjustment,
+        targetId: 'tg_1',
+        skipWalletEffect: skipWalletEffect,
+      );
+    }
+
+    test('alokasi tabungan memotong dompet tetapi tidak dihitung pengeluaran',
+        () {
+      final tx = buildTx(isAdjustment: true, skipWalletEffect: false);
+
+      expect(tx.walletEffects()['d1'], -200000);
+      expect(tx.isBalanceAdjustment, isTrue);
+      expect(ReportCalculator.isReportExpense(tx), isFalse);
+      expect(ReportCalculator.isReportIncome(tx), isFalse);
+      expect(tx.isEditable, isFalse);
+    });
+
+    test(
+        'penyelesaian target dicatat sebagai pengeluaran tanpa memotong dompet',
+        () {
+      final tx = buildTx(isAdjustment: false, skipWalletEffect: true);
+
+      expect(tx.walletEffects(), isEmpty);
+      expect(tx.balanceEvents(), isEmpty);
+      expect(ReportCalculator.isReportExpense(tx), isTrue);
     });
   });
 
@@ -378,7 +444,9 @@ void main() {
       await Future<void>.delayed(Duration.zero);
     });
 
-    test('tambah, ubah, dan hapus kategori kustom pada berbagai jenis transaksi', () async {
+    test(
+        'tambah, ubah, dan hapus kategori kustom pada berbagai jenis transaksi',
+        () async {
       final created = await categoryProvider.addCategory(
         name: 'Kopi Kampus',
         type: TransactionType.expense,
@@ -389,7 +457,8 @@ void main() {
       expect(created.name, 'Kopi Kampus');
       expect(created.isCustom, isTrue);
 
-      final expenseCats = categoryProvider.categoriesFor(TransactionType.expense);
+      final expenseCats =
+          categoryProvider.categoriesFor(TransactionType.expense);
       expect(expenseCats.last.id, 'c6'); // "Lainnya" tetap di paling bawah
       expect(expenseCats[expenseCats.length - 2].id, created.id);
       expect(categoryProvider.resolve(created.id).name, 'Kopi Kampus');
@@ -431,7 +500,9 @@ void main() {
       );
     });
 
-    test('validasi menolak nama kosong, terlalu panjang, atau duplikat bawaan/kustom', () async {
+    test(
+        'validasi menolak nama kosong, terlalu panjang, atau duplikat bawaan/kustom',
+        () async {
       // Duplikat nama kategori bawaan (case-insensitive)
       await expectLater(
         () => categoryProvider.addCategory(
@@ -494,7 +565,9 @@ void main() {
       recProvider.dispose();
     });
 
-    test('menjalankan catch-up otomatis saat login dan mengelola jadwal aktif/dijeda', () async {
+    test(
+        'menjalankan catch-up otomatis saat login dan mengelola jadwal aktif/dijeda',
+        () async {
       expect(fakeRecRepo.processDueCalls, 1);
 
       final item = RecurringModel(

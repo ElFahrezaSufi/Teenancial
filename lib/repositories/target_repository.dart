@@ -89,6 +89,17 @@ class TargetRepository {
         .update({'savedAmount': savedAmount});
   }
 
+  Future<void> markSettled({
+    required String uid,
+    required String targetId,
+    required bool isSettled,
+  }) async {
+    await _firestoreService
+        .targetsCol(uid)
+        .doc(targetId)
+        .update({'isSettled': isSettled});
+  }
+
   Future<void> togglePinTarget({
     required String uid,
     required String targetId,
