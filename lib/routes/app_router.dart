@@ -20,6 +20,7 @@ import '../screens/dompet_screen.dart';
 import '../screens/ekspor_screen.dart';
 import '../screens/feen_wardrobe_screen.dart';
 import '../screens/forgot_password_screen.dart';
+import '../screens/ganti_password_screen.dart';
 import '../screens/get_started.dart';
 import '../screens/home_screen.dart';
 import '../screens/kategori_screen.dart';
@@ -272,6 +273,14 @@ final GoRouter appRouter = GoRouter(
           child: TambahDompetScreen(itemToEdit: item),
         );
       },
+    ),
+    GoRoute(
+      parentNavigatorKey: rootNavigatorKey,
+      path: AppRoutes.gantiPassword,
+      pageBuilder: (context, state) => AppTransitions.slideHorizontal(
+        key: state.pageKey,
+        child: const GantiPasswordScreen(),
+      ),
     ),
     GoRoute(
       parentNavigatorKey: rootNavigatorKey,
