@@ -5,8 +5,10 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../config/app_routes.dart';
 import '../providers/auth_provider.dart';
+import '../routes/app_router.dart';
 import '../services/local_storage_service.dart';
 import '../theme/app_colors.dart';
+import '../utils/error_mapper.dart';
 import '../widgets/common/auth_scaffold.dart';
 import '../widgets/common/custom_card.dart';
 import '../widgets/common/custom_text_field.dart';
@@ -38,58 +40,45 @@ class _LoginScreenState extends State<LoginScreen> {
       setState(() => _isLoading = true);
 
       try {
-        await context.read<AuthProvider>().login(
+        final bool isVerified = await context.read<AuthProvider>().login(
               _emailController.text.trim(),
               _passwordController.text,
             );
         await LocalStorageService.instance.setHasSeenGetStarted(true);
 
+        rootScaffoldMessengerKey.currentState
+          ?..hideCurrentSnackBar()
+          ..showSnackBar(
+            isVerified
+                ? const SnackBar(
+                    content: Text('Berhasil Masuk!'),
+                    backgroundColor: primaryGreen,
+                  )
+                : const SnackBar(
+                    content: Text(
+                      'Email belum terverifikasi. Cek inbox atau folder spam, '
+                      'atau kirim ulang email verifikasi.',
+                    ),
+                    backgroundColor: Colors.orange,
+                    duration: Duration(seconds: 5),
+                  ),
+          );
+
         if (!mounted) return;
         setState(() => _isLoading = false);
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Berhasil Masuk!'),
-            backgroundColor: primaryGreen,
-          ),
-        );
-        context.go(AppRoutes.home);
-      } on EmailNotVerifiedException {
-        if (!mounted) return;
-        setState(() => _isLoading = false);
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-              'Email belum terdaftar. Verifikasi email kamu dulu agar akun '
-              'terdaftar dan bisa masuk — link verifikasi sudah dikirim ulang, '
-              'cek inbox atau folder spam.',
-            ),
-            backgroundColor: Colors.orange,
-            duration: Duration(seconds: 5),
-          ),
-        );
+        context.go(isVerified ? AppRoutes.home : AppRoutes.verifyEmail);
       } on FirebaseAuthException catch (e) {
         if (!mounted) return;
         setState(() => _isLoading = false);
 
-        String errorMessage = 'Login gagal. Terjadi kesalahan jaringan.';
-        if (e.code == 'user-not-found') {
-          errorMessage =
-              'Email tidak ditemukan. Silakan daftar terlebih dahulu.';
-        } else if (e.code == 'wrong-password') {
-          errorMessage = 'Password yang kamu masukkan salah.';
-        } else if (e.code == 'invalid-credential') {
-          errorMessage = 'Email belum terdaftar atau Password salah.';
-        } else if (e.code == 'invalid-email') {
-          errorMessage = 'Format email tidak valid.';
-        } else if (e.code == 'too-many-requests') {
-          errorMessage = 'Terlalu banyak percobaan. Coba lagi nanti.';
-        }
-
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(errorMessage),
+            content: Text(
+              ErrorMapper.message(
+                e,
+                fallback: 'Login gagal. Terjadi kesalahan jaringan.',
+              ),
+            ),
             backgroundColor: Colors.redAccent,
           ),
         );
@@ -98,8 +87,13 @@ class _LoginScreenState extends State<LoginScreen> {
         setState(() => _isLoading = false);
 
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Terjadi kesalahan sistem, silakan coba lagi.'),
+          SnackBar(
+            content: Text(
+              ErrorMapper.message(
+                e,
+                fallback: 'Terjadi kesalahan sistem, silakan coba lagi.',
+              ),
+            ),
             backgroundColor: Colors.redAccent,
           ),
         );
@@ -116,18 +110,20 @@ class _LoginScreenState extends State<LoginScreen> {
 
       if (signedIn) {
         await LocalStorageService.instance.setHasSeenGetStarted(true);
+        rootScaffoldMessengerKey.currentState
+          ?..hideCurrentSnackBar()
+          ..showSnackBar(
+            const SnackBar(
+              content: Text('Berhasil masuk dengan Google!'),
+              backgroundColor: primaryGreen,
+            ),
+          );
       }
 
       if (!mounted) return;
       setState(() => _isLoading = false);
 
       if (signedIn) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Berhasil masuk dengan Google!'),
-            backgroundColor: primaryGreen,
-          ),
-        );
         context.go(AppRoutes.home);
       }
     } catch (e) {

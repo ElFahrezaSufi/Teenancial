@@ -22,7 +22,7 @@ class ErrorMapper {
         case 'email-already-in-use':
           return 'Email ini sudah terdaftar. Silakan gunakan email lain atau langsung Masuk.';
         case 'weak-password':
-          return 'Password terlalu lemah (minimal 6 karakter).';
+          return 'Password terlalu lemah (minimal 8 karakter).';
         case 'too-many-requests':
           return 'Terlalu banyak percobaan. Silakan coba lagi beberapa saat lagi.';
         case 'network-request-failed':

@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import '../config/app_routes.dart';
 import '../models/user_model.dart';
 import '../providers/auth_provider.dart';
+import '../routes/app_router.dart';
 import '../services/local_storage_service.dart';
 import '../theme/app_colors.dart';
 import '../utils/error_mapper.dart';
@@ -42,18 +43,10 @@ class _SignUpScreenState extends State<SignUpScreen> {
     'yaho.com': 'yahoo.com',
     'yahooo.com': 'yahoo.com',
     'outlok.com': 'outlook.com',
+    'hotmial.com': 'hotmail.com',
     'iclod.com': 'icloud.com',
     'iclud.com': 'icloud.com',
   };
-
-  /// Domain email yang diizinkan untuk mendaftar.
-  static const List<String> _allowedEmailDomains = [
-    'gmail.com',
-    'yahoo.com',
-    'yahoo.co.id',
-    'outlook.com',
-    'icloud.com',
-  ];
 
   @override
   void dispose() {
@@ -115,18 +108,19 @@ class _SignUpScreenState extends State<SignUpScreen> {
             );
         await LocalStorageService.instance.setHasSeenGetStarted(true);
 
+        rootScaffoldMessengerKey.currentState
+          ?..hideCurrentSnackBar()
+          ..showSnackBar(
+            const SnackBar(
+              content: Text(
+                '✅ Akun dibuat! Verifikasi email untuk menyelesaikan pendaftaran.',
+              ),
+              backgroundColor: primaryGreen,
+            ),
+          );
+
         if (!mounted) return;
         setState(() => _isLoading = false);
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-              '✅ Akun dibuat! Verifikasi email untuk menyelesaikan pendaftaran.',
-            ),
-            backgroundColor: primaryGreen,
-          ),
-        );
-
         context.go(AppRoutes.verifyEmail);
       } on FirebaseAuthException catch (e) {
         if (!mounted) return;
@@ -270,9 +264,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
               final suggestion = _commonDomainTypos[domain];
               if (suggestion != null) {
                 return 'Domain tidak dikenal, maksudmu @$suggestion?';
-              }
-              if (!_allowedEmailDomains.contains(domain)) {
-                return 'Daftar dengan Gmail, Yahoo, Outlook, atau iCloud';
               }
             }
 

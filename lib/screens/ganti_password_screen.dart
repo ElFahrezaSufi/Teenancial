@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 
 import '../providers/auth_provider.dart';
 import '../theme/app_colors.dart';
+import '../utils/error_mapper.dart';
 import '../widgets/common/custom_app_bar.dart';
 import '../widgets/common/custom_card.dart';
 import '../widgets/common/custom_text_field.dart';
@@ -61,31 +62,23 @@ class _GantiPasswordScreenState extends State<GantiPasswordScreen> {
       if (!mounted) return;
       setState(() => _isLoading = false);
 
-      String message = 'Gagal mengubah password. Coba lagi.';
-      switch (e.code) {
-        case 'wrong-password':
-        case 'invalid-credential':
-          message = 'Password lama yang kamu masukkan salah.';
-          break;
-        case 'weak-password':
-          message = 'Password baru terlalu lemah. Gunakan minimal 8 karakter.';
-          break;
-        case 'requires-recent-login':
-          message = 'Sesi sudah lama. Masukkan ulang password lamamu.';
-          break;
-        case 'too-many-requests':
-          message = 'Terlalu banyak percobaan. Coba lagi nanti.';
-          break;
-        case 'network-request-failed':
-          message = 'Koneksi internet bermasalah. Coba lagi.';
-          break;
-      }
-
+      final String message =
+          (e.code == 'wrong-password' || e.code == 'invalid-credential')
+              ? 'Password lama yang kamu masukkan salah.'
+              : ErrorMapper.message(
+                  e,
+                  fallback: 'Gagal mengubah password. Coba lagi.',
+                );
       _showError(message);
     } catch (e) {
       if (!mounted) return;
       setState(() => _isLoading = false);
-      _showError(e.toString().replaceAll('Exception: ', ''));
+      _showError(
+        ErrorMapper.message(
+          e,
+          fallback: 'Gagal mengubah password. Coba lagi.',
+        ),
+      );
     }
   }
 

@@ -1,12 +1,13 @@
 import 'dart:async';
 
-import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
 
 import '../config/app_routes.dart';
 import '../providers/auth_provider.dart';
 import '../theme/app_colors.dart';
+import '../utils/error_mapper.dart';
 
 class VerifyEmailScreen extends StatefulWidget {
   const VerifyEmailScreen({super.key});
@@ -15,15 +16,31 @@ class VerifyEmailScreen extends StatefulWidget {
   State<VerifyEmailScreen> createState() => _VerifyEmailScreenState();
 }
 
-class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
+class _VerifyEmailScreenState extends State<VerifyEmailScreen>
+    with WidgetsBindingObserver {
   bool _isChecking = false;
+  bool _isLoggingOut = false;
   int _cooldown = 0;
   Timer? _cooldownTimer;
 
   @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _cooldownTimer?.cancel();
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed && !_isChecking && !_isLoggingOut) {
+      _handleCheckVerification(silent: true);
+    }
   }
 
   /// Samarkan email: hanya karakter pertama & terakhir bagian lokal yang
@@ -46,9 +63,13 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
     return '$first$stars$last$domain';
   }
 
-  Future<void> _handleCheckVerification() async {
-    if (_isChecking) return;
-    setState(() => _isChecking = true);
+  Future<void> _handleCheckVerification({bool silent = false}) async {
+    if (_isChecking || _isLoggingOut) return;
+    if (!silent) {
+      setState(() => _isChecking = true);
+    } else {
+      _isChecking = true;
+    }
 
     bool verified = false;
     try {
@@ -62,7 +83,7 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
 
     if (verified) {
       context.go(AppRoutes.home);
-    } else {
+    } else if (!silent) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text(
@@ -75,7 +96,7 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
   }
 
   Future<void> _handleResendEmail() async {
-    if (_cooldown > 0) return;
+    if (_cooldown > 0 || _isChecking || _isLoggingOut) return;
 
     try {
       await context.read<AuthProvider>().resendVerificationEmail();
@@ -87,11 +108,33 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
         ),
       );
       _startCooldown();
-    } catch (_) {
+    } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Gagal mengirim ulang email. Coba lagi nanti.'),
+        SnackBar(
+          content: Text(
+            ErrorMapper.message(
+              e,
+              fallback: 'Gagal mengirim ulang email. Coba lagi nanti.',
+            ),
+          ),
+          backgroundColor: Colors.redAccent,
+        ),
+      );
+    }
+  }
+
+  Future<void> _handleLogout() async {
+    if (_isLoggingOut) return;
+    setState(() => _isLoggingOut = true);
+    try {
+      await context.read<AuthProvider>().logout();
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _isLoggingOut = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Gagal keluar: ${ErrorMapper.message(e)}'),
           backgroundColor: Colors.redAccent,
         ),
       );
@@ -119,7 +162,7 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final email = context.read<AuthProvider>().user?.email ?? '-';
+    final email = context.watch<AuthProvider>().user?.email ?? '-';
     final maskedEmail = _maskEmail(email);
     final mediaPadding = MediaQuery.of(context).padding;
 
@@ -277,10 +320,11 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
                     const SizedBox(height: 24),
                     Center(
                       child: TextButton(
-                        onPressed: () => context.read<AuthProvider>().logout(),
-                        child: const Text(
-                          'Keluar',
-                          style: TextStyle(
+                        onPressed:
+                            (_isLoggingOut || _isChecking) ? null : _handleLogout,
+                        child: Text(
+                          _isLoggingOut ? 'Keluar...' : 'Keluar',
+                          style: const TextStyle(
                             color: orangeText,
                             fontWeight: FontWeight.w700,
                             fontFamily: 'Inter',

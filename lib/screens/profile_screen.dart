@@ -1030,7 +1030,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 endIndent: 16,
                 color: primaryGreen.withValues(alpha: 0.15),
               ),
-              if (context.read<AuthProvider>().isEmailPasswordUser) ...[
+              if (context.select<AuthProvider, bool>(
+                (auth) => auth.isEmailPasswordUser,
+              )) ...[
                 _AccountMenuTile(
                   icon: Icons.lock_reset_rounded,
                   title: 'Ganti Password',

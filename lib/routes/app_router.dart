@@ -56,6 +56,7 @@ final GoRouter appRouter = GoRouter(
   refreshListenable: Listenable.merge([
     GoRouterRefreshStream(FirebaseAuth.instance.authStateChanges()),
     AuthProvider.bootstrapListenable,
+    AuthProvider.verificationListenable,
     LocalStorageService.instance.onboardingListenable,
   ]),
   redirect: (BuildContext context, GoRouterState state) {
@@ -79,14 +80,6 @@ final GoRouter appRouter = GoRouter(
     }
 
     if (needsVerification) {
-      // Saat proses login berjalan, biarkan layar login menampilkan pesan
-      // "email belum terdaftar" tanpa melompat ke halaman verifikasi.
-      if (AuthProvider.suppressVerificationRedirect) return null;
-
-      // Saat berada di halaman auth (mis. login), biarkan layar login yang
-      // menampilkan pesannya.
-      if (isAuthRoute) return null;
-
       if (state.matchedLocation != AppRoutes.verifyEmail) {
         return AppRoutes.verifyEmail;
       }
