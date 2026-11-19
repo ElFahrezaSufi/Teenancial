@@ -52,4 +52,3 @@ app.*.map.json
 # Firebase / Node
 firebase_content/serviceAccountKey.json
 firebase_content/node_modules/
-functions/node_modules/
