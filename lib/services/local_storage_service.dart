@@ -34,4 +34,39 @@ class LocalStorageService {
     final prefs = _prefs ??= await SharedPreferences.getInstance();
     await prefs.setInt(AppConstants.prefRiwayatFilterIndex, index.clamp(0, 2));
   }
+
+  bool get dailyReminderEnabled =>
+      _prefs?.getBool(AppConstants.prefDailyReminderEnabled) ?? true;
+
+  Future<void> setDailyReminderEnabled(bool value) async {
+    final prefs = _prefs ??= await SharedPreferences.getInstance();
+    await prefs.setBool(AppConstants.prefDailyReminderEnabled, value);
+  }
+
+  String? get dailyMissionLastRemindedDate =>
+      _prefs?.getString(AppConstants.prefDailyMissionLastRemindedDate);
+
+  Future<void> setDailyMissionLastRemindedDate(String? dateKey) async {
+    final prefs = _prefs ??= await SharedPreferences.getInstance();
+    if (dateKey == null) {
+      await prefs.remove(AppConstants.prefDailyMissionLastRemindedDate);
+    } else {
+      await prefs.setString(
+        AppConstants.prefDailyMissionLastRemindedDate,
+        dateKey,
+      );
+    }
+  }
+
+  String? get dailyMissionArmedDate =>
+      _prefs?.getString(AppConstants.prefDailyMissionArmedDate);
+
+  Future<void> setDailyMissionArmedDate(String? dateKey) async {
+    final prefs = _prefs ??= await SharedPreferences.getInstance();
+    if (dateKey == null) {
+      await prefs.remove(AppConstants.prefDailyMissionArmedDate);
+    } else {
+      await prefs.setString(AppConstants.prefDailyMissionArmedDate, dateKey);
+    }
+  }
 }

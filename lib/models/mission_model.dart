@@ -9,6 +9,7 @@ enum MissionPeriod {
 }
 
 enum MissionTrigger {
+  addIncomeExpense,
   addTransaction,
   saveTarget,
   completeModule,

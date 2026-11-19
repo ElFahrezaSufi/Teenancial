@@ -10,6 +10,7 @@ void main() {
       double targetAmount = 1200000,
       double savedAmount = 0,
       DateTime? deadline,
+      bool isSettled = false,
     }) {
       return TargetItem(
         id: 'tg_1',
@@ -18,6 +19,7 @@ void main() {
         savedAmount: savedAmount,
         imageUrl: 'https://example.com/bike.jpg',
         deadline: deadline,
+        isSettled: isSettled,
       );
     }
 
@@ -145,6 +147,21 @@ void main() {
       expect(plan.badgeText, 'Tercapai');
       expect(plan.suggestionText, isNull);
       expect(plan.shortSuggestionText, isNull);
+    });
+
+    test('target yang sudah diselesaikan menampilkan badge Selesai', () {
+      final settled = buildTarget(
+        targetAmount: 500000,
+        savedAmount: 500000,
+        deadline: now.add(const Duration(days: 20)),
+        isSettled: true,
+      );
+      final plan = SavingPlanner.plan(settled, now: now)!;
+      expect(plan.badgeText, 'Selesai');
+      expect(plan.suggestionText, isNull);
+      expect(plan.shortSuggestionText, isNull);
+      expect(plan.isUrgent, isFalse);
+      expect(plan.isOverdue, isFalse);
     });
   });
 }
