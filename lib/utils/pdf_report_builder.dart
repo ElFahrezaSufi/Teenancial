@@ -509,11 +509,15 @@ class PdfReportBuilder {
               'Nominal',
             ],
             data: sorted.map((tx) {
-              final cat = resolveCategory(tx.categoryId, fallbackType: tx.type);
+              final categoryName =
+                  CsvExporter.categoryLabelForExport(tx, resolveCategory);
               final srcWallet = walletNames[tx.dompetId] ?? tx.dompetId;
               final isInternal = tx.type == TransactionType.transfer &&
                   tx.destinationDompetId != null &&
                   tx.destinationDompetId!.trim().isNotEmpty;
+              final isTargetAllocation = tx.isBalanceAdjustment &&
+                  tx.targetId != null &&
+                  tx.targetId!.trim().isNotEmpty;
               final dstWallet = isInternal
                   ? (walletNames[tx.destinationDompetId!] ??
                       tx.destinationDompetId!)
@@ -530,13 +534,15 @@ class PdfReportBuilder {
               final isOutflow = tx.type == TransactionType.expense ||
                   tx.type == TransactionType.receivable ||
                   (tx.type == TransactionType.transfer && !isInternal);
-              final sign = isInternal ? '' : (isOutflow ? '- ' : '+ ');
+              final sign = (isInternal || isTargetAllocation)
+                  ? ''
+                  : (isOutflow ? '- ' : '+ ');
 
               return [
                 dateCellFmt.format(tx.date),
                 CsvExporter.typeLabelForExport(tx),
                 titleCell,
-                sanitizePdfText(cat.name),
+                sanitizePdfText(categoryName),
                 walletCell,
                 '$sign${Formatters.rupiah(tx.amount)}',
               ];

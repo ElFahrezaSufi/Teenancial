@@ -183,6 +183,7 @@ class _FakeTargetRepository extends TargetRepository {
     required String uid,
     required String targetId,
     required String walletId,
+    String categoryId = 'c6',
   }) async {
     final index = store.indexWhere((t) => t.id == targetId);
     if (index == -1) throw Exception('Target menabung tidak ditemukan.');
@@ -199,7 +200,7 @@ class _FakeTargetRepository extends TargetRepository {
       amount: target.savedAmount,
       date: DateTime(2026, 11, 19),
       notes: 'Pembelian dari dana target menabung',
-      categoryId: 'c6',
+      categoryId: categoryId.trim().isNotEmpty ? categoryId.trim() : 'c6',
       type: TransactionType.expense,
       dompetId: walletId,
       targetId: target.id,
@@ -514,14 +515,15 @@ void main() {
         );
         expect(fakeRepo.walletBalances['w1'], 250000);
 
-        // Selesaikan tg_1: saldo dompet tidak terpotong lagi, transaksi skipWalletEffect tercatat,
-        // dan pin otomatis pindah ke target aktif berikutnya ('tg_2')
-        await provider.settleTarget('tg_1', walletId: 'w1');
+        // Selesaikan tg_1 dengan kategori Belanja ('c23'): saldo dompet tidak terpotong lagi,
+        // transaksi skipWalletEffect tercatat sesuai kategori, dan pin pindah ke 'tg_2'
+        await provider.settleTarget('tg_1', walletId: 'w1', categoryId: 'c23');
         expect(fakeRepo.walletBalances['w1'], 250000);
         final settleTx = fakeRepo.createdTransactions.last;
         expect(settleTx.skipWalletEffect, isTrue);
         expect(settleTx.isAdjustment, isFalse);
         expect(settleTx.type, TransactionType.expense);
+        expect(settleTx.categoryId, 'c23');
         expect(settleTx.amount, 300000);
         expect(settleTx.targetId, 'tg_1');
 

@@ -75,7 +75,7 @@ void main() {
     );
 
     test(
-      'transaksi alokasi dan penyelesaian target menabung berlabel asal Target Menabung',
+      'transaksi alokasi, tarik tabungan, penyesuaian saldo, dan penyelesaian target memakai jenis & kategori ekspor yang tepat',
       () {
         const dompets = [
           DompetItem(
@@ -87,6 +87,17 @@ void main() {
         ];
 
         final txs = [
+          TransactionModel(
+            id: 'tx_adjust',
+            title: 'Penyesuaian Saldo (Tunai)',
+            amount: 50000,
+            date: DateTime(2026, 11, 17, 8, 0),
+            notes: 'Penyesuaian saldo otomatis saat edit dompet',
+            categoryId: 'c19',
+            type: TransactionType.income,
+            dompetId: 'w1',
+            isAdjustment: true,
+          ),
           TransactionModel(
             id: 'tx_alloc',
             title: 'Tabungan: Headphone',
@@ -100,12 +111,24 @@ void main() {
             targetId: 'tg_1',
           ),
           TransactionModel(
+            id: 'tx_withdraw',
+            title: 'Tarik Tabungan: Headphone',
+            amount: 25000,
+            date: DateTime(2026, 11, 18, 15, 0),
+            notes: 'Penarikan dari target menabung',
+            categoryId: 'c19',
+            type: TransactionType.income,
+            dompetId: 'w1',
+            isAdjustment: true,
+            targetId: 'tg_1',
+          ),
+          TransactionModel(
             id: 'tx_settle',
             title: 'Headphone',
             amount: 300000,
             date: DateTime(2026, 11, 19, 12, 0),
             notes: 'Pembelian dari dana target menabung',
-            categoryId: 'c6',
+            categoryId: 'c23',
             type: TransactionType.expense,
             dompetId: 'w1',
             targetId: 'tg_1',
@@ -119,9 +142,35 @@ void main() {
         );
         final decoded = utf8.decode(bytes.sublist(3));
         final lines = decoded.trim().split(CsvExporter.lineEnding);
-        expect(lines.length, 3);
+        expect(lines.length, 5);
+
+        // Urutan descending by date:
+        // [1] tx_settle -> Pengeluaran + kategori pilihan (Belanja) + Target Menabung
+        expect(lines[1], contains(';Pengeluaran;Headphone;Belanja;'));
         expect(lines[1], endsWith(';Target Menabung'));
+
+        // [2] tx_withdraw -> Tarik Tabungan + kategori Target Menabung
+        expect(
+          lines[2],
+          contains(';Tarik Tabungan;Tarik Tabungan: Headphone;Target Menabung;'),
+        );
         expect(lines[2], endsWith(';Target Menabung'));
+
+        // [3] tx_alloc -> Alokasi Tabungan + kategori Target Menabung
+        expect(
+          lines[3],
+          contains(';Alokasi Tabungan;Tabungan: Headphone;Target Menabung;'),
+        );
+        expect(lines[3], endsWith(';Target Menabung'));
+
+        // [4] tx_adjust -> Penyesuaian Saldo + kategori Penyesuaian Saldo
+        expect(
+          lines[4],
+          contains(
+            ';Penyesuaian Saldo;Penyesuaian Saldo (Tunai);Penyesuaian Saldo;',
+          ),
+        );
+        expect(lines[4], endsWith(';Penyesuaian Saldo'));
       },
     );
   });

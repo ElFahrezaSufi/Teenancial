@@ -35,8 +35,6 @@ class TransactionCard extends StatelessWidget {
             item.categoryId,
             fallbackType: item.type,
           );
-    final Color iconBgColor = cat.color.withValues(alpha: 0.18);
-    final Color iconFgColor = cat.color;
     // Piutang & Transfer keluar = uang keluar, Hutang & Pemasukan = uang masuk
     final bool isExpense = item.type == TransactionType.expense ||
         item.type == TransactionType.receivable ||
@@ -44,10 +42,24 @@ class TransactionCard extends StatelessWidget {
             item.destinationDompetId == null);
     final bool isInternalTransfer = item.type == TransactionType.transfer &&
         item.destinationDompetId != null;
+    final bool isTargetTransaction =
+        item.targetId != null && item.targetId!.isNotEmpty;
     // Alokasi tabungan target = perpindahan dana internal, bukan pengeluaran.
-    final bool isTargetAllocation = item.isBalanceAdjustment &&
-        item.targetId != null &&
-        item.targetId!.isNotEmpty;
+    final bool isTargetAllocation =
+        item.isBalanceAdjustment && isTargetTransaction;
+    final bool isTargetSettlement =
+        !item.isBalanceAdjustment && isTargetTransaction;
+    final bool isWalletAdjustment =
+        item.isBalanceAdjustment && !isTargetTransaction;
+
+    final IconData leadingIcon = isTargetAllocation
+        ? Icons.savings_outlined
+        : (isWalletAdjustment ? Icons.tune_rounded : cat.icon);
+    final Color iconFgColor =
+        (isTargetAllocation || isWalletAdjustment) ? primaryGreen : cat.color;
+    final Color iconBgColor = (isTargetAllocation || isWalletAdjustment)
+        ? primaryGreen.withValues(alpha: 0.14)
+        : cat.color.withValues(alpha: 0.18);
     final bool isLoan = LoanHelper.isLoan(item);
     final LoanDueInfo? dueInfo = LoanHelper.describe(item);
 
@@ -62,23 +74,22 @@ class TransactionCard extends StatelessWidget {
         : (isExpense ? Colors.red : primaryGreen);
 
     final bool canEdit = item.isEditable;
-    // Transaksi alokasi target tidak boleh diubah/dihapus dari Riwayat:
-    // penghapusan mengembalikan saldo dompet sementara dana target tetap,
-    // sehingga saldo jadi tidak konsisten. Penarikan lewat halaman target.
-    final bool isTargetTransaction =
-        item.targetId != null && item.targetId!.isNotEmpty;
     final bool hasRecurringBadge =
         item.recurringId != null && item.recurringId!.isNotEmpty;
 
     final bool isStandardIncomeOrExpense =
         (item.type == TransactionType.income ||
                 item.type == TransactionType.expense) &&
-            !item.isBalanceAdjustment;
+            !item.isBalanceAdjustment &&
+            !isTargetSettlement;
 
     final String displayTitle;
     String? displaySubtitle;
 
-    if (isStandardIncomeOrExpense) {
+    if (isTargetSettlement) {
+      displayTitle = item.title.trim().isNotEmpty ? item.title.trim() : cat.name;
+      displaySubtitle = '${cat.name} • Pembelian target';
+    } else if (isStandardIncomeOrExpense) {
       displayTitle = cat.name;
       final trimmedNotes = item.notes.trim();
       final trimmedTitle = item.title.trim();
@@ -109,7 +120,7 @@ class TransactionCard extends StatelessWidget {
               color: iconBgColor,
               borderRadius: BorderRadius.circular(8),
             ),
-            child: Icon(cat.icon, color: iconFgColor, size: 22),
+            child: Icon(leadingIcon, color: iconFgColor, size: 22),
           ),
           const SizedBox(width: 12),
           Expanded(

@@ -6,6 +6,7 @@ import '../data/feen_catalog.dart';
 import '../models/dompet_model.dart';
 import '../models/target_model.dart';
 import '../models/transaction_model.dart';
+import '../providers/category_provider.dart';
 import '../providers/dompet_provider.dart';
 import '../providers/target_provider.dart';
 import '../providers/transaction_provider.dart';
@@ -1072,65 +1073,137 @@ class TargetMenabungScreen extends StatelessWidget {
 
     final targetProvider = context.read<TargetProvider>();
     final txProvider = context.read<TransactionProvider>();
+    final expenseCategories =
+        context.read<CategoryProvider>().categoriesFor(TransactionType.expense);
     final wallets = context.read<DompetProvider>().items;
     final String walletId = preferredWalletId.isNotEmpty
         ? preferredWalletId
         : (wallets.isNotEmpty ? wallets.first.id : '');
 
-    final bool? confirmed = await showDialog<bool>(
+    String selectedCategoryId = expenseCategories.any((c) => c.id == 'c6')
+        ? 'c6'
+        : (expenseCategories.isNotEmpty ? expenseCategories.first.id : 'c6');
+
+    final String? chosenCategoryId = await showDialog<String>(
       context: context,
-      builder: (_) => AlertDialog(
-        backgroundColor: appBarBg,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
-        ),
-        title: const Text(
-          'Selesaikan Target?',
-          style: TextStyle(
-            color: primaryGreen,
-            fontFamily: 'Inter',
-            fontWeight: FontWeight.w700,
-            fontSize: 18,
+      builder: (_) => StatefulBuilder(
+        builder: (dialogCtx, setDialogState) => AlertDialog(
+          backgroundColor: appBarBg,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
           ),
-        ),
-        content: Text(
-          'Dana tabungan ${Formatters.rupiah(amount)} untuk "${item.nama}" '
-          'akan dicatat sebagai pengeluaran di Riwayat.\n\n'
-          'Saldo dompet tidak berkurang lagi karena sudah dipotong saat menabung.',
-          style: const TextStyle(
-            color: primaryGreen,
-            fontFamily: 'Inter',
-            fontSize: 13,
-            height: 1.5,
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: const Text(
-              'Batal',
-              style: TextStyle(color: Colors.grey),
+          title: const Text(
+            'Selesaikan Target?',
+            style: TextStyle(
+              color: primaryGreen,
+              fontFamily: 'Inter',
+              fontWeight: FontWeight.w700,
+              fontSize: 18,
             ),
           ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: primaryGreen,
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(100),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(
+                  'Dana tabungan ${Formatters.rupiah(amount)} untuk "${item.nama}" '
+                  'akan dicatat sebagai pengeluaran di Riwayat & Laporan.\n\n'
+                  'Saldo dompet tidak berkurang lagi karena sudah dipotong saat menabung.',
+                  style: const TextStyle(
+                    color: primaryGreen,
+                    fontFamily: 'Inter',
+                    fontSize: 13,
+                    height: 1.5,
+                  ),
+                ),
+                if (expenseCategories.isNotEmpty) ...[
+                  const SizedBox(height: 16),
+                  DropdownButtonFormField<String>(
+                    initialValue: selectedCategoryId,
+                    isExpanded: true,
+                    decoration: InputDecoration(
+                      labelText: 'Kategori Pengeluaran',
+                      filled: true,
+                      fillColor: inputBg,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide:
+                            const BorderSide(color: primaryGreen, width: 1.5),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide:
+                            const BorderSide(color: primaryGreen, width: 1.5),
+                      ),
+                    ),
+                    items: expenseCategories
+                        .map(
+                          (cat) => DropdownMenuItem<String>(
+                            value: cat.id,
+                            child: Row(
+                              children: [
+                                Icon(cat.icon, size: 18, color: cat.color),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    cat.name,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(
+                                      color: primaryGreen,
+                                      fontFamily: 'Inter',
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        )
+                        .toList(),
+                    onChanged: (value) {
+                      if (value != null) {
+                        setDialogState(() => selectedCategoryId = value);
+                      }
+                    },
+                  ),
+                ],
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogCtx).pop(null),
+              child: const Text(
+                'Batal',
+                style: TextStyle(color: Colors.grey),
               ),
             ),
-            onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Selesaikan'),
-          ),
-        ],
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: primaryGreen,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(100),
+                ),
+              ),
+              onPressed: () => Navigator.of(dialogCtx).pop(selectedCategoryId),
+              child: const Text('Selesaikan'),
+            ),
+          ],
+        ),
       ),
     );
 
-    if (confirmed != true || !context.mounted) return;
+    if (chosenCategoryId == null || !context.mounted) return;
 
     try {
-      await targetProvider.settleTarget(item.id, walletId: walletId);
+      await targetProvider.settleTarget(
+        item.id,
+        walletId: walletId,
+        categoryId: chosenCategoryId,
+      );
       await txProvider.loadTransactions(silent: true);
 
       if (context.mounted) {

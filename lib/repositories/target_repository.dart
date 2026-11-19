@@ -208,9 +208,12 @@ class TargetRepository {
     required String uid,
     required String targetId,
     required String walletId,
+    String categoryId = 'c6',
   }) async {
     final targetRef = _firestoreService.targetsCol(uid).doc(targetId);
     final txRef = _firestoreService.transactionsCol(uid).doc();
+    final resolvedCategoryId =
+        categoryId.trim().isNotEmpty ? categoryId.trim() : 'c6';
 
     late TransactionModel createdTx;
 
@@ -235,7 +238,7 @@ class TargetRepository {
         amount: target.savedAmount,
         date: DateTime.now(),
         notes: 'Pembelian dari dana target menabung',
-        categoryId: 'c6',
+        categoryId: resolvedCategoryId,
         type: TransactionType.expense,
         dompetId: walletId,
         targetId: target.id,

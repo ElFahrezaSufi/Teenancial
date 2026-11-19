@@ -280,7 +280,11 @@ class TargetProvider extends ChangeNotifier {
   /// Menandai target selesai (dana sudah dipakai untuk membeli barang).
   /// Bila [walletId] diberikan, transaksi pengeluaran (`skipWalletEffect: true`)
   /// dan penandaan `isSettled: true` dijalankan atomik dalam satu transaksi.
-  Future<void> settleTarget(String targetId, {String? walletId}) async {
+  Future<void> settleTarget(
+    String targetId, {
+    String? walletId,
+    String categoryId = 'c6',
+  }) async {
     final targetUid = _uid;
     if (targetUid == null) {
       throw Exception('Sesi pengguna tidak ditemukan');
@@ -303,6 +307,7 @@ class TargetProvider extends ChangeNotifier {
         uid: targetUid,
         targetId: targetId,
         walletId: walletId,
+        categoryId: categoryId,
       );
     } else {
       await _repository.markSettled(

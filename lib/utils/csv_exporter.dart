@@ -56,6 +56,15 @@ class CsvExporter {
   }
 
   static String typeLabelForExport(TransactionModel tx) {
+    if (tx.isBalanceAdjustment) {
+      final hasTarget = tx.targetId != null && tx.targetId!.trim().isNotEmpty;
+      if (hasTarget) {
+        return tx.type == TransactionType.expense
+            ? 'Alokasi Tabungan'
+            : 'Tarik Tabungan';
+      }
+      return 'Penyesuaian Saldo';
+    }
     switch (tx.type) {
       case TransactionType.income:
         return 'Pemasukan';
@@ -70,6 +79,17 @@ class CsvExporter {
       case TransactionType.receivable:
         return 'Piutang';
     }
+  }
+
+  static String categoryLabelForExport(
+    TransactionModel tx,
+    CategoryResolver resolveCategory,
+  ) {
+    if (tx.isBalanceAdjustment) {
+      final hasTarget = tx.targetId != null && tx.targetId!.trim().isNotEmpty;
+      return hasTarget ? 'Target Menabung' : 'Penyesuaian Saldo';
+    }
+    return resolveCategory(tx.categoryId, fallbackType: tx.type).name;
   }
 
   static String loanStatusLabel(TransactionModel tx) {
@@ -114,7 +134,7 @@ class CsvExporter {
     buffer.write(lineEnding);
 
     for (final tx in sorted) {
-      final cat = resolveCategory(tx.categoryId, fallbackType: tx.type);
+      final categoryName = categoryLabelForExport(tx, resolveCategory);
       final srcWallet = walletNames[tx.dompetId] ?? tx.dompetId;
       final dstWallet = (tx.destinationDompetId != null &&
               tx.destinationDompetId!.trim().isNotEmpty)
@@ -137,7 +157,7 @@ class CsvExporter {
         escapeCell(dateFmt.format(tx.date)),
         escapeCell(typeLabelForExport(tx)),
         escapeCell(tx.title),
-        escapeCell(cat.name),
+        escapeCell(categoryName),
         escapeCell(amountStr, isNumeric: true),
         escapeCell(srcWallet),
         escapeCell(dstWallet),
