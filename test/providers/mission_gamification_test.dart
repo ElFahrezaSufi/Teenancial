@@ -607,6 +607,12 @@ void main() {
           ),
           contains('minimal 8 karakter'),
         );
+        expect(
+          ErrorMapper.message(
+            FirebaseAuthException(code: 'email-already-in-use'),
+          ),
+          contains('Email/Password atau Google'),
+        );
       },
     );
 

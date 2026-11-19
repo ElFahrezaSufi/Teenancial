@@ -20,7 +20,7 @@ class ErrorMapper {
         case 'invalid-email':
           return 'Format email tidak valid.';
         case 'email-already-in-use':
-          return 'Email ini sudah terdaftar. Silakan gunakan email lain atau langsung Masuk.';
+          return 'Email ini sudah terdaftar. Silakan langsung Masuk dengan Email/Password atau Google.';
         case 'weak-password':
           return 'Password terlalu lemah (minimal 8 karakter).';
         case 'too-many-requests':

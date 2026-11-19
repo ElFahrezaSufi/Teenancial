@@ -490,7 +490,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
         ),
         content: Text(
-          'Semua data profil, dompet, transaksi, target menabung, dan progres Feen akan dihapus secara permanen dan tidak bisa dikembalikan.',
+          isGoogleUser
+              ? 'Semua data profil, dompet, transaksi, target menabung, dan progres Feen akan dihapus secara permanen dan tidak bisa dikembalikan.\n\nKamu akan diminta memverifikasi ulang melalui akun Google-mu untuk mengonfirmasi.'
+              : 'Semua data profil, dompet, transaksi, target menabung, dan progres Feen akan dihapus secara permanen dan tidak bisa dikembalikan.',
           style: TextStyle(
             color: primaryGreen.withValues(alpha: 0.85),
             fontFamily: 'Inter',
