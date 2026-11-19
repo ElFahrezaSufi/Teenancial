@@ -22,11 +22,14 @@ import 'package:teenancial/utils/report_calculator.dart';
 
 class _FakeTargetRepository extends TargetRepository {
   final List<TargetItem> store = [];
+  final Map<String, double> walletBalances = {};
+  final List<TransactionModel> createdTransactions = [];
 
   @override
   Future<List<TargetItem>> getTargets(String uid) async {
     final copy = List<TargetItem>.from(store);
     copy.sort((a, b) {
+      if (a.isSettled != b.isSettled) return a.isSettled ? 1 : -1;
       if (a.isPinned != b.isPinned) return a.isPinned ? -1 : 1;
       return b.createdAt.compareTo(a.createdAt);
     });
@@ -99,8 +102,112 @@ class _FakeTargetRepository extends TargetRepository {
   }) async {
     final index = store.indexWhere((t) => t.id == targetId);
     if (index != -1) {
-      store[index] = store[index].copyWith(isSettled: isSettled);
+      store[index] = store[index].copyWith(
+        isSettled: isSettled,
+        isPinned: isSettled ? false : store[index].isPinned,
+      );
     }
+  }
+
+  @override
+  Future<TransactionModel> allocateFundsWithWallet({
+    required String uid,
+    required String targetId,
+    required String walletId,
+    required double amountDelta,
+    double? maxWithdrawable,
+  }) async {
+    final index = store.indexWhere((t) => t.id == targetId);
+    if (index == -1) throw Exception('Target menabung tidak ditemukan.');
+    if (!walletBalances.containsKey(walletId)) {
+      throw Exception('Dompet tidak ditemukan.');
+    }
+    final target = store[index];
+    if (target.isSettled) throw Exception('Target ini sudah diselesaikan.');
+    final currentWalletBalance = walletBalances[walletId]!;
+    final bool isDeposit = amountDelta > 0;
+    final double absAmount = amountDelta.abs();
+
+    late final double newSaved;
+    late final double newWalletBalance;
+    if (isDeposit) {
+      final remaining =
+          (target.targetAmount - target.savedAmount).clamp(0.0, double.infinity);
+      if (absAmount > remaining + 0.0001) {
+        throw Exception('Nominal melebihi sisa target yang dibutuhkan.');
+      }
+      if (currentWalletBalance + 0.0001 < absAmount) {
+        throw Exception('Saldo dompet tidak mencukupi.');
+      }
+      newSaved = (target.savedAmount + absAmount).clamp(0.0, target.targetAmount);
+      newWalletBalance = currentWalletBalance - absAmount;
+    } else {
+      final allowed = maxWithdrawable != null
+          ? (maxWithdrawable < target.savedAmount
+              ? maxWithdrawable
+              : target.savedAmount)
+          : target.savedAmount;
+      if (absAmount > allowed + 0.0001) {
+        throw Exception(
+          'Nominal penarikan melebihi dana yang dapat ditarik dari target ini.',
+        );
+      }
+      newSaved = (target.savedAmount - absAmount).clamp(0.0, target.targetAmount);
+      newWalletBalance = currentWalletBalance + absAmount;
+    }
+
+    final tx = TransactionModel(
+      id: 'tx_tg_${createdTransactions.length + 1}',
+      title: isDeposit
+          ? 'Tabungan: ${target.nama}'
+          : 'Tarik Tabungan: ${target.nama}',
+      amount: absAmount,
+      date: DateTime(2026, 11, 19),
+      notes: isDeposit
+          ? 'Alokasi ke target menabung'
+          : 'Penarikan dari target menabung',
+      categoryId: isDeposit ? 'c6' : 'c19',
+      type: isDeposit ? TransactionType.expense : TransactionType.income,
+      dompetId: walletId,
+      isAdjustment: true,
+      targetId: target.id,
+    );
+    store[index] = target.copyWith(savedAmount: newSaved);
+    walletBalances[walletId] = newWalletBalance;
+    createdTransactions.add(tx);
+    return tx;
+  }
+
+  @override
+  Future<TransactionModel> settleTargetWithExpense({
+    required String uid,
+    required String targetId,
+    required String walletId,
+  }) async {
+    final index = store.indexWhere((t) => t.id == targetId);
+    if (index == -1) throw Exception('Target menabung tidak ditemukan.');
+    final target = store[index];
+    if (target.isSettled) {
+      throw Exception('Target ini sudah diselesaikan sebelumnya.');
+    }
+    if (!target.isAchieved || target.savedAmount <= 0) {
+      throw Exception('Target belum mencapai 100% untuk diselesaikan.');
+    }
+    final tx = TransactionModel(
+      id: 'tx_settle_${createdTransactions.length + 1}',
+      title: target.nama,
+      amount: target.savedAmount,
+      date: DateTime(2026, 11, 19),
+      notes: 'Pembelian dari dana target menabung',
+      categoryId: 'c6',
+      type: TransactionType.expense,
+      dompetId: walletId,
+      targetId: target.id,
+      skipWalletEffect: true,
+    );
+    store[index] = target.copyWith(isSettled: true, isPinned: false);
+    createdTransactions.add(tx);
+    return tx;
   }
 
   @override
@@ -328,6 +435,154 @@ void main() {
       );
       expect(provider.items.first.deadline, isNull);
     });
+
+    test(
+      'allocateTargetFunds atomik dengan walletId memotong/mengembalikan saldo dompet dan menghormati batas penarikan dana lama',
+      () async {
+        fakeRepo.walletBalances['w1'] = 200000;
+
+        // Menabung Rp 150.000 dari dompet w1 (saldo awal 200k -> 50k, saved 50k -> 200k)
+        await provider.allocateTargetFunds(
+          targetId: 'tg_1',
+          amountDelta: 150000,
+          walletId: 'w1',
+        );
+        expect(provider.items.first.savedAmount, 200000);
+        expect(fakeRepo.walletBalances['w1'], 50000);
+        expect(fakeRepo.createdTransactions.length, 1);
+        expect(fakeRepo.createdTransactions.last.isAdjustment, isTrue);
+        expect(fakeRepo.createdTransactions.last.targetId, 'tg_1');
+        expect(fakeRepo.createdTransactions.last.type, TransactionType.expense);
+
+        // Menabung melebihi saldo dompet (minta 100k padahal saldo 50k) gagal tanpa mengubah state
+        await expectLater(
+          () => provider.allocateTargetFunds(
+            targetId: 'tg_1',
+            amountDelta: 100000,
+            walletId: 'w1',
+          ),
+          throwsException,
+        );
+        expect(provider.items.first.savedAmount, 200000);
+        expect(fakeRepo.walletBalances['w1'], 50000);
+        expect(fakeRepo.createdTransactions.length, 1);
+
+        // Kasus campuran (50k legacy + 150k dari dompet): batas tarik hanya 150k
+        await expectLater(
+          () => provider.allocateTargetFunds(
+            targetId: 'tg_1',
+            amountDelta: -160000,
+            walletId: 'w1',
+            maxWithdrawable: 150000,
+          ),
+          throwsException,
+        );
+        await provider.allocateTargetFunds(
+          targetId: 'tg_1',
+          amountDelta: -100000,
+          walletId: 'w1',
+          maxWithdrawable: 150000,
+        );
+        expect(provider.items.first.savedAmount, 100000);
+        expect(fakeRepo.walletBalances['w1'], 150000);
+        expect(fakeRepo.createdTransactions.last.type, TransactionType.income);
+        expect(fakeRepo.createdTransactions.last.isAdjustment, isTrue);
+      },
+    );
+
+    test(
+      'settleTarget atomik dengan walletId menolak <100%, memindahkan pin ke target aktif lain, dan mengunci edit/pin target selesai',
+      () async {
+        fakeRepo.walletBalances['w1'] = 500000;
+        await provider.createTarget(
+          nama: 'Keyboard',
+          targetAmount: 400000,
+          imageFile: File('kb.jpg'),
+        );
+
+        // Belum 100% -> tolak penyelesaian atomik
+        await expectLater(
+          () => provider.settleTarget('tg_1', walletId: 'w1'),
+          throwsException,
+        );
+
+        // Penuhi target tg_1 hingga 100% (50k + 250k = 300k)
+        await provider.allocateTargetFunds(
+          targetId: 'tg_1',
+          amountDelta: 250000,
+          walletId: 'w1',
+        );
+        expect(fakeRepo.walletBalances['w1'], 250000);
+
+        // Selesaikan tg_1: saldo dompet tidak terpotong lagi, transaksi skipWalletEffect tercatat,
+        // dan pin otomatis pindah ke target aktif berikutnya ('tg_2')
+        await provider.settleTarget('tg_1', walletId: 'w1');
+        expect(fakeRepo.walletBalances['w1'], 250000);
+        final settleTx = fakeRepo.createdTransactions.last;
+        expect(settleTx.skipWalletEffect, isTrue);
+        expect(settleTx.isAdjustment, isFalse);
+        expect(settleTx.type, TransactionType.expense);
+        expect(settleTx.amount, 300000);
+        expect(settleTx.targetId, 'tg_1');
+
+        final settled = provider.items.firstWhere((t) => t.id == 'tg_1');
+        expect(settled.isSettled, isTrue);
+        expect(settled.isPinned, isFalse);
+        expect(provider.pinnedItem?.id, 'tg_2');
+        expect(provider.items.first.id, 'tg_2');
+
+        // Target selesai tidak bisa diselesaikan ulang, diubah, atau di-pin
+        await expectLater(
+          () => provider.settleTarget('tg_1', walletId: 'w1'),
+          throwsException,
+        );
+        await expectLater(
+          () => provider.updateTarget(
+            targetId: 'tg_1',
+            nama: 'Diubah',
+            targetAmount: 350000,
+          ),
+          throwsException,
+        );
+        await provider.togglePin(settled);
+        expect(provider.pinnedItem?.id, 'tg_2');
+      },
+    );
+
+    test(
+      'deleteTarget memblokir penghapusan target aktif yang masih menyimpan dana dompet dan mengizinkan bila aman',
+      () async {
+        // tg_1 punya savedAmount 50k dan belum settled -> diblokir
+        await expectLater(
+          () => provider.deleteTarget('tg_1'),
+          throwsException,
+        );
+        await expectLater(
+          () => provider.deleteTarget('tg_1', walletBackedAmount: 50000),
+          throwsException,
+        );
+
+        // Target dengan dana legacy murni (walletBackedAmount: 0) boleh dihapus
+        await provider.deleteTarget('tg_1', walletBackedAmount: 0);
+        expect(provider.items, isEmpty);
+
+        // Target selesai (isSettled: true) juga boleh dihapus meski savedAmount > 0
+        fakeRepo.store.add(
+          TargetItem(
+            id: 'tg_done',
+            nama: 'Kamera',
+            targetAmount: 500000,
+            savedAmount: 500000,
+            imageUrl: 'https://example.com/cam.jpg',
+            isSettled: true,
+          ),
+        );
+        await provider.loadTargets(silent: true);
+        expect(provider.items.first.isPinned, isFalse);
+        await provider.deleteTarget('tg_done');
+        expect(provider.items, isEmpty);
+      },
+    );
   });
 
   group('TransactionModel alokasi target menabung', () {

@@ -1,4 +1,4 @@
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_auth/firebase_auth.dart' hide AuthProvider;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:teenancial/data/feen_catalog.dart';
@@ -8,6 +8,7 @@ import 'package:teenancial/models/dompet_model.dart';
 import 'package:teenancial/models/mission_model.dart';
 import 'package:teenancial/models/transaction_model.dart';
 import 'package:teenancial/models/user_model.dart';
+import 'package:teenancial/providers/auth_provider.dart';
 import 'package:teenancial/providers/dompet_provider.dart';
 import 'package:teenancial/providers/mission_provider.dart';
 import 'package:teenancial/providers/transaction_provider.dart';
@@ -599,6 +600,56 @@ void main() {
             FirebaseAuthException(code: 'cancelled-popup-request'),
           ),
           contains('dibatalkan'),
+        );
+        expect(
+          ErrorMapper.message(
+            FirebaseAuthException(code: 'weak-password'),
+          ),
+          contains('minimal 8 karakter'),
+        );
+      },
+    );
+
+    test(
+      'AuthProvider.requiresEmailVerification hanya mewajibkan verifikasi untuk akun Email/Password yang belum terverifikasi',
+      () {
+        expect(
+          AuthProvider.requiresEmailVerification(
+            providerIds: [EmailAuthProvider.PROVIDER_ID],
+            emailVerified: false,
+          ),
+          isTrue,
+        );
+        expect(
+          AuthProvider.requiresEmailVerification(
+            providerIds: [EmailAuthProvider.PROVIDER_ID],
+            emailVerified: true,
+          ),
+          isFalse,
+        );
+        expect(
+          AuthProvider.requiresEmailVerification(
+            providerIds: [GoogleAuthProvider.PROVIDER_ID],
+            emailVerified: false,
+          ),
+          isFalse,
+        );
+        expect(
+          AuthProvider.requiresEmailVerification(
+            providerIds: [
+              GoogleAuthProvider.PROVIDER_ID,
+              EmailAuthProvider.PROVIDER_ID,
+            ],
+            emailVerified: false,
+          ),
+          isTrue,
+        );
+        expect(
+          AuthProvider.requiresEmailVerification(
+            providerIds: const [],
+            emailVerified: false,
+          ),
+          isFalse,
         );
       },
     );

@@ -73,5 +73,56 @@ void main() {
         expect(lines[1], endsWith(';Berulang'));
       },
     );
+
+    test(
+      'transaksi alokasi dan penyelesaian target menabung berlabel asal Target Menabung',
+      () {
+        const dompets = [
+          DompetItem(
+            id: 'w1',
+            nama: 'Tunai',
+            jenis: JenisDompet.cash,
+            jumlah: 300000,
+          ),
+        ];
+
+        final txs = [
+          TransactionModel(
+            id: 'tx_alloc',
+            title: 'Tabungan: Headphone',
+            amount: 100000,
+            date: DateTime(2026, 11, 18, 10, 0),
+            notes: 'Alokasi ke target menabung',
+            categoryId: 'c6',
+            type: TransactionType.expense,
+            dompetId: 'w1',
+            isAdjustment: true,
+            targetId: 'tg_1',
+          ),
+          TransactionModel(
+            id: 'tx_settle',
+            title: 'Headphone',
+            amount: 300000,
+            date: DateTime(2026, 11, 19, 12, 0),
+            notes: 'Pembelian dari dana target menabung',
+            categoryId: 'c6',
+            type: TransactionType.expense,
+            dompetId: 'w1',
+            targetId: 'tg_1',
+            skipWalletEffect: true,
+          ),
+        ];
+
+        final bytes = CsvExporter.generateCsvBytes(
+          transactions: txs,
+          dompets: dompets,
+        );
+        final decoded = utf8.decode(bytes.sublist(3));
+        final lines = decoded.trim().split(CsvExporter.lineEnding);
+        expect(lines.length, 3);
+        expect(lines[1], endsWith(';Target Menabung'));
+        expect(lines[2], endsWith(';Target Menabung'));
+      },
+    );
   });
 }
