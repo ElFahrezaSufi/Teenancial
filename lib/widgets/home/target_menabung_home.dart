@@ -68,15 +68,37 @@ class TargetMenabungHome extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(width: 8),
-                  Text(
-                    '${formatRupiah(currentTarget!.savedAmount)} / ${formatRupiah(currentTarget!.targetAmount)}',
-                    style: const TextStyle(
-                      color: primaryGreen,
-                      fontSize: 12,
-                      fontFamily: 'Inter',
-                      fontWeight: FontWeight.w600,
+                  if (currentTarget!.isSettled)
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 3,
+                      ),
+                      decoration: BoxDecoration(
+                        color: primaryGreen.withValues(alpha: 0.14),
+                        borderRadius: BorderRadius.circular(100),
+                        border: Border.all(color: primaryGreen, width: 1),
+                      ),
+                      child: const Text(
+                        'Selesai ✓',
+                        style: TextStyle(
+                          color: primaryGreen,
+                          fontSize: 11,
+                          fontFamily: 'Inter',
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    )
+                  else
+                    Text(
+                      '${formatRupiah(currentTarget!.savedAmount)} / ${formatRupiah(currentTarget!.targetAmount)}',
+                      style: const TextStyle(
+                        color: primaryGreen,
+                        fontSize: 12,
+                        fontFamily: 'Inter',
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
-                  ),
                 ],
               ),
             ),

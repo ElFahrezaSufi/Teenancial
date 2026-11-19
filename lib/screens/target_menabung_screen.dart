@@ -33,28 +33,55 @@ class TargetMenabungScreen extends StatelessWidget {
     final targetProvider = context.watch<TargetProvider>();
     final userProvider = context.watch<UserProvider>();
     final transactionProvider = context.watch<TransactionProvider>();
+    final dompetProvider = context.watch<DompetProvider>();
     final items = targetProvider.items;
-    final saldoSekarang = context.watch<DompetProvider>().totalSaldo;
+    final wallets = dompetProvider.items;
+    final saldoSekarang = dompetProvider.totalSaldo;
     final totalAllocated = targetProvider.totalAllocated;
     final availableSaldo = targetProvider.availableToAllocate(saldoSekarang);
     final bool hasAchievedAny = items.any((e) => e.isAchieved && !e.isSettled);
 
-    // Dana yang benar-benar sudah keluar dari dompet (punya transaksi alokasi).
+    // Dana yang benar-benar sudah keluar dari dompet (punya transaksi alokasi),
+    // sekaligus melacak kontribusi per dompet agar saat diselesaikan dompet
+    // sumber yang paling relevan terpilih secara akurat.
     final allocatedByTarget = <String, double>{};
+    final walletContribByTarget = <String, Map<String, double>>{};
     for (final tx in transactionProvider.transactions) {
       final targetId = tx.targetId;
       if (targetId == null || targetId.isEmpty) continue;
       if (!tx.isBalanceAdjustment || tx.skipWalletEffect) continue;
       final delta = tx.type == TransactionType.expense ? tx.amount : -tx.amount;
       allocatedByTarget[targetId] = (allocatedByTarget[targetId] ?? 0) + delta;
+      if (tx.dompetId.isNotEmpty) {
+        final byWallet = walletContribByTarget.putIfAbsent(targetId, () => {});
+        byWallet[tx.dompetId] = (byWallet[tx.dompetId] ?? 0) + delta;
+      }
     }
 
     // Dana lama (sebelum fitur pemotongan saldo) belum pernah keluar dari
     // dompet, sehingga tidak boleh ditarik agar tidak mencetak uang baru.
     double legacyOf(TargetItem item) {
       final viaTx = allocatedByTarget[item.id] ?? 0;
-      final legacy = item.savedAmount - viaTx;
+      final clampedViaTx = viaTx > 0 ? viaTx : 0.0;
+      final legacy = item.savedAmount - clampedViaTx;
       return legacy > 0.0001 ? legacy : 0;
+    }
+
+    String preferredWalletIdOf(TargetItem item) {
+      final byWallet = walletContribByTarget[item.id];
+      if (byWallet != null && byWallet.isNotEmpty) {
+        String? bestId;
+        double bestAmount = 0;
+        for (final entry in byWallet.entries) {
+          final exists = wallets.any((w) => w.id == entry.key);
+          if (exists && entry.value > bestAmount) {
+            bestAmount = entry.value;
+            bestId = entry.key;
+          }
+        }
+        if (bestId != null) return bestId;
+      }
+      return wallets.isNotEmpty ? wallets.first.id : '';
     }
 
     return Scaffold(
@@ -96,7 +123,6 @@ class TargetMenabungScreen extends StatelessWidget {
                         _buildAllocationSummaryCard(
                           userProvider: userProvider,
                           hasAchievedAny: hasAchievedAny,
-                          saldoSekarang: saldoSekarang,
                           totalAllocated: totalAllocated,
                           availableSaldo: availableSaldo,
                         ),
@@ -108,8 +134,8 @@ class TargetMenabungScreen extends StatelessWidget {
                               context,
                               item: item,
                               saldoSekarang: saldoSekarang,
-                              availableSaldo: availableSaldo,
                               legacyAmount: legacyOf(item),
+                              preferredWalletId: preferredWalletIdOf(item),
                             ),
                           ),
                         ),
@@ -138,12 +164,9 @@ class TargetMenabungScreen extends StatelessWidget {
   Widget _buildAllocationSummaryCard({
     required UserProvider userProvider,
     required bool hasAchievedAny,
-    required double saldoSekarang,
     required double totalAllocated,
     required double availableSaldo,
   }) {
-    final bool isOverAllocated = totalAllocated > saldoSekarang + 0.0001;
-
     return CustomCard(
       backgroundColor: appBarBg,
       borderRadius: 16,
@@ -162,11 +185,9 @@ class TargetMenabungScreen extends StatelessWidget {
               const SizedBox(width: 12),
               Expanded(
                 child: Text(
-                  isOverAllocated
-                      ? 'Alokasi tabungan melebihi saldo dompet saat ini, yuk cek lagi!'
-                      : hasAchievedAny
-                          ? 'Keren! Ada target impianmu yang sudah tercapai!'
-                          : 'Sisihkan sedikit demi sedikit biar target impianmu cepat tercapai!',
+                  hasAchievedAny
+                      ? 'Keren! Ada target impianmu yang sudah tercapai!'
+                      : 'Sisihkan sedikit demi sedikit biar target impianmu cepat tercapai!',
                   style: const TextStyle(
                     color: primaryGreen,
                     fontSize: 12,
@@ -191,7 +212,7 @@ class TargetMenabungScreen extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Saldo Bebas Tersedia',
+                      'Total Saldo Dompet',
                       style: TextStyle(
                         color: primaryGreen.withValues(alpha: 0.75),
                         fontSize: 12,
@@ -223,7 +244,7 @@ class TargetMenabungScreen extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Total Dialokasikan',
+                      'Tersimpan di Target',
                       style: TextStyle(
                         color: primaryGreen.withValues(alpha: 0.75),
                         fontSize: 12,
@@ -246,38 +267,6 @@ class TargetMenabungScreen extends StatelessWidget {
               ),
             ],
           ),
-          if (isOverAllocated) ...[
-            const SizedBox(height: 12),
-            Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: Colors.red.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: Colors.redAccent),
-              ),
-              child: const Row(
-                children: [
-                  Icon(
-                    Icons.warning_amber_rounded,
-                    color: Colors.redAccent,
-                    size: 18,
-                  ),
-                  SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      'Total alokasi melebihi saldo dompet saat ini karena pengeluaran. Tarik sebagian alokasi atau tambah saldo dompet.',
-                      style: TextStyle(
-                        color: Colors.redAccent,
-                        fontSize: 11,
-                        fontFamily: 'Inter',
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
         ],
       ),
     );
@@ -353,17 +342,18 @@ class TargetMenabungScreen extends StatelessWidget {
     BuildContext context, {
     required TargetItem item,
     required double saldoSekarang,
-    required double availableSaldo,
     required double legacyAmount,
+    required String preferredWalletId,
   }) {
     final double progress = item.progress;
     final String terkumpulStr = Formatters.rupiah(item.savedAmount);
     final String targetStr = Formatters.rupiah(item.targetAmount);
     final bool hasLegacyFunds = legacyAmount > 0.0001;
+    final double withdrawableAmount =
+        (item.savedAmount - legacyAmount).clamp(0.0, item.savedAmount);
     final bool canDeposit =
         !item.isAchieved && !item.isSettled && saldoSekarang > 0;
-    final bool canWithdraw =
-        item.savedAmount > 0 && !item.isSettled && !hasLegacyFunds;
+    final bool canWithdraw = withdrawableAmount > 0.0001 && !item.isSettled;
     final SavingPlan? plan = SavingPlanner.plan(item);
     final Color planBadgeColor = plan == null
         ? primaryGreen
@@ -448,20 +438,96 @@ class TargetMenabungScreen extends StatelessWidget {
                     ),
                     onSelected: (value) async {
                       if (value == 'edit') {
+                        if (item.isSettled) return;
                         await context.push(AppRoutes.buatTarget, extra: item);
                       } else if (value == 'delete') {
+                        if (!item.isSettled && withdrawableAmount > 0.0001) {
+                          final withdrawNow = await showDialog<bool>(
+                            context: context,
+                            builder: (_) => AlertDialog(
+                              backgroundColor: appBarBg,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              title: const Text(
+                                'Target Masih Menyimpan Dana',
+                                style: TextStyle(
+                                  color: primaryGreen,
+                                  fontFamily: 'Inter',
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 17,
+                                ),
+                              ),
+                              content: Text(
+                                'Target "${item.nama}" masih menyimpan '
+                                '${Formatters.rupiah(withdrawableAmount)} yang '
+                                'berasal dari dompetmu.\n\n'
+                                'Tarik seluruh dana kembali ke dompet terlebih '
+                                'dahulu sebelum menghapus target agar saldomu '
+                                'tidak hilang.',
+                                style: const TextStyle(
+                                  color: primaryGreen,
+                                  fontFamily: 'Inter',
+                                  fontSize: 13,
+                                  height: 1.5,
+                                ),
+                              ),
+                              actions: [
+                                TextButton(
+                                  onPressed: () =>
+                                      Navigator.of(context).pop(false),
+                                  child: const Text(
+                                    'Tutup',
+                                    style: TextStyle(color: Colors.grey),
+                                  ),
+                                ),
+                                ElevatedButton(
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: primaryGreen,
+                                    foregroundColor: Colors.white,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(100),
+                                    ),
+                                  ),
+                                  onPressed: () =>
+                                      Navigator.of(context).pop(true),
+                                  child: const Text('Tarik Dana'),
+                                ),
+                              ],
+                            ),
+                          );
+                          if (withdrawNow == true && context.mounted) {
+                            await _showAllocationDialog(
+                              context,
+                              item: item,
+                              isDeposit: false,
+                              withdrawableAmount: withdrawableAmount,
+                            );
+                          }
+                          return;
+                        }
+
+                        final String deleteMessage =
+                            (!item.isSettled && hasLegacyFunds)
+                                ? 'Target ini hanya memiliki dana catatan lama '
+                                    '(${Formatters.rupiah(legacyAmount)}) yang '
+                                    'tidak pernah memotong dompet. Yakin ingin '
+                                    'menghapus target ini?'
+                                : 'Apakah Anda yakin ingin menghapus target ini?';
+
                         final bool confirm = await showConfirmDialog(
                           context,
                           title: 'Hapus Target',
-                          message:
-                              'Apakah Anda yakin ingin menghapus target ini?',
+                          message: deleteMessage,
                         );
 
                         if (confirm && context.mounted) {
+                          final targetProvider = context.read<TargetProvider>();
                           try {
-                            await context
-                                .read<TargetProvider>()
-                                .deleteTarget(item.id);
+                            await targetProvider.deleteTarget(
+                              item.id,
+                              walletBackedAmount: withdrawableAmount,
+                            );
                           } catch (e) {
                             if (context.mounted) {
                               ScaffoldMessenger.of(context).showSnackBar(
@@ -478,22 +544,23 @@ class TargetMenabungScreen extends StatelessWidget {
                       }
                     },
                     itemBuilder: (context) => [
-                      const PopupMenuItem(
-                        value: 'edit',
-                        child: Row(
-                          children: [
-                            Icon(Icons.edit_outlined, color: primaryGreen),
-                            SizedBox(width: 8),
-                            Text(
-                              'Edit Target',
-                              style: TextStyle(
-                                color: primaryGreen,
-                                fontWeight: FontWeight.w600,
+                      if (!item.isSettled)
+                        const PopupMenuItem(
+                          value: 'edit',
+                          child: Row(
+                            children: [
+                              Icon(Icons.edit_outlined, color: primaryGreen),
+                              SizedBox(width: 8),
+                              Text(
+                                'Edit Target',
+                                style: TextStyle(
+                                  color: primaryGreen,
+                                  fontWeight: FontWeight.w600,
+                                ),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
-                      ),
                       const PopupMenuItem(
                         value: 'delete',
                         child: Row(
@@ -522,13 +589,12 @@ class TargetMenabungScreen extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 GestureDetector(
-                  onTap: item.isPinned
+                  onTap: (item.isPinned || item.isSettled)
                       ? null
                       : () async {
+                          final targetProvider = context.read<TargetProvider>();
                           try {
-                            await context
-                                .read<TargetProvider>()
-                                .togglePin(item);
+                            await targetProvider.togglePin(item);
                           } catch (e) {
                             if (context.mounted) {
                               ScaffoldMessenger.of(context).showSnackBar(
@@ -545,16 +611,23 @@ class TargetMenabungScreen extends StatelessWidget {
                   child: Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: item.isPinned
+                      color: (!item.isSettled && item.isPinned)
                           ? const Color(0xFFDAB62C).withValues(alpha: 0.2)
                           : Colors.transparent,
                       shape: BoxShape.circle,
                     ),
                     child: Icon(
-                      item.isPinned ? Icons.push_pin : Icons.push_pin_outlined,
+                      item.isSettled
+                          ? Icons.check_circle
+                          : (item.isPinned
+                              ? Icons.push_pin
+                              : Icons.push_pin_outlined),
                       size: 24,
-                      color:
-                          item.isPinned ? const Color(0xFFDAB62C) : Colors.grey,
+                      color: item.isSettled
+                          ? primaryGreen
+                          : (item.isPinned
+                              ? const Color(0xFFDAB62C)
+                              : Colors.grey),
                     ),
                   ),
                 ),
@@ -621,7 +694,7 @@ class TargetMenabungScreen extends StatelessWidget {
               ],
             ),
           ),
-          if (hasLegacyFunds)
+          if (hasLegacyFunds && !item.isSettled)
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 10, 16, 0),
               child: Container(
@@ -637,8 +710,9 @@ class TargetMenabungScreen extends StatelessWidget {
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
-                        'Dana lama ${Formatters.rupiah(legacyAmount)} belum '
-                        'tersinkron dengan dompet, jadi penarikan dinonaktifkan.',
+                        withdrawableAmount > 0.0001
+                            ? 'Dana lama ${Formatters.rupiah(legacyAmount)} tidak dapat ditarik ke dompet. Maksimal penarikan: ${Formatters.rupiah(withdrawableAmount)}.'
+                            : 'Dana lama ${Formatters.rupiah(legacyAmount)} belum tersinkron dengan dompet, jadi penarikan dinonaktifkan.',
                         style: const TextStyle(
                           color: orangeText,
                           fontSize: 11,
@@ -765,25 +839,72 @@ class TargetMenabungScreen extends StatelessWidget {
                     ),
                   )
                 : item.isAchieved
-                    ? ElevatedButton.icon(
-                        onPressed: () => _confirmSettle(context, item),
-                        icon: const Icon(Icons.flag_outlined, size: 18),
-                        label: const Text(
-                          'Selesaikan',
-                          style: TextStyle(
-                            fontFamily: 'Inter',
-                            fontWeight: FontWeight.w700,
+                    ? Row(
+                        children: [
+                          if (canWithdraw) ...[
+                            Expanded(
+                              child: OutlinedButton.icon(
+                                onPressed: () => _showAllocationDialog(
+                                  context,
+                                  item: item,
+                                  isDeposit: false,
+                                  withdrawableAmount: withdrawableAmount,
+                                ),
+                                icon: const Icon(
+                                  Icons.remove_circle_outline,
+                                  size: 18,
+                                ),
+                                label: const Text(
+                                  'Tarik',
+                                  style: TextStyle(
+                                    fontFamily: 'Inter',
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                                style: OutlinedButton.styleFrom(
+                                  foregroundColor: primaryGreen,
+                                  side: const BorderSide(
+                                    color: primaryGreen,
+                                    width: 1.5,
+                                  ),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(100),
+                                  ),
+                                  padding:
+                                      const EdgeInsets.symmetric(vertical: 12),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                          ],
+                          Expanded(
+                            child: ElevatedButton.icon(
+                              onPressed: () => _confirmSettle(
+                                context,
+                                item,
+                                preferredWalletId: preferredWalletId,
+                              ),
+                              icon: const Icon(Icons.flag_outlined, size: 18),
+                              label: const Text(
+                                'Selesaikan',
+                                style: TextStyle(
+                                  fontFamily: 'Inter',
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: primaryGreen,
+                                foregroundColor: Colors.white,
+                                elevation: 0,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(100),
+                                ),
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 12),
+                              ),
+                            ),
                           ),
-                        ),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: primaryGreen,
-                          foregroundColor: Colors.white,
-                          elevation: 0,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(100),
-                          ),
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                        ),
+                        ],
                       )
                     : Row(
                         children: [
@@ -794,6 +915,7 @@ class TargetMenabungScreen extends StatelessWidget {
                                         context,
                                         item: item,
                                         isDeposit: false,
+                                        withdrawableAmount: withdrawableAmount,
                                       )
                                   : null,
                               icon: const Icon(
@@ -831,6 +953,7 @@ class TargetMenabungScreen extends StatelessWidget {
                                         context,
                                         item: item,
                                         isDeposit: true,
+                                        withdrawableAmount: withdrawableAmount,
                                       )
                                   : null,
                               icon: const Icon(
@@ -870,8 +993,12 @@ class TargetMenabungScreen extends StatelessWidget {
     BuildContext context, {
     required TargetItem item,
     required bool isDeposit,
+    required double withdrawableAmount,
   }) async {
-    final wallets = context.read<DompetProvider>().items;
+    final dompetProvider = context.read<DompetProvider>();
+    final targetProvider = context.read<TargetProvider>();
+    final txProvider = context.read<TransactionProvider>();
+    final wallets = dompetProvider.items;
     if (wallets.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -890,7 +1017,7 @@ class TargetMenabungScreen extends StatelessWidget {
       builder: (_) => _TargetAllocationDialog(
         targetName: item.nama,
         isDeposit: isDeposit,
-        maxAmount: isDeposit ? remainingTarget : item.savedAmount,
+        maxAmount: isDeposit ? remainingTarget : withdrawableAmount,
         wallets: wallets,
       ),
     );
@@ -898,47 +1025,18 @@ class TargetMenabungScreen extends StatelessWidget {
     if (result == null || !context.mounted) return;
 
     final double delta = isDeposit ? result.amount : -result.amount;
-    final targetProvider = context.read<TargetProvider>();
-    final txProvider = context.read<TransactionProvider>();
 
-    // 1) Ubah dana target lebih dulu (validasi batas target).
     try {
       await targetProvider.allocateTargetFunds(
         targetId: item.id,
         amountDelta: delta,
+        walletId: result.wallet.id,
+        maxWithdrawable: isDeposit ? null : withdrawableAmount,
       );
-    } catch (e) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('❌ ${ErrorMapper.message(e)}'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-      return;
-    }
-
-    // 2) Catat di Riwayat sekaligus memindahkan saldo dompet.
-    //    isAdjustment = true → tidak dihitung sebagai pemasukan/pengeluaran.
-    final transaction = TransactionModel(
-      id: '',
-      title:
-          isDeposit ? 'Tabungan: ${item.nama}' : 'Tarik Tabungan: ${item.nama}',
-      amount: result.amount,
-      date: DateTime.now(),
-      notes: isDeposit
-          ? 'Alokasi ke target menabung'
-          : 'Penarikan dari target menabung',
-      categoryId: isDeposit ? 'c6' : 'c19',
-      type: isDeposit ? TransactionType.expense : TransactionType.income,
-      dompetId: result.wallet.id,
-      isAdjustment: true,
-      targetId: item.id,
-    );
-
-    try {
-      await txProvider.addTransaction(transaction);
+      await Future.wait([
+        dompetProvider.loadDompets(silent: true),
+        txProvider.loadTransactions(silent: true),
+      ]);
 
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -953,15 +1051,6 @@ class TargetMenabungScreen extends StatelessWidget {
         );
       }
     } catch (e) {
-      // Gagal memindahkan saldo dompet (mis. saldo tidak cukup) → kembalikan
-      // dana target agar tetap konsisten.
-      try {
-        await targetProvider.allocateTargetFunds(
-          targetId: item.id,
-          amountDelta: -delta,
-        );
-      } catch (_) {}
-
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -973,9 +1062,20 @@ class TargetMenabungScreen extends StatelessWidget {
     }
   }
 
-  Future<void> _confirmSettle(BuildContext context, TargetItem item) async {
+  Future<void> _confirmSettle(
+    BuildContext context,
+    TargetItem item, {
+    required String preferredWalletId,
+  }) async {
     final double amount = item.savedAmount;
     if (amount <= 0) return;
+
+    final targetProvider = context.read<TargetProvider>();
+    final txProvider = context.read<TransactionProvider>();
+    final wallets = context.read<DompetProvider>().items;
+    final String walletId = preferredWalletId.isNotEmpty
+        ? preferredWalletId
+        : (wallets.isNotEmpty ? wallets.first.id : '');
 
     final bool? confirmed = await showDialog<bool>(
       context: context,
@@ -1029,26 +1129,9 @@ class TargetMenabungScreen extends StatelessWidget {
 
     if (confirmed != true || !context.mounted) return;
 
-    final wallets = context.read<DompetProvider>().items;
-    final String walletId = wallets.isNotEmpty ? wallets.first.id : '';
-
     try {
-      await context.read<TransactionProvider>().addTransaction(
-            TransactionModel(
-              id: '',
-              title: item.nama,
-              amount: amount,
-              date: DateTime.now(),
-              notes: 'Pembelian dari dana target menabung',
-              categoryId: 'c6',
-              type: TransactionType.expense,
-              dompetId: walletId,
-              targetId: item.id,
-              // Saldo sudah dipotong saat menabung, jadi jangan potong lagi.
-              skipWalletEffect: true,
-            ),
-          );
-      await context.read<TargetProvider>().settleTarget(item.id);
+      await targetProvider.settleTarget(item.id, walletId: walletId);
+      await txProvider.loadTransactions(silent: true);
 
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -1149,11 +1232,16 @@ class _TargetAllocationDialogState extends State<_TargetAllocationDialog> {
       return;
     }
     if (amount > _maxForWallet + 0.0001) {
-      setState(
-        () => _errorText = widget.isDeposit
-            ? 'Saldo ${wallet.nama} tidak cukup (${Formatters.rupiah(wallet.jumlah)})'
-            : 'Melebihi dana tersimpan (${Formatters.rupiah(widget.maxAmount)})',
-      );
+      setState(() {
+        if (widget.isDeposit) {
+          _errorText = amount > wallet.jumlah + 0.0001
+              ? 'Saldo ${wallet.nama} tidak cukup (${Formatters.rupiah(wallet.jumlah)})'
+              : 'Melebihi sisa target (${Formatters.rupiah(widget.maxAmount)})';
+        } else {
+          _errorText =
+              'Melebihi dana yang dapat ditarik (${Formatters.rupiah(widget.maxAmount)})';
+        }
+      });
       return;
     }
     Navigator.of(context).pop((amount: amount, wallet: wallet));
@@ -1193,7 +1281,7 @@ class _TargetAllocationDialogState extends State<_TargetAllocationDialog> {
             Text(
               widget.isDeposit
                   ? 'Maksimal dapat ditabung: ${Formatters.rupiah(widget.maxAmount)}'
-                  : 'Tersimpan di target ini: ${Formatters.rupiah(widget.maxAmount)}',
+                  : 'Dapat ditarik ke dompet: ${Formatters.rupiah(widget.maxAmount)}',
               style: TextStyle(
                 color: primaryGreen.withValues(alpha: 0.75),
                 fontFamily: 'Inter',

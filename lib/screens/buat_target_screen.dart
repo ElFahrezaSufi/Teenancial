@@ -103,6 +103,16 @@ class _BuatTargetScreenState extends State<BuatTargetScreen> {
       return;
     }
 
+    if (_isEdit && widget.targetToEdit!.isSettled) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Target yang sudah selesai tidak dapat diubah.'),
+          backgroundColor: Colors.redAccent,
+        ),
+      );
+      return;
+    }
+
     if (_isEdit && harga + 0.0001 < widget.targetToEdit!.savedAmount) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(

@@ -85,6 +85,9 @@ class CsvExporter {
   }
 
   static String originLabel(TransactionModel tx) {
+    if (tx.targetId != null && tx.targetId!.trim().isNotEmpty) {
+      return 'Target Menabung';
+    }
     if (tx.isBalanceAdjustment) return 'Penyesuaian Saldo';
     if (tx.recurringId != null && tx.recurringId!.trim().isNotEmpty) {
       return 'Berulang';

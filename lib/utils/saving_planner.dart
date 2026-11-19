@@ -87,6 +87,15 @@ class SavingPlanner {
     final double remaining =
         (target.targetAmount - target.savedAmount).clamp(0.0, double.infinity);
 
+    if (target.isSettled) {
+      return SavingPlan(
+        deadlineLabel: deadlineLabel,
+        badgeText: 'Selesai',
+        daysLeft: daysLeft,
+        remainingAmount: 0,
+      );
+    }
+
     if (target.isAchieved || remaining <= 0) {
       return SavingPlan(
         deadlineLabel: deadlineLabel,
