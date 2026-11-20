@@ -156,7 +156,9 @@ class _ConnectivitySyncCoordinatorState
 
     unawaited(
       Future.wait([
-        userProvider.loadProfile(silent: true),
+        userProvider
+            .syncPendingOnboardingFlagIfNeeded()
+            .then((_) => userProvider.loadProfile(silent: true)),
         dompetProvider.loadDompets(silent: true),
         txProvider.loadTransactions(silent: true),
         targetProvider.loadTargets(silent: true),

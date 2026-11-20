@@ -45,6 +45,29 @@ class DompetRepository {
     await docRef.set(toSave.toMap());
   }
 
+  /// Mengatur saldo awal dompet (misalnya `Dompet Tunai` `d1` saat onboarding)
+  /// secara langsung tanpa membuat entri "Penyesuaian Saldo" di Riwayat.
+  Future<void> setInitialWalletBalance(
+    String uid,
+    String dompetId,
+    double initialBalance,
+  ) async {
+    _firestoreService.ensureOnline(actionLabel: 'menyimpan saldo awal');
+    final double safeBalance = initialBalance < 0 ? 0.0 : initialBalance;
+    final walletRef = _firestoreService.walletsCol(uid).doc(dompetId);
+
+    await _firestoreService.runTransaction(
+      (fsTx) async {
+        final walletSnap = await fsTx.get(walletRef);
+        if (!walletSnap.exists || walletSnap.data() == null) {
+          throw Exception('Dompet tidak ditemukan');
+        }
+        fsTx.update(walletRef, {'jumlah': safeBalance});
+      },
+      actionLabel: 'menyimpan saldo awal',
+    );
+  }
+
   Future<void> updateDompet(String uid, DompetItem item) async {
     final walletRef = _firestoreService.walletsCol(uid).doc(item.id);
     final txColRef = _firestoreService.transactionsCol(uid);

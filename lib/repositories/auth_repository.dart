@@ -59,6 +59,7 @@ class AuthRepository {
           'profileImageUrl': user.photoURL,
         'completedModules': <String>[],
         'completedQuizzes': <String>[],
+        'initialBalanceOnboardingDone': false,
         'createdAt': FieldValue.serverTimestamp(),
       });
 

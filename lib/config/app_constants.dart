@@ -14,6 +14,10 @@ class AppConstants {
   static const String prefDailyMissionLastRemindedDate =
       'daily_mission_last_reminded_date';
   static const String prefDailyMissionArmedDate = 'daily_mission_armed_date';
+  static const String prefInitialBalanceOnboardingPrefix =
+      'initial_balance_onboarding_done_';
+  static const String prefInitialBalanceOnboardingPendingSyncPrefix =
+      'initial_balance_onboarding_pending_sync_';
 
   // Firestore Collection Names
   static const String usersCollection = 'users';

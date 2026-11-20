@@ -126,4 +126,14 @@ class UserRepository {
       SetOptions(merge: true),
     );
   }
+
+  Future<void> markInitialBalanceOnboardingDone(String uid) {
+    _firestoreService.ensureOnline(
+      actionLabel: 'menyimpan status pengaturan saldo awal',
+    );
+    return _firestoreService.userDoc(uid).set(
+      {'initialBalanceOnboardingDone': true},
+      SetOptions(mergeFields: ['initialBalanceOnboardingDone']),
+    );
+  }
 }
