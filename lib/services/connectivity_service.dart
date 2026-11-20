@@ -122,13 +122,15 @@ class ConnectivityService extends ChangeNotifier {
 
     try {
       bool interfaceAvailable = true;
-      try {
-        final conn = _connectivity ?? Connectivity();
-        final results = await conn.checkConnectivity();
-        interfaceAvailable = hasActiveInterface(results);
-      } catch (_) {
-        // Pada unit test tanpa channel OS, lanjutkan langsung ke probe.
-        interfaceAvailable = true;
+      if (_connectivity != null || _reachabilityProbeOverride == null) {
+        try {
+          final conn = _connectivity ?? Connectivity();
+          final results = await conn.checkConnectivity();
+          interfaceAvailable = hasActiveInterface(results);
+        } catch (_) {
+          // Pada unit test tanpa channel OS, lanjutkan langsung ke probe.
+          interfaceAvailable = true;
+        }
       }
 
       if (!interfaceAvailable) {

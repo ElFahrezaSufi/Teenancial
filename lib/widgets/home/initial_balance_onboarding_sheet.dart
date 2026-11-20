@@ -182,17 +182,9 @@ class _InitialBalanceOnboardingSheetState
 
   InputDecoration _fieldDecoration({
     required String hintText,
-    String? prefixText,
   }) {
     return InputDecoration(
       hintText: hintText,
-      prefixText: prefixText,
-      prefixStyle: const TextStyle(
-        color: primaryGreen,
-        fontFamily: 'Inter',
-        fontWeight: FontWeight.w700,
-        fontSize: 14,
-      ),
       hintStyle: TextStyle(
         color: primaryGreen.withValues(alpha: 0.45),
         fontFamily: 'Inter',
@@ -424,8 +416,7 @@ class _InitialBalanceOnboardingSheetState
                             fontSize: 15,
                           ),
                           decoration: _fieldDecoration(
-                            hintText: '0',
-                            prefixText: 'Rp ',
+                            hintText: 'Rp 0',
                           ),
                         ),
                         const SizedBox(height: 6),
@@ -553,8 +544,7 @@ class _InitialBalanceOnboardingSheetState
                                           fontSize: 15,
                                         ),
                                         decoration: _fieldDecoration(
-                                          hintText: '0',
-                                          prefixText: 'Rp ',
+                                          hintText: 'Rp 0',
                                         ),
                                       ),
                                     ],
