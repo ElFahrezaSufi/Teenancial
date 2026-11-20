@@ -343,6 +343,7 @@ class AuthRepository {
   }
 
   Future<void> deleteAccount({String? password}) async {
+    _firestoreService.ensureOnline(actionLabel: 'menghapus akun');
     final user = _auth.currentUser;
     if (user == null) {
       throw Exception('Sesi pengguna tidak ditemukan.');

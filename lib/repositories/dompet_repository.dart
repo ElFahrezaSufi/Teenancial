@@ -10,7 +10,7 @@ class DompetRepository {
 
   Future<List<DompetItem>> getDompets(String uid) async {
     final walletsRef = _firestoreService.walletsCol(uid);
-    final snapshot = await walletsRef.get();
+    final snapshot = await _firestoreService.getQuerySnapshot(walletsRef);
 
     if (snapshot.docs.isEmpty) {
       return [];
@@ -34,6 +34,7 @@ class DompetRepository {
   }
 
   Future<void> addDompet(String uid, DompetItem item) async {
+    _firestoreService.ensureOnline(actionLabel: 'menambahkan dompet');
     final walletsRef = _firestoreService.walletsCol(uid);
     final docRef =
         item.id.isEmpty ? walletsRef.doc() : walletsRef.doc(item.id);
@@ -48,7 +49,8 @@ class DompetRepository {
     final walletRef = _firestoreService.walletsCol(uid).doc(item.id);
     final txColRef = _firestoreService.transactionsCol(uid);
 
-    await _firestoreService.runTransaction((fsTx) async {
+    await _firestoreService.runTransaction(
+      (fsTx) async {
       final walletSnap = await fsTx.get(walletRef);
       if (!walletSnap.exists || walletSnap.data() == null) {
         throw Exception('Dompet tidak ditemukan');
@@ -79,10 +81,13 @@ class DompetRepository {
         );
         fsTx.set(txDocRef, adjustmentTx.toMap());
       }
-    });
+      },
+      actionLabel: 'memperbarui dompet',
+    );
   }
 
   Future<void> deleteDompet(String uid, String dompetId) async {
+    _firestoreService.ensureOnline(actionLabel: 'menghapus dompet');
     final walletsRef = _firestoreService.walletsCol(uid);
     final walletsSnap = await walletsRef.get();
     final remainingCount =

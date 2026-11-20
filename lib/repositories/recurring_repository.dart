@@ -62,7 +62,7 @@ class RecurringRepository {
 
   Future<List<RecurringModel>> getRecurringTemplates(String uid) async {
     final col = _firestoreService.recurringCol(uid);
-    final snapshot = await col.get();
+    final snapshot = await _firestoreService.getQuerySnapshot(col);
     if (snapshot.docs.isEmpty) return [];
 
     final items = snapshot.docs
@@ -81,6 +81,9 @@ class RecurringRepository {
   }
 
   Future<RecurringModel> addRecurring(String uid, RecurringModel item) async {
+    _firestoreService.ensureOnline(
+      actionLabel: 'menambahkan transaksi berulang',
+    );
     validateTemplate(item);
     final col = _firestoreService.recurringCol(uid);
     final docRef = item.id.isEmpty ? col.doc() : col.doc(item.id);
@@ -98,6 +101,9 @@ class RecurringRepository {
     String uid,
     RecurringModel item,
   ) async {
+    _firestoreService.ensureOnline(
+      actionLabel: 'memperbarui transaksi berulang',
+    );
     if (item.id.trim().isEmpty) {
       throw Exception('ID jadwal transaksi berulang tidak valid');
     }
@@ -112,11 +118,17 @@ class RecurringRepository {
   }
 
   Future<void> toggleActive(String uid, String id, bool isActive) async {
+    _firestoreService.ensureOnline(
+      actionLabel: 'mengubah status transaksi berulang',
+    );
     final docRef = _firestoreService.recurringCol(uid).doc(id);
     await docRef.update({'isActive': isActive});
   }
 
   Future<void> deleteRecurring(String uid, String id) async {
+    _firestoreService.ensureOnline(
+      actionLabel: 'menghapus transaksi berulang',
+    );
     await _firestoreService.recurringCol(uid).doc(id).delete();
   }
 
@@ -127,6 +139,9 @@ class RecurringRepository {
     String uid, {
     DateTime? now,
   }) async {
+    _firestoreService.ensureOnline(
+      actionLabel: 'memproses jadwal transaksi berulang',
+    );
     final effectiveNow = now ?? DateTime.now();
     final today = RecurrenceRule.dateOnly(effectiveNow);
 

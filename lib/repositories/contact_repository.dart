@@ -8,7 +8,9 @@ class ContactRepository {
       : _firestoreService = firestoreService ?? FirestoreService.instance;
 
   Future<List<ContactModel>> getContacts(String uid) async {
-    final snapshot = await _firestoreService.contactsCol(uid).get();
+    final snapshot = await _firestoreService.getQuerySnapshot(
+      _firestoreService.contactsCol(uid),
+    );
     final items = snapshot.docs
         .map((doc) => ContactModel.fromMap(doc.data(), docId: doc.id))
         .toList();
@@ -19,6 +21,7 @@ class ContactRepository {
   }
 
   Future<ContactModel> addContact(String uid, String name) async {
+    _firestoreService.ensureOnline(actionLabel: 'menambahkan kontak');
     final trimmedName = name.trim();
     if (trimmedName.isEmpty) {
       throw Exception('Nama kontak tidak boleh kosong');
@@ -44,6 +47,7 @@ class ContactRepository {
   }
 
   Future<void> deleteContact(String uid, String contactId) async {
+    _firestoreService.ensureOnline(actionLabel: 'menghapus kontak');
     await _firestoreService.contactsCol(uid).doc(contactId).delete();
   }
 }

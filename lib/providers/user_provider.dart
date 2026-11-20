@@ -104,6 +104,7 @@ class UserProvider extends ChangeNotifier {
         _errorMessage = ErrorMapper.message(e);
         notifyListeners();
       }
+      rethrow;
     }
   }
 

@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../models/user_model.dart';
 import '../services/cloudinary_service.dart';
+import '../services/connectivity_service.dart';
 import '../services/firestore_service.dart';
 
 class UserRepository {
@@ -30,18 +31,26 @@ class UserRepository {
       fallbackName = 'Pengguna';
     }
 
-    final doc = await _firestoreService.userDoc(uid).get();
-    if (doc.exists && doc.data() != null) {
-      final parsed = UserModel.fromMap(doc.data()!, uidFallback: uid);
-      return parsed.copyWith(
-        email:
-            parsed.email.isNotEmpty ? parsed.email : (currentUser?.email ?? ''),
-        name: parsed.name.isNotEmpty ? parsed.name : fallbackName,
-        profileImageUrl: (parsed.profileImageUrl != null &&
-                parsed.profileImageUrl!.isNotEmpty)
-            ? parsed.profileImageUrl
-            : currentUser?.photoURL,
+    try {
+      final doc = await _firestoreService.getDocumentSnapshot(
+        _firestoreService.userDoc(uid),
       );
+      if (doc.exists && doc.data() != null) {
+        final parsed = UserModel.fromMap(doc.data()!, uidFallback: uid);
+        return parsed.copyWith(
+          email: parsed.email.isNotEmpty
+              ? parsed.email
+              : (currentUser?.email ?? ''),
+          name: parsed.name.isNotEmpty ? parsed.name : fallbackName,
+          profileImageUrl: (parsed.profileImageUrl != null &&
+                  parsed.profileImageUrl!.isNotEmpty)
+              ? parsed.profileImageUrl
+              : currentUser?.photoURL,
+        );
+      }
+    } on OfflineException {
+      // Jika dokumen profil belum pernah tersimpan di cache lokal saat offline,
+      // kembalikan profil minimal dari sesi FirebaseAuth agar layar tetap tampil.
     }
 
     return UserModel(
@@ -62,6 +71,7 @@ class UserRepository {
     String? currentImageUrl,
     bool removeImage = false,
   }) async {
+    _firestoreService.ensureOnline(actionLabel: 'memperbarui profil');
     String? finalImageUrl = currentImageUrl;
 
     if (newImageFile != null) {
@@ -102,6 +112,7 @@ class UserRepository {
   }
 
   Future<void> saveFeenEquipped(String uid, Map<String, String> equipped) {
+    _firestoreService.ensureOnline(actionLabel: 'mengubah aksesoris Feen');
     return _firestoreService.userDoc(uid).set(
       {'feenEquipped': equipped},
       SetOptions(mergeFields: ['feenEquipped']),
@@ -109,6 +120,7 @@ class UserRepository {
   }
 
   Future<void> incrementXp(String uid, int amount) {
+    _firestoreService.ensureOnline(actionLabel: 'mengklaim hadiah XP');
     return _firestoreService.userDoc(uid).set(
       {'xp': FieldValue.increment(amount)},
       SetOptions(merge: true),
