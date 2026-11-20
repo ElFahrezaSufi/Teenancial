@@ -5,6 +5,7 @@ import '../models/belajar_model.dart';
 import '../providers/belajar_provider.dart';
 import '../providers/user_provider.dart';
 import '../theme/app_colors.dart';
+import '../utils/error_mapper.dart';
 import '../widgets/common/custom_app_bar.dart';
 import '../widgets/common/custom_card.dart';
 import '../widgets/common/skeleton.dart';
@@ -31,10 +32,25 @@ class _MateriScreenState extends State<MateriScreen> {
 
   Future<void> _tandaiSelesai() async {
     setState(() => _isCompleting = true);
-    await context
-        .read<BelajarProvider>()
-        .completeModule(widget.levelIndex, widget.moduleIndex);
-    if (mounted) Navigator.pop(context);
+    try {
+      await context
+          .read<BelajarProvider>()
+          .completeModule(widget.levelIndex, widget.moduleIndex);
+      if (mounted) Navigator.pop(context);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(
+            SnackBar(
+              content: Text(ErrorMapper.message(e)),
+              backgroundColor: Colors.redAccent,
+            ),
+          );
+      }
+    } finally {
+      if (mounted) setState(() => _isCompleting = false);
+    }
   }
 
   @override

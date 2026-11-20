@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:cupertino_ui/cupertino_ui.dart'
     show GlobalCupertinoLocalizations;
 import 'package:firebase_core/firebase_core.dart';
@@ -6,6 +7,7 @@ import 'package:flutter_localizations/flutter_localizations.dart'
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
+import 'config/app_routes.dart';
 import 'firebase_options.dart';
 import 'providers/auth_provider.dart';
 import 'providers/belajar_provider.dart';
@@ -18,15 +20,18 @@ import 'providers/target_provider.dart';
 import 'providers/transaction_provider.dart';
 import 'providers/user_provider.dart';
 import 'routes/app_router.dart';
+import 'services/connectivity_service.dart';
 import 'services/local_storage_service.dart';
 import 'services/notification_service.dart';
 import 'theme/app_colors.dart';
+import 'widgets/common/offline_banner.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await initializeDateFormatting('id_ID', null);
   await LocalStorageService.instance.init();
   await NotificationService.instance.init();
+  await ConnectivityService.instance.init();
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
@@ -34,6 +39,7 @@ void main() async {
   runApp(
     MultiProvider(
       providers: [
+        ChangeNotifierProvider.value(value: ConnectivityService.instance),
         ChangeNotifierProvider(create: (_) => AuthProvider(), lazy: false),
         ChangeNotifierProxyProvider<AuthProvider, UserProvider>(
           create: (_) => UserProvider(),
@@ -95,9 +101,78 @@ void main() async {
                 ..bindDependencies(auth.activeUid, missionProvider),
         ),
       ],
-      child: const MyApp(),
+      child: const _ConnectivitySyncCoordinator(child: MyApp()),
     ),
   );
+}
+
+/// Menyelaraskan ulang seluruh provider secara senyap begitu koneksi berubah
+/// dari offline kembali ke online (auto-sync Dukungan Offline Tingkatan A).
+class _ConnectivitySyncCoordinator extends StatefulWidget {
+  final Widget child;
+
+  const _ConnectivitySyncCoordinator({required this.child});
+
+  @override
+  State<_ConnectivitySyncCoordinator> createState() =>
+      _ConnectivitySyncCoordinatorState();
+}
+
+class _ConnectivitySyncCoordinatorState
+    extends State<_ConnectivitySyncCoordinator> {
+  late bool _wasOffline;
+
+  @override
+  void initState() {
+    super.initState();
+    _wasOffline = ConnectivityService.instance.isOffline;
+    ConnectivityService.instance.addListener(_onConnectivityChanged);
+  }
+
+  @override
+  void dispose() {
+    ConnectivityService.instance.removeListener(_onConnectivityChanged);
+    super.dispose();
+  }
+
+  void _onConnectivityChanged() {
+    final isOffline = ConnectivityService.instance.isOffline;
+    final reconnected = _wasOffline && !isOffline;
+    _wasOffline = isOffline;
+
+    if (!reconnected || !mounted) return;
+    final activeUid = context.read<AuthProvider>().activeUid;
+    if (activeUid == null) return;
+
+    final userProvider = context.read<UserProvider>();
+    final dompetProvider = context.read<DompetProvider>();
+    final txProvider = context.read<TransactionProvider>();
+    final targetProvider = context.read<TargetProvider>();
+    final categoryProvider = context.read<CategoryProvider>();
+    final contactProvider = context.read<ContactProvider>();
+    final missionProvider = context.read<MissionProvider>();
+    final recurringProvider = context.read<RecurringProvider>();
+    final belajarProvider = context.read<BelajarProvider>();
+
+    unawaited(
+      Future.wait([
+        userProvider.loadProfile(silent: true),
+        dompetProvider.loadDompets(silent: true),
+        txProvider.loadTransactions(silent: true),
+        targetProvider.loadTargets(silent: true),
+        categoryProvider.loadCategories(silent: true),
+        contactProvider.loadContacts(),
+        missionProvider.loadMissions(),
+        recurringProvider.runCatchUpAndLoad(silent: true),
+        belajarProvider.levels.isEmpty
+            ? belajarProvider.loadAll(silent: true)
+            : belajarProvider.loadProgress(silent: true),
+      ]),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) => widget.child;
 }
 
 class MyApp extends StatelessWidget {
@@ -126,6 +201,37 @@ class MyApp extends StatelessWidget {
         useMaterial3: true,
       ),
       routerConfig: appRouter,
+      builder: (context, child) {
+        if (child == null) return const SizedBox.shrink();
+        return ListenableBuilder(
+          listenable: Listenable.merge([
+            ConnectivityService.instance,
+            appRouter.routerDelegate,
+          ]),
+          builder: (context, _) {
+            final currentPath =
+                appRouter.routerDelegate.currentConfiguration.uri.path;
+            final bool isSplash = currentPath == AppRoutes.splash;
+            final bool isBannerShowing =
+                !isSplash && ConnectivityService.instance.isOffline;
+
+            return Column(
+              children: [
+                OfflineBanner(visible: !isSplash),
+                Expanded(
+                  child: isBannerShowing
+                      ? MediaQuery.removePadding(
+                          context: context,
+                          removeTop: true,
+                          child: child,
+                        )
+                      : child,
+                ),
+              ],
+            );
+          },
+        );
+      },
     );
   }
 }
