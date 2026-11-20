@@ -146,14 +146,6 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen>
     setState(() => _isLoggingOut = true);
     try {
       await context.read<AuthProvider>().logout();
-      rootScaffoldMessengerKey.currentState
-        ?..hideCurrentSnackBar()
-        ..showSnackBar(
-          const SnackBar(
-            content: Text('Berhasil keluar dari akun.'),
-            backgroundColor: primaryGreen,
-          ),
-        );
     } catch (e) {
       if (!mounted) return;
       setState(() => _isLoggingOut = false);
