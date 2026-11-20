@@ -18,6 +18,7 @@ import 'package:teenancial/repositories/dompet_repository.dart';
 import 'package:teenancial/repositories/recurring_repository.dart';
 import 'package:teenancial/repositories/target_repository.dart';
 import 'package:teenancial/repositories/transaction_repository.dart';
+import 'package:teenancial/services/connectivity_service.dart';
 import 'package:teenancial/utils/report_calculator.dart';
 
 class _FakeTargetRepository extends TargetRepository {
@@ -851,7 +852,167 @@ void main() {
       await recProvider.deleteRecurring(added.id);
       expect(recProvider.items, isEmpty);
     });
+
+    test(
+      'saat offline runCatchUpAndLoad melewati processDue tanpa error dan tetap memuat templat dari cache',
+      () async {
+        fakeRecRepo.store.add(
+          RecurringModel(
+            id: 'rec_cached',
+            title: 'Uang Saku Mingguan',
+            amount: 100000,
+            categoryId: 'c1',
+            type: TransactionType.income,
+            dompetId: 'd1',
+            frequency: RecurrenceFrequency.weekly,
+            intervalCount: 1,
+            startDate: DateTime(2026, 11, 1),
+            nextRunDate: DateTime(2026, 11, 8),
+          ),
+        );
+
+        final callsBefore = fakeRecRepo.processDueCalls;
+        ConnectivityService.instance.setTestState(isOffline: true);
+        addTearDown(() => ConnectivityService.instance.resetForTesting());
+
+        await recProvider.runCatchUpAndLoad(silent: true);
+
+        expect(fakeRecRepo.processDueCalls, callsBefore);
+        expect(recProvider.errorMessage, isNull);
+        expect(recProvider.items.length, 1);
+        expect(recProvider.items.first.id, 'rec_cached');
+      },
+    );
   });
+
+  group('Offline Rollback BelajarProvider & Initial Wallet Balance DompetProvider',
+      () {
+    test(
+      'completeModule dan completeQuiz melakukan rollback state dan melempar ulang OfflineException saat gagal simpan',
+      () async {
+        final failingRepo = _FailingSaveBelajarRepository();
+        final belajarProvider = BelajarProvider(repository: failingRepo);
+        belajarProvider.updateUser('user_1');
+        await Future<void>.delayed(Duration.zero);
+
+        expect(
+          belajarProvider.levels.first.modules.first.status,
+          ModuleStatus.available,
+        );
+
+        await expectLater(
+          () => belajarProvider.completeModule(0, 0),
+          throwsA(isA<OfflineException>()),
+        );
+        expect(
+          belajarProvider.levels.first.modules.first.status,
+          ModuleStatus.available,
+        );
+        expect(belajarProvider.isRecentlyLearned, isFalse);
+
+        // Jika modul sudah selesai, lalu kuis gagal simpan karena offline -> kuis tetap available
+        failingRepo.shouldFailSave = false;
+        await belajarProvider.completeModule(0, 0);
+        expect(
+          belajarProvider.levels.first.modules.first.status,
+          ModuleStatus.completed,
+        );
+        expect(
+          belajarProvider.levels.first.modules.first.quiz.status,
+          ModuleStatus.available,
+        );
+
+        failingRepo.shouldFailSave = true;
+        await expectLater(
+          () => belajarProvider.completeQuiz(0, 0, scorePercent: 100),
+          throwsA(isA<OfflineException>()),
+        );
+        expect(
+          belajarProvider.levels.first.modules.first.quiz.status,
+          ModuleStatus.available,
+        );
+      },
+    );
+
+    test(
+      'DompetProvider.setInitialWalletBalance memperbarui saldo awal d1 tanpa membuat transaksi penyesuaian',
+      () async {
+        final fakeDompetRepo = _InitialBalanceDompetRepository();
+        final dompetProvider = DompetProvider(repository: fakeDompetRepo);
+        dompetProvider.updateUser('user_1');
+        await Future<void>.delayed(Duration.zero);
+
+        expect(dompetProvider.totalSaldo, 0);
+        await dompetProvider.setInitialWalletBalance('d1', 150000);
+        expect(dompetProvider.totalSaldo, 150000);
+        expect(fakeDompetRepo.initialBalanceCalls, 1);
+      },
+    );
+  });
+}
+
+class _InitialBalanceDompetRepository extends DompetRepository {
+  final List<DompetItem> store = [DompetItem.initialWallet()];
+  int initialBalanceCalls = 0;
+
+  @override
+  Future<List<DompetItem>> getDompets(String uid) async =>
+      List<DompetItem>.from(store);
+
+  @override
+  Future<void> setInitialWalletBalance(
+    String uid,
+    String dompetId,
+    double initialBalance,
+  ) async {
+    initialBalanceCalls++;
+    final idx = store.indexWhere((d) => d.id == dompetId);
+    if (idx != -1) {
+      store[idx] = store[idx].copyWith(jumlah: initialBalance);
+    }
+  }
+}
+
+class _FailingSaveBelajarRepository extends BelajarRepository {
+  bool shouldFailSave = true;
+
+  @override
+  Future<List<LevelData>> getLevels() async => const [
+        LevelData(
+          id: 'lvl_1',
+          order: 1,
+          tingkat: 'Level 1',
+          subtitle: 'Dasar Keuangan',
+        ),
+      ];
+
+  @override
+  Future<List<ModuleData>> getAllModules() async => const [
+        ModuleData(
+          id: 'mod_1',
+          levelId: 'lvl_1',
+          order: 1,
+          title: 'Dasar Menabung',
+          description: 'Pengantar',
+          sections: [
+            ModuleSection(heading: 'Ringkasan', body: 'Isi materi'),
+          ],
+          quiz: QuizData(label: 'Kuis 1', passingScore: 70, questions: []),
+        ),
+      ];
+
+  @override
+  Future<BelajarProgressModel> getProgress(String uid) async =>
+      const BelajarProgressModel();
+
+  @override
+  Future<void> saveProgress(String uid, BelajarProgressModel progress) async {
+    if (shouldFailSave) {
+      throw const OfflineException(
+        'Tidak ada koneksi internet. Hubungkan ke internet untuk menyimpan progres belajar.',
+      );
+    }
+  }
 }
 
 class _NoopDompetRepository extends DompetRepository {
