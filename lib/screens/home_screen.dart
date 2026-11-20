@@ -1,10 +1,12 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
+import '../config/app_constants.dart';
 import '../config/app_routes.dart';
 import '../data/mission_catalog.dart';
 import '../models/mission_model.dart';
 import '../models/target_model.dart';
+import '../providers/auth_provider.dart';
 import '../providers/belajar_provider.dart';
 import '../providers/category_provider.dart';
 import '../providers/dompet_provider.dart';
@@ -13,12 +15,17 @@ import '../providers/recurring_provider.dart';
 import '../providers/target_provider.dart';
 import '../providers/transaction_provider.dart';
 import '../providers/user_provider.dart';
+import '../routes/app_router.dart';
+import '../services/connectivity_service.dart';
+import '../services/firestore_service.dart';
+import '../services/local_storage_service.dart';
 import '../theme/app_colors.dart';
 import '../utils/currency_formatter.dart';
 import '../widgets/common/custom_card.dart';
 import '../widgets/feen/feen_fab.dart';
 import '../widgets/home/action_menu.dart';
 import '../widgets/home/belajar_card.dart';
+import '../widgets/home/initial_balance_onboarding_sheet.dart';
 import '../widgets/home/pinjaman_home.dart';
 import '../widgets/home/profile_header.dart';
 import '../widgets/home/section_header.dart';
@@ -37,6 +44,8 @@ class _HomeScreenState extends State<HomeScreen> {
   double _feenY = 0;
   bool _isFeenInitialized = false;
   bool _isDraggingFeen = false;
+  String? _onboardingPromptShownForUid;
+  bool _isShowingOnboardingSheet = false;
 
   static const double _feenButtonWidth = 84.0;
   static const double _feenBottomMargin = 220.0;
@@ -53,21 +62,90 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _handleRefresh() async {
+    final userProvider = context.read<UserProvider>();
+    final dompetProvider = context.read<DompetProvider>();
+    final txProvider = context.read<TransactionProvider>();
+    final targetProvider = context.read<TargetProvider>();
+    final missionProvider = context.read<MissionProvider>();
     final belajarProvider = context.read<BelajarProvider>();
     final catProvider = Provider.of<CategoryProvider?>(context, listen: false);
     final recProvider = Provider.of<RecurringProvider?>(context, listen: false);
+
+    await ConnectivityService.instance.refreshStatus();
+    if (!mounted) return;
+
     await Future.wait([
-      context.read<UserProvider>().loadProfile(silent: true),
-      context.read<DompetProvider>().loadDompets(silent: true),
-      context.read<TransactionProvider>().loadTransactions(silent: true),
-      context.read<TargetProvider>().loadTargets(silent: true),
-      context.read<MissionProvider>().loadMissions(),
+      userProvider
+          .syncPendingOnboardingFlagIfNeeded()
+          .then((_) => userProvider.loadProfile(silent: true)),
+      dompetProvider.loadDompets(silent: true),
+      txProvider.loadTransactions(silent: true),
+      targetProvider.loadTargets(silent: true),
+      missionProvider.loadMissions(),
       if (catProvider != null) catProvider.loadCategories(silent: true),
       if (recProvider != null) recProvider.loadRecurring(silent: true),
       belajarProvider.levels.isEmpty
           ? belajarProvider.loadAll(silent: true)
           : belajarProvider.loadProgress(silent: true),
     ]);
+  }
+
+  Future<void> _showInitialBalanceOnboarding(String uid) async {
+    if (!mounted) {
+      _isShowingOnboardingSheet = false;
+      return;
+    }
+
+    final userProvider = context.read<UserProvider>();
+    final dompetProvider = context.read<DompetProvider>();
+
+    try {
+      await showModalBottomSheet<bool>(
+        context: context,
+        isScrollControlled: true,
+        isDismissible: false,
+        enableDrag: false,
+        useRootNavigator: true,
+        backgroundColor: Colors.transparent,
+        builder: (_) => InitialBalanceOnboardingSheet(
+          displayName: userProvider.displayName,
+          userLevel: userProvider.level,
+          feenEquipped: userProvider.feenEquipped,
+          onSave: (input) async {
+            FirestoreService.instance.ensureOnline(
+              actionLabel: 'menyimpan saldo awal',
+            );
+            if (input.cashInitialBalance > 0) {
+              await dompetProvider.setInitialWalletBalance(
+                AppConstants.defaultNewWalletId,
+                input.cashInitialBalance,
+              );
+            }
+            if (input.extraWallet != null) {
+              await dompetProvider.addDompet(input.extraWallet!);
+            }
+            await userProvider.markInitialBalanceOnboardingDone(
+              allowOfflineLocalFallback: true,
+            );
+            rootScaffoldMessengerKey.currentState
+              ?..hideCurrentSnackBar()
+              ..showSnackBar(
+                const SnackBar(
+                  content: Text('✅ Saldo awal berhasil diatur!'),
+                  backgroundColor: primaryGreen,
+                ),
+              );
+          },
+          onSkip: () async {
+            await userProvider.markInitialBalanceOnboardingDone(
+              allowOfflineLocalFallback: true,
+            );
+          },
+        ),
+      );
+    } finally {
+      _isShowingOnboardingSheet = false;
+    }
   }
 
   Future<void> _tambahTargetData() async {
@@ -192,10 +270,32 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final activeUid = context.select<AuthProvider, String?>((a) => a.activeUid);
     final userProvider = context.watch<UserProvider>();
     final dompetProvider = context.watch<DompetProvider>();
+    final txProvider = context.watch<TransactionProvider>();
     final targetProvider = context.watch<TargetProvider>();
     final missionProvider = context.watch<MissionProvider>();
+
+    if (activeUid != null &&
+        !_isShowingOnboardingSheet &&
+        _onboardingPromptShownForUid != activeUid &&
+        !userProvider.isLoading &&
+        !dompetProvider.isLoading &&
+        !txProvider.isLoading &&
+        InitialBalanceOnboardingHelper.shouldShowOnboarding(
+          profile: userProvider.profile,
+          dompets: dompetProvider.items,
+          transactions: txProvider.transactions,
+          isLocalDismissed: LocalStorageService.instance
+              .isInitialBalanceOnboardingDoneLocal(activeUid),
+        )) {
+      _onboardingPromptShownForUid = activeUid;
+      _isShowingOnboardingSheet = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _showInitialBalanceOnboarding(activeUid);
+      });
+    }
 
     final int level = userProvider.level;
     final int currentXP = userProvider.xpIntoLevel;
