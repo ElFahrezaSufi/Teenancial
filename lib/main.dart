@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:cupertino_ui/cupertino_ui.dart'
     show GlobalCupertinoLocalizations;
 import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:flutter_localizations/flutter_localizations.dart'
     show GlobalWidgetsLocalizations;
 import 'package:intl/date_symbol_data_local.dart';
@@ -205,35 +206,87 @@ class MyApp extends StatelessWidget {
       routerConfig: appRouter,
       builder: (context, child) {
         if (child == null) return const SizedBox.shrink();
-        return ListenableBuilder(
-          listenable: Listenable.merge([
-            ConnectivityService.instance,
-            appRouter.routerDelegate,
-          ]),
-          builder: (context, _) {
-            final currentPath =
-                appRouter.routerDelegate.currentConfiguration.uri.path;
-            final bool isSplash = currentPath == AppRoutes.splash;
-            final bool isBannerShowing =
-                !isSplash && ConnectivityService.instance.isOffline;
-
-            return Column(
-              children: [
-                OfflineBanner(visible: !isSplash),
-                Expanded(
-                  child: isBannerShowing
-                      ? MediaQuery.removePadding(
-                          context: context,
-                          removeTop: true,
-                          child: child,
-                        )
-                      : child,
-                ),
-              ],
-            );
-          },
-        );
+        return _GlobalOfflineBannerShell(child: child);
       },
+    );
+  }
+}
+
+/// Membungkus subtree router dengan [OfflineBanner] global sambil menghindari
+/// pemanggilan `setState()` sinkron saat `GoRouterDelegate` mengirim notifikasi
+/// pada fase build awal (`_RouterState.didChangeDependencies`).
+class _GlobalOfflineBannerShell extends StatefulWidget {
+  final Widget child;
+
+  const _GlobalOfflineBannerShell({required this.child});
+
+  @override
+  State<_GlobalOfflineBannerShell> createState() =>
+      _GlobalOfflineBannerShellState();
+}
+
+class _GlobalOfflineBannerShellState extends State<_GlobalOfflineBannerShell> {
+  late bool _isSplash;
+  late bool _isOffline;
+
+  @override
+  void initState() {
+    super.initState();
+    _isSplash = _readIsSplash();
+    _isOffline = ConnectivityService.instance.isOffline;
+    ConnectivityService.instance.addListener(_handleStateChange);
+    appRouter.routerDelegate.addListener(_handleStateChange);
+  }
+
+  @override
+  void dispose() {
+    ConnectivityService.instance.removeListener(_handleStateChange);
+    appRouter.routerDelegate.removeListener(_handleStateChange);
+    super.dispose();
+  }
+
+  bool _readIsSplash() {
+    final path = appRouter.routerDelegate.currentConfiguration.uri.path;
+    return path.isEmpty || path == AppRoutes.splash;
+  }
+
+  void _handleStateChange() {
+    final nextSplash = _readIsSplash();
+    final nextOffline = ConnectivityService.instance.isOffline;
+    if (nextSplash == _isSplash && nextOffline == _isOffline) return;
+
+    void apply() {
+      if (!mounted) return;
+      setState(() {
+        _isSplash = nextSplash;
+        _isOffline = nextOffline;
+      });
+    }
+
+    if (SchedulerBinding.instance.schedulerPhase ==
+        SchedulerPhase.persistentCallbacks) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => apply());
+    } else {
+      apply();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final bool isBannerShowing = !_isSplash && _isOffline;
+    return Column(
+      children: [
+        OfflineBanner(visible: !_isSplash),
+        Expanded(
+          child: isBannerShowing
+              ? MediaQuery.removePadding(
+                  context: context,
+                  removeTop: true,
+                  child: widget.child,
+                )
+              : widget.child,
+        ),
+      ],
     );
   }
 }
