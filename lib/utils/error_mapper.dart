@@ -1,4 +1,6 @@
+import 'dart:async';
 import 'package:firebase_auth/firebase_auth.dart';
+import '../services/connectivity_service.dart';
 
 class ErrorMapper {
   const ErrorMapper._();
@@ -9,6 +11,12 @@ class ErrorMapper {
     Object error, {
     String fallback = 'Terjadi kesalahan. Silakan coba lagi.',
   }) {
+    if (error is OfflineException) {
+      return error.message;
+    }
+    if (error is TimeoutException) {
+      return 'Koneksi internet lambat atau terputus. Silakan periksa jaringan Anda dan coba lagi.';
+    }
     if (error is FirebaseAuthException) {
       switch (error.code) {
         case 'user-not-found':
