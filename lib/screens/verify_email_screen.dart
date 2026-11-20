@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 
 import '../config/app_routes.dart';
 import '../providers/auth_provider.dart';
+import '../routes/app_router.dart';
 import '../theme/app_colors.dart';
 import '../utils/error_mapper.dart';
 
@@ -78,12 +79,28 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen>
       verified = false;
     }
 
+    if (verified) {
+      rootScaffoldMessengerKey.currentState
+        ?..hideCurrentSnackBar()
+        ..showSnackBar(
+          const SnackBar(
+            content: Text(
+              '✅ Email berhasil diverifikasi! Selamat datang di Teenancial.',
+            ),
+            backgroundColor: primaryGreen,
+          ),
+        );
+      if (mounted) {
+        setState(() => _isChecking = false);
+        context.go(AppRoutes.home);
+      }
+      return;
+    }
+
     if (!mounted) return;
     setState(() => _isChecking = false);
 
-    if (verified) {
-      context.go(AppRoutes.home);
-    } else if (!silent) {
+    if (!silent) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text(
@@ -129,6 +146,14 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen>
     setState(() => _isLoggingOut = true);
     try {
       await context.read<AuthProvider>().logout();
+      rootScaffoldMessengerKey.currentState
+        ?..hideCurrentSnackBar()
+        ..showSnackBar(
+          const SnackBar(
+            content: Text('Berhasil keluar dari akun.'),
+            backgroundColor: primaryGreen,
+          ),
+        );
     } catch (e) {
       if (!mounted) return;
       setState(() => _isLoggingOut = false);

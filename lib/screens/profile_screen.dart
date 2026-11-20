@@ -333,8 +333,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
       await LocalStorageService.instance.setHasSeenGetStarted(true);
       if (!mounted) return;
       await context.read<AuthProvider>().logout();
-      if (!mounted) return;
-      context.go(AppRoutes.login);
+      if (mounted) {
+        context.go(AppRoutes.login);
+      }
+      rootScaffoldMessengerKey.currentState
+        ?..hideCurrentSnackBar()
+        ..showSnackBar(
+          const SnackBar(
+            content: Text('Berhasil keluar dari akun.'),
+            backgroundColor: primaryGreen,
+          ),
+        );
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
