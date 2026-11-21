@@ -176,21 +176,29 @@ class _DompetGroup extends StatelessWidget {
                 padding:
                     const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
                 child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(
-                      item.nama,
-                      style: const TextStyle(
-                        color: primaryGreen,
-                        fontSize: 15,
-                        fontFamily: 'Inter',
-                        fontWeight: FontWeight.w600,
+                    Expanded(
+                      child: Text(
+                        item.nama,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: primaryGreen,
+                          fontSize: 15,
+                          fontFamily: 'Inter',
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                     ),
-                    Row(
-                      children: [
-                        Text(
+                    const SizedBox(width: 12),
+                    ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 170),
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: Alignment.centerRight,
+                        child: Text(
                           Formatters.rupiah(item.jumlah),
+                          maxLines: 1,
                           style: const TextStyle(
                             color: primaryGreen,
                             fontSize: 14,
@@ -198,13 +206,13 @@ class _DompetGroup extends StatelessWidget {
                             fontWeight: FontWeight.w500,
                           ),
                         ),
-                        const SizedBox(width: 8),
-                        const Icon(
-                          Icons.edit_outlined,
-                          size: 16,
-                          color: primaryGreen,
-                        ),
-                      ],
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    const Icon(
+                      Icons.edit_outlined,
+                      size: 16,
+                      color: primaryGreen,
                     ),
                   ],
                 ),

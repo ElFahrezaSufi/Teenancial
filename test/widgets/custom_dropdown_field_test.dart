@@ -9,6 +9,7 @@ import 'package:teenancial/repositories/dompet_repository.dart';
 import 'package:teenancial/repositories/transaction_repository.dart';
 import 'package:teenancial/utils/currency_formatter.dart';
 import 'package:teenancial/widgets/common/custom_dropdown_field.dart';
+import 'package:teenancial/widgets/home/total_saldo_card.dart';
 import 'package:teenancial/widgets/transaction/transaction_card.dart';
 import 'package:teenancial/widgets/transaction/transaction_form_screen.dart';
 
@@ -211,6 +212,39 @@ void main() {
         expect(find.text('Sepatu Lari'), findsOneWidget);
         expect(find.text('Target'), findsOneWidget);
         expect(find.textContaining('•'), findsNothing);
+      },
+    );
+  });
+
+  group('TotalSaldoCard Anti-Overflow Test', () {
+    testWidgets(
+      'nominal besar pada layar sempit (320px) tidak menyebabkan RenderFlex overflow',
+      (WidgetTester tester) async {
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: SizedBox(
+                width: 320,
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: TotalSaldoCard(
+                    totalSaldoReal: 99999999999,
+                    perkiraanMingguanReal: 99999999999,
+                    xpProgress: 0.5,
+                    currentXP: 50,
+                    maxXP: 100,
+                    level: 2,
+                    formatRupiah: Formatters.rupiah,
+                    onTap: () {},
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+
+        expect(tester.takeException(), isNull);
+        expect(find.text('Rp 99.999.999.999'), findsNWidgets(2));
       },
     );
   });
