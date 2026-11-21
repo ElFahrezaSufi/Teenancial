@@ -85,20 +85,79 @@ class NotificationService {
     }
   }
 
-  Future<void> requestPermissionIfNeeded() async {
-    if (!_initialized || kIsWeb || _permissionRequested) return;
-    _permissionRequested = true;
+  /// Mengecek apakah sistem operasi saat ini mengizinkan aplikasi menampilkan
+  /// notifikasi. Mengembalikan `true` pada web / lingkungan test tanpa plugin.
+  Future<bool> areNotificationsEnabled() async {
+    if (kIsWeb) return true;
+    if (!_initialized) {
+      await init();
+    }
+    if (!_initialized) return true;
 
     try {
       if (defaultTargetPlatform == TargetPlatform.android) {
-        await _plugin
-            .resolvePlatformSpecificImplementation<
-                AndroidFlutterLocalNotificationsPlugin>()
-            ?.requestNotificationsPermission();
+        final androidPlugin = _plugin.resolvePlatformSpecificImplementation<
+            AndroidFlutterLocalNotificationsPlugin>();
+        if (androidPlugin == null) return true;
+        return (await androidPlugin.areNotificationsEnabled()) ?? true;
+      }
+    } catch (e) {
+      debugPrint('Gagal mengecek status izin notifikasi: $e');
+    }
+    return true;
+  }
+
+  /// Memastikan izin notifikasi OS aktif. Bila [forcePrompt] bernilai `true`
+  /// (misalnya saat user menyalakan switch Pengingat Harian secara eksplisit),
+  /// aplikasi akan meminta ulang izin OS jika sebelumnya sempat ditolak.
+  Future<bool> ensureNotificationPermission({bool forcePrompt = false}) async {
+    if (kIsWeb) return true;
+    if (!_initialized) {
+      await init();
+    }
+    if (!_initialized) return true;
+
+    try {
+      if (defaultTargetPlatform == TargetPlatform.android) {
+        final androidPlugin = _plugin.resolvePlatformSpecificImplementation<
+            AndroidFlutterLocalNotificationsPlugin>();
+        if (androidPlugin == null) return true;
+
+        final alreadyEnabled = await androidPlugin.areNotificationsEnabled();
+        if (alreadyEnabled == true) {
+          _permissionRequested = true;
+          return true;
+        }
+
+        if (forcePrompt || !_permissionRequested) {
+          _permissionRequested = true;
+          final granted = await androidPlugin.requestNotificationsPermission();
+          if (granted == true) return true;
+          return (await androidPlugin.areNotificationsEnabled()) ?? false;
+        }
+        return alreadyEnabled ?? true;
+      }
+
+      if (defaultTargetPlatform == TargetPlatform.iOS &&
+          (forcePrompt || !_permissionRequested)) {
+        _permissionRequested = true;
+        final iosPlugin = _plugin.resolvePlatformSpecificImplementation<
+            IOSFlutterLocalNotificationsPlugin>();
+        final granted = await iosPlugin?.requestPermissions(
+          alert: true,
+          badge: true,
+          sound: true,
+        );
+        return granted ?? true;
       }
     } catch (e) {
       debugPrint('Gagal meminta izin notifikasi: $e');
     }
+    return true;
+  }
+
+  Future<void> requestPermissionIfNeeded() async {
+    await ensureNotificationPermission(forcePrompt: false);
   }
 
   int _hashId(String key) {
@@ -541,9 +600,12 @@ class NotificationService {
     }
   }
 
-  Future<void> setRemindersEnabled(bool enabled) async {
-    await LocalStorageService.instance.setDailyReminderEnabled(enabled);
+  /// Mengubah preferensi Pengingat Harian dan menyelaraskan dengan izin OS.
+  /// Mengembalikan status efektif apakah pengingat benar-benar aktif (`true`)
+  /// atau mati/terblokir izin sistem (`false`).
+  Future<bool> setRemindersEnabled(bool enabled) async {
     if (!enabled) {
+      await LocalStorageService.instance.setDailyReminderEnabled(false);
       await _clearArmedDateSafely();
       if (_initialized && !kIsWeb) {
         try {
@@ -554,9 +616,18 @@ class NotificationService {
           );
         }
       }
-      return;
+      return false;
     }
+
+    final hasPermission = await ensureNotificationPermission(forcePrompt: true);
+    if (!hasPermission) {
+      await LocalStorageService.instance.setDailyReminderEnabled(false);
+      return false;
+    }
+
+    await LocalStorageService.instance.setDailyReminderEnabled(true);
     await _rescheduleAllPending();
+    return true;
   }
 
   Future<void> syncDailyMissionReminder({
