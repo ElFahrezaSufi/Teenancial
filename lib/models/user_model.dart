@@ -12,6 +12,7 @@ class UserModel {
   final List<String> completedQuizzes;
   final int xp;
   final Map<String, String> feenEquipped;
+  final bool initialBalanceOnboardingDone;
 
   const UserModel({
     required this.uid,
@@ -25,6 +26,7 @@ class UserModel {
     this.completedQuizzes = const [],
     this.xp = 0,
     this.feenEquipped = const {},
+    this.initialBalanceOnboardingDone = true,
   });
 
   static int calculateAge(DateTime birthDate, {DateTime? now}) {
@@ -52,6 +54,7 @@ class UserModel {
       'completedQuizzes': completedQuizzes,
       'xp': xp,
       'feenEquipped': feenEquipped,
+      'initialBalanceOnboardingDone': initialBalanceOnboardingDone,
       if (includeCreatedAt) 'createdAt': FieldValue.serverTimestamp(),
     };
   }
@@ -86,10 +89,22 @@ class UserModel {
       gender: (map['gender'] ?? '').toString().trim(),
       profileImageUrl: map['profileImageUrl'] as String?,
       completedModules: rawModules is Iterable
-          ? rawModules.map((e) => e.toString()).toList()
+          ? rawModules
+              .map((e) => e.toString().trim())
+              .where(
+                (id) => id.isNotEmpty && !RegExp(r'^\d+_\d+$').hasMatch(id),
+              )
+              .toSet()
+              .toList()
           : const [],
       completedQuizzes: rawQuizzes is Iterable
-          ? rawQuizzes.map((e) => e.toString()).toList()
+          ? rawQuizzes
+              .map((e) => e.toString().trim())
+              .where(
+                (id) => id.isNotEmpty && !RegExp(r'^\d+_\d+$').hasMatch(id),
+              )
+              .toSet()
+              .toList()
           : const [],
       xp: rawXp is num ? rawXp.toInt() : 0,
       feenEquipped: rawEquipped is Map
@@ -98,6 +113,12 @@ class UserModel {
                 if (e.value != null) e.key.toString(): e.value.toString(),
             }
           : const {},
+      // Default `true` untuk dokumen user lama yang belum memiliki field ini
+      // agar pengguna lama tidak pernah mendapat popup onboarding saldo awal.
+      initialBalanceOnboardingDone:
+          map['initialBalanceOnboardingDone'] is bool
+              ? map['initialBalanceOnboardingDone'] as bool
+              : true,
     );
   }
 
@@ -115,6 +136,7 @@ class UserModel {
     List<String>? completedQuizzes,
     int? xp,
     Map<String, String>? feenEquipped,
+    bool? initialBalanceOnboardingDone,
   }) {
     return UserModel(
       uid: uid ?? this.uid,
@@ -129,6 +151,8 @@ class UserModel {
       completedQuizzes: completedQuizzes ?? this.completedQuizzes,
       xp: xp ?? this.xp,
       feenEquipped: feenEquipped ?? this.feenEquipped,
+      initialBalanceOnboardingDone:
+          initialBalanceOnboardingDone ?? this.initialBalanceOnboardingDone,
     );
   }
 }

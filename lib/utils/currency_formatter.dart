@@ -17,15 +17,18 @@ class Formatters {
 }
 
 class CurrencyInputFormatter extends TextInputFormatter {
-  /// Maksimal 12 digit (Rp 999.999.999.999) untuk mencegah integer overflow.
-  static const int maxDigits = 12;
+  /// Maksimal 9 digit (Rp 999.999.999) agar nominal tetap realistis & rapi di UI.
+  static const int maxDigits = 9;
 
   static String _sanitizeDigits(String raw) {
     final digits = raw.replaceAll(RegExp(r'[^0-9]'), '');
-    if (digits.length > maxDigits) {
-      return digits.substring(0, maxDigits);
+    if (digits.isEmpty) return '';
+    final normalized = digits.replaceFirst(RegExp(r'^0+'), '');
+    if (normalized.isEmpty) return '0';
+    if (normalized.length > maxDigits) {
+      return normalized.substring(0, maxDigits);
     }
-    return digits;
+    return normalized;
   }
 
   static String formatValue(String value) {

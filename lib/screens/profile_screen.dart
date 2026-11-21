@@ -1,7 +1,6 @@
 import 'dart:io';
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:firebase_auth/firebase_auth.dart' show FirebaseAuthException;
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
@@ -10,7 +9,9 @@ import '../models/user_model.dart';
 import '../providers/auth_provider.dart';
 import '../providers/mission_provider.dart';
 import '../providers/user_provider.dart';
+import '../routes/app_router.dart';
 import '../services/local_storage_service.dart';
+import '../services/notification_service.dart';
 import '../theme/app_colors.dart';
 import '../utils/error_mapper.dart';
 import '../widgets/common/custom_app_bar.dart';
@@ -24,11 +25,14 @@ class ProfileScreen extends StatefulWidget {
   State<ProfileScreen> createState() => _ProfileScreenState();
 }
 
-class _ProfileScreenState extends State<ProfileScreen> {
+class _ProfileScreenState extends State<ProfileScreen>
+    with WidgetsBindingObserver {
   bool _isEditing = false;
   bool _isSaving = false;
   bool _isDeletingAccount = false;
-  bool _dailyReminder = true;
+  bool _isTogglingReminder = false;
+  bool _hasOsNotificationPermission = true;
+  bool _dailyReminder = LocalStorageService.instance.dailyReminderEnabled;
 
   File? _pendingImageFile;
   bool _removeExistingImage = false;
@@ -44,6 +48,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _dailyReminder = LocalStorageService.instance.dailyReminderEnabled;
     _fullNameController = TextEditingController(text: 'Memuat...');
     _emailController = TextEditingController(text: 'Memuat...');
     _ageController = TextEditingController(text: '');
@@ -55,15 +61,78 @@ class _ProfileScreenState extends State<ProfileScreen> {
       if (userProvider.profile == null && !userProvider.isLoading) {
         userProvider.loadProfile();
       }
+      _syncNotificationPermissionState();
     });
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _fullNameController.dispose();
     _ageController.dispose();
     _emailController.dispose();
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _syncNotificationPermissionState();
+    }
+  }
+
+  Future<void> _syncNotificationPermissionState() async {
+    final osAllowed =
+        await NotificationService.instance.areNotificationsEnabled();
+    if (!mounted) return;
+    final localEnabled = LocalStorageService.instance.dailyReminderEnabled;
+    final effective = localEnabled && osAllowed;
+    if (_dailyReminder != effective ||
+        _hasOsNotificationPermission != osAllowed) {
+      setState(() {
+        _hasOsNotificationPermission = osAllowed;
+        _dailyReminder = effective;
+      });
+    }
+  }
+
+  Future<void> _handleToggleDailyReminder(bool val) async {
+    if (_isTogglingReminder) return;
+    setState(() {
+      _isTogglingReminder = true;
+      _dailyReminder = val;
+    });
+
+    try {
+      final effectiveEnabled =
+          await NotificationService.instance.setRemindersEnabled(val);
+      final osAllowed =
+          await NotificationService.instance.areNotificationsEnabled();
+      if (!mounted) return;
+
+      setState(() {
+        _dailyReminder = effectiveEnabled;
+        _hasOsNotificationPermission = osAllowed;
+      });
+
+      if (val && !effectiveEnabled) {
+        ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(
+            const SnackBar(
+              content: Text(
+                'Izin notifikasi belum aktif di perangkat ini. Aktifkan notifikasi Teenancial di Pengaturan HP agar pengingat bisa berjalan.',
+              ),
+              backgroundColor: Colors.orange,
+              duration: Duration(seconds: 4),
+            ),
+          );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isTogglingReminder = false);
+      }
+    }
   }
 
   void _setControllerTextIfChanged(
@@ -331,8 +400,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
       await LocalStorageService.instance.setHasSeenGetStarted(true);
       if (!mounted) return;
       await context.read<AuthProvider>().logout();
-      if (!mounted) return;
-      context.go(AppRoutes.login);
+      if (mounted) {
+        context.go(AppRoutes.login);
+      }
+      rootScaffoldMessengerKey.currentState
+        ?..hideCurrentSnackBar()
+        ..showSnackBar(
+          const SnackBar(
+            content: Text('Berhasil keluar dari akun.'),
+            backgroundColor: primaryGreen,
+          ),
+        );
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -351,8 +429,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<String?> _promptPasswordForReauth() async {
-    final controller = TextEditingController();
+    String typedPassword = '';
     bool obscure = true;
+    String? errorText;
 
     final result = await showDialog<String>(
       context: context,
@@ -385,15 +464,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
               const SizedBox(height: 12),
               TextField(
-                controller: controller,
                 obscureText: obscure,
+                autofocus: true,
+                onChanged: (val) {
+                  typedPassword = val;
+                  if (errorText != null && val.trim().isNotEmpty) {
+                    setDialogState(() => errorText = null);
+                  }
+                },
                 style: const TextStyle(
                   color: primaryGreen,
                   fontFamily: 'Inter',
                   fontWeight: FontWeight.w600,
                 ),
                 decoration: InputDecoration(
-                  hintText: 'Password',
+                  hintText: 'Masukkan password akunmu',
+                  errorText: errorText,
                   filled: true,
                   fillColor: Colors.white,
                   contentPadding:
@@ -435,7 +521,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   borderRadius: BorderRadius.circular(100),
                 ),
               ),
-              onPressed: () => Navigator.of(ctx).pop(controller.text),
+              onPressed: () {
+                if (typedPassword.trim().isEmpty) {
+                  setDialogState(
+                    () => errorText = 'Password wajib diisi',
+                  );
+                  return;
+                }
+                Navigator.of(ctx).pop(typedPassword.trim());
+              },
               child: const Text(
                 'Hapus Permanen',
                 style: TextStyle(
@@ -448,12 +542,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
         ),
       ),
     );
-    controller.dispose();
     return result;
   }
 
   Future<void> _handleDeleteAccount() async {
     if (_isSaving || _isDeletingAccount) return;
+
+    final authProvider = context.read<AuthProvider>();
+    final isGoogleUser = authProvider.isGoogleSignInUser;
 
     final confirm = await showDialog<bool>(
       context: context,
@@ -470,7 +566,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
         ),
         content: Text(
-          'Semua data profil, dompet, transaksi, target menabung, dan progres Feen akan dihapus secara permanen dan tidak bisa dikembalikan.',
+          isGoogleUser
+              ? 'Semua data profil, dompet, transaksi, target menabung, dan progres Feen akan dihapus secara permanen dan tidak bisa dikembalikan.\n\nKamu akan diminta memverifikasi ulang melalui akun Google-mu untuk mengonfirmasi.'
+              : 'Semua data profil, dompet, transaksi, target menabung, dan progres Feen akan dihapus secara permanen dan tidak bisa dikembalikan.',
           style: TextStyle(
             color: primaryGreen.withValues(alpha: 0.85),
             fontFamily: 'Inter',
@@ -500,9 +598,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
             ),
             onPressed: () => Navigator.of(ctx).pop(true),
-            child: const Text(
-              'Ya, Hapus',
-              style: TextStyle(
+            child: Text(
+              isGoogleUser ? 'Ya, Hapus' : 'Lanjutkan',
+              style: const TextStyle(
                 fontFamily: 'Inter',
                 fontWeight: FontWeight.w700,
               ),
@@ -513,31 +611,47 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
     if (confirm != true || !mounted) return;
 
+    String? password;
+    if (!isGoogleUser) {
+      password = await _promptPasswordForReauth();
+      if (password == null || password.isEmpty || !mounted) {
+        return;
+      }
+    }
+
     setState(() => _isDeletingAccount = true);
 
     try {
       await LocalStorageService.instance.setHasSeenGetStarted(true);
       if (!mounted) return;
-      final authProvider = context.read<AuthProvider>();
+      await authProvider.deleteAccount(password: password);
 
-      try {
-        await authProvider.deleteAccount();
-      } on FirebaseAuthException catch (e) {
-        if (e.code == 'requires-recent-login' &&
-            !authProvider.isGoogleSignInUser &&
-            mounted) {
-          final password = await _promptPasswordForReauth();
-          if (password == null || password.isEmpty) {
-            return;
-          }
-          await authProvider.deleteAccount(password: password);
-        } else {
-          rethrow;
-        }
+      if (mounted) {
+        context.go(AppRoutes.login);
       }
-
+      rootScaffoldMessengerKey.currentState
+        ?..hideCurrentSnackBar()
+        ..showSnackBar(
+          const SnackBar(
+            content: Text(
+              '✅ Akun beserta seluruh data kamu telah berhasil dihapus secara permanen.',
+            ),
+            backgroundColor: primaryGreen,
+            duration: Duration(seconds: 4),
+          ),
+        );
+    } on ReauthCanceledException {
       if (!mounted) return;
-      context.go(AppRoutes.login);
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Verifikasi akun Google dibatalkan. Akun tidak dihapus.',
+            ),
+            backgroundColor: primaryGreen,
+          ),
+        );
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -788,7 +902,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             border: Border.all(color: primaryGreen, width: 1),
                           ),
                           child: Text(
-                            'Level ${userProvider.level} • ${userProvider.xpIntoLevel}/${userProvider.xpNeededForNext} XP',
+                            'Level ${userProvider.level}  |  ${userProvider.xpIntoLevel}/${userProvider.xpNeededForNext} XP',
                             style: const TextStyle(
                               color: primaryGreen,
                               fontSize: 11,
@@ -978,11 +1092,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
               _AccountMenuTile(
                 icon: Icons.notifications_none_rounded,
                 title: 'Pengingat Harian',
-                subtitle: 'Notifikasi catat transaksi & pinjaman',
+                subtitle: _hasOsNotificationPermission
+                    ? 'Notifikasi catat transaksi & pinjaman'
+                    : 'Izin notifikasi perangkat nonaktif. Aktifkan untuk menerima pengingat',
                 trailing: Switch(
                   value: _dailyReminder,
                   activeTrackColor: primaryGreen,
-                  onChanged: (val) => setState(() => _dailyReminder = val),
+                  onChanged:
+                      _isTogglingReminder ? null : _handleToggleDailyReminder,
                 ),
               ),
               Divider(
@@ -991,6 +1108,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 endIndent: 16,
                 color: primaryGreen.withValues(alpha: 0.15),
               ),
+              if (context.select<AuthProvider, bool>(
+                (auth) => auth.isEmailPasswordUser,
+              )) ...[
+                _AccountMenuTile(
+                  icon: Icons.lock_reset_rounded,
+                  title: 'Ganti Password',
+                  subtitle: 'Ubah password akunmu',
+                  onTap: () => context.push(AppRoutes.gantiPassword),
+                ),
+                Divider(
+                  height: 1,
+                  indent: 60,
+                  endIndent: 16,
+                  color: primaryGreen.withValues(alpha: 0.15),
+                ),
+              ],
               _AccountMenuTile(
                 icon: Icons.info_outline_rounded,
                 title: 'Tentang Aplikasi',

@@ -1,6 +1,6 @@
 import 'dart:async';
 import 'package:firebase_auth/firebase_auth.dart' hide AuthProvider;
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:go_router/go_router.dart';
 
 import '../config/app_routes.dart';
@@ -20,6 +20,7 @@ import '../screens/dompet_screen.dart';
 import '../screens/ekspor_screen.dart';
 import '../screens/feen_wardrobe_screen.dart';
 import '../screens/forgot_password_screen.dart';
+import '../screens/ganti_password_screen.dart';
 import '../screens/get_started.dart';
 import '../screens/home_screen.dart';
 import '../screens/kategori_screen.dart';
@@ -41,9 +42,13 @@ import '../screens/tanya_feen_screen.dart';
 import '../screens/target_menabung_screen.dart';
 import '../screens/transaksi_berulang_screen.dart';
 import '../screens/transfer_screen.dart';
+import '../screens/verify_email_screen.dart';
 
 final GlobalKey<NavigatorState> rootNavigatorKey =
     GlobalKey<NavigatorState>(debugLabel: 'root');
+
+final GlobalKey<ScaffoldMessengerState> rootScaffoldMessengerKey =
+    GlobalKey<ScaffoldMessengerState>(debugLabel: 'rootScaffoldMessenger');
 
 final GoRouter appRouter = GoRouter(
   navigatorKey: rootNavigatorKey,
@@ -51,6 +56,7 @@ final GoRouter appRouter = GoRouter(
   refreshListenable: Listenable.merge([
     GoRouterRefreshStream(FirebaseAuth.instance.authStateChanges()),
     AuthProvider.bootstrapListenable,
+    AuthProvider.verificationListenable,
     LocalStorageService.instance.onboardingListenable,
   ]),
   redirect: (BuildContext context, GoRouterState state) {
@@ -64,6 +70,25 @@ final GoRouter appRouter = GoRouter(
     }
 
     final isAuthRoute = AppRoutes.authRoutes.contains(state.matchedLocation);
+
+    bool needsVerification = false;
+    if (user != null) {
+      final bool emailUser = user.providerData.any(
+        (info) => info.providerId == EmailAuthProvider.PROVIDER_ID,
+      );
+      needsVerification = emailUser && !user.emailVerified;
+    }
+
+    if (needsVerification) {
+      if (state.matchedLocation != AppRoutes.verifyEmail) {
+        return AppRoutes.verifyEmail;
+      }
+      return null;
+    }
+
+    if (state.matchedLocation == AppRoutes.verifyEmail) {
+      return isLoggedIn ? AppRoutes.home : AppRoutes.login;
+    }
 
     if (isLoggedIn && isAuthRoute) {
       return AppRoutes.home;
@@ -110,6 +135,13 @@ final GoRouter appRouter = GoRouter(
       pageBuilder: (context, state) => AppTransitions.slideUp(
         key: state.pageKey,
         child: const ForgotPasswordScreen(),
+      ),
+    ),
+    GoRoute(
+      path: AppRoutes.verifyEmail,
+      pageBuilder: (context, state) => AppTransitions.fade(
+        key: state.pageKey,
+        child: const VerifyEmailScreen(),
       ),
     ),
     StatefulShellRoute.indexedStack(
@@ -234,6 +266,14 @@ final GoRouter appRouter = GoRouter(
           child: TambahDompetScreen(itemToEdit: item),
         );
       },
+    ),
+    GoRoute(
+      parentNavigatorKey: rootNavigatorKey,
+      path: AppRoutes.gantiPassword,
+      pageBuilder: (context, state) => AppTransitions.slideHorizontal(
+        key: state.pageKey,
+        child: const GantiPasswordScreen(),
+      ),
     ),
     GoRoute(
       parentNavigatorKey: rootNavigatorKey,

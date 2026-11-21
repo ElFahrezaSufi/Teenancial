@@ -34,4 +34,86 @@ class LocalStorageService {
     final prefs = _prefs ??= await SharedPreferences.getInstance();
     await prefs.setInt(AppConstants.prefRiwayatFilterIndex, index.clamp(0, 2));
   }
+
+  bool get dailyReminderEnabled =>
+      _prefs?.getBool(AppConstants.prefDailyReminderEnabled) ?? true;
+
+  Future<void> setDailyReminderEnabled(bool value) async {
+    final prefs = _prefs ??= await SharedPreferences.getInstance();
+    await prefs.setBool(AppConstants.prefDailyReminderEnabled, value);
+  }
+
+  String? get dailyMissionLastRemindedDate =>
+      _prefs?.getString(AppConstants.prefDailyMissionLastRemindedDate);
+
+  Future<void> setDailyMissionLastRemindedDate(String? dateKey) async {
+    final prefs = _prefs ??= await SharedPreferences.getInstance();
+    if (dateKey == null) {
+      await prefs.remove(AppConstants.prefDailyMissionLastRemindedDate);
+    } else {
+      await prefs.setString(
+        AppConstants.prefDailyMissionLastRemindedDate,
+        dateKey,
+      );
+    }
+  }
+
+  String? get dailyMissionArmedDate =>
+      _prefs?.getString(AppConstants.prefDailyMissionArmedDate);
+
+  Future<void> setDailyMissionArmedDate(String? dateKey) async {
+    final prefs = _prefs ??= await SharedPreferences.getInstance();
+    if (dateKey == null) {
+      await prefs.remove(AppConstants.prefDailyMissionArmedDate);
+    } else {
+      await prefs.setString(AppConstants.prefDailyMissionArmedDate, dateKey);
+    }
+  }
+
+  bool isInitialBalanceOnboardingDoneLocal(String uid) {
+    if (uid.trim().isEmpty) return false;
+    return _prefs?.getBool(
+          '${AppConstants.prefInitialBalanceOnboardingPrefix}$uid',
+        ) ??
+        false;
+  }
+
+  Future<void> setInitialBalanceOnboardingDoneLocal(
+    String uid,
+    bool value,
+  ) async {
+    if (uid.trim().isEmpty) return;
+    try {
+      final prefs = _prefs ??= await SharedPreferences.getInstance();
+      await prefs.setBool(
+        '${AppConstants.prefInitialBalanceOnboardingPrefix}$uid',
+        value,
+      );
+    } catch (_) {}
+  }
+
+  bool isInitialBalanceOnboardingPendingSync(String uid) {
+    if (uid.trim().isEmpty) return false;
+    return _prefs?.getBool(
+          '${AppConstants.prefInitialBalanceOnboardingPendingSyncPrefix}$uid',
+        ) ??
+        false;
+  }
+
+  Future<void> setInitialBalanceOnboardingPendingSync(
+    String uid,
+    bool value,
+  ) async {
+    if (uid.trim().isEmpty) return;
+    try {
+      final prefs = _prefs ??= await SharedPreferences.getInstance();
+      final key =
+          '${AppConstants.prefInitialBalanceOnboardingPendingSyncPrefix}$uid';
+      if (value) {
+        await prefs.setBool(key, true);
+      } else {
+        await prefs.remove(key);
+      }
+    } catch (_) {}
+  }
 }

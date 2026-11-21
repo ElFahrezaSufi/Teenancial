@@ -10,7 +10,9 @@ class TransactionRepository {
       : _firestoreService = firestoreService ?? FirestoreService.instance;
 
   Future<List<TransactionModel>> getTransactions(String uid) async {
-    final snapshot = await _firestoreService.transactionsCol(uid).get();
+    final snapshot = await _firestoreService.getQuerySnapshot(
+      _firestoreService.transactionsCol(uid),
+    );
     final items = snapshot.docs
         .map((doc) => TransactionModel.fromMap(doc.data(), docId: doc.id))
         .toList();

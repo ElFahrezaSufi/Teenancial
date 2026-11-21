@@ -1,4 +1,6 @@
+import 'dart:async';
 import 'package:firebase_auth/firebase_auth.dart';
+import '../services/connectivity_service.dart';
 
 class ErrorMapper {
   const ErrorMapper._();
@@ -9,6 +11,12 @@ class ErrorMapper {
     Object error, {
     String fallback = 'Terjadi kesalahan. Silakan coba lagi.',
   }) {
+    if (error is OfflineException) {
+      return error.message;
+    }
+    if (error is TimeoutException) {
+      return 'Koneksi internet lambat atau terputus. Silakan periksa jaringan Anda dan coba lagi.';
+    }
     if (error is FirebaseAuthException) {
       switch (error.code) {
         case 'user-not-found':
@@ -20,13 +28,20 @@ class ErrorMapper {
         case 'invalid-email':
           return 'Format email tidak valid.';
         case 'email-already-in-use':
-          return 'Email ini sudah terdaftar. Silakan gunakan email lain atau langsung Masuk.';
+          return 'Email ini sudah terdaftar. Silakan langsung Masuk dengan Email/Password atau Google.';
         case 'weak-password':
-          return 'Password terlalu lemah (minimal 6 karakter).';
+          return 'Password terlalu lemah (minimal 8 karakter).';
         case 'too-many-requests':
           return 'Terlalu banyak percobaan. Silakan coba lagi beberapa saat lagi.';
         case 'network-request-failed':
           return 'Koneksi internet bermasalah. Silakan periksa jaringan Anda.';
+        case 'user-mismatch':
+          return 'Akun Google yang dipilih tidak cocok dengan akun yang sedang login. Pilih akun yang sama untuk melanjutkan.';
+        case 'requires-recent-login':
+          return 'Demi keamanan, silakan verifikasi ulang akun atau masuk kembali terlebih dahulu.';
+        case 'popup-closed-by-user':
+        case 'cancelled-popup-request':
+          return 'Verifikasi akun dibatalkan oleh pengguna.';
         default:
           return error.message?.trim().isNotEmpty == true
               ? error.message!.trim()

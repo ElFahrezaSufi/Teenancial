@@ -6,6 +6,17 @@ import '../models/dompet_model.dart';
 import '../models/user_model.dart';
 import '../services/firestore_service.dart';
 
+/// Dilempar ketika pengguna membatalkan proses re-autentikasi Google.
+class ReauthCanceledException implements Exception {
+  const ReauthCanceledException();
+}
+
+/// Dilempar ketika pengguna mencoba membatalkan pendaftaran akun yang
+/// ternyata sudah terverifikasi di server Firebase Auth.
+class AccountAlreadyVerifiedException implements Exception {
+  const AccountAlreadyVerifiedException();
+}
+
 class AuthRepository {
   final FirebaseAuth? _firebaseAuth;
   final FirestoreService _firestoreService;
@@ -54,6 +65,7 @@ class AuthRepository {
           'profileImageUrl': user.photoURL,
         'completedModules': <String>[],
         'completedQuizzes': <String>[],
+        'initialBalanceOnboardingDone': false,
         'createdAt': FieldValue.serverTimestamp(),
       });
 
@@ -94,6 +106,13 @@ class AuthRepository {
           birthDate: birthDate,
           gender: gender,
         );
+
+        // Kirim email verifikasi (kalau gagal, akun tetap dibuat).
+        try {
+          await user.sendEmailVerification();
+        } catch (e) {
+          debugPrint('Gagal mengirim email verifikasi: $e');
+        }
       } catch (_) {
         try {
           await user.delete();
@@ -102,6 +121,46 @@ class AuthRepository {
       }
     }
     return credential;
+  }
+
+  /// Kirim ulang email verifikasi ke user yang sedang login.
+  Future<void> sendEmailVerification() async {
+    final user = _auth.currentUser;
+    if (user == null) {
+      throw Exception('Pengguna belum masuk.');
+    }
+    await user.sendEmailVerification();
+  }
+
+  /// Muat ulang data user dari server untuk mengecek status verifikasi email.
+  Future<User?> reloadUser() async {
+    final user = _auth.currentUser;
+    if (user == null) return null;
+    await user.reload();
+    return _auth.currentUser;
+  }
+
+  /// Mengubah password user yang sedang login.
+  /// Wajib menyertakan password lama untuk verifikasi ulang (reauthenticate).
+  Future<void> changePassword({
+    required String currentPassword,
+    required String newPassword,
+  }) async {
+    final user = _auth.currentUser;
+    if (user == null) {
+      throw Exception('Sesi pengguna tidak ditemukan.');
+    }
+    final email = user.email;
+    if (email == null || email.isEmpty) {
+      throw Exception('Akun ini tidak memakai password.');
+    }
+
+    final credential = EmailAuthProvider.credential(
+      email: email,
+      password: currentPassword,
+    );
+    await user.reauthenticateWithCredential(credential);
+    await user.updatePassword(newPassword);
   }
 
   Future<void> sendPasswordResetEmail(String email) async {
@@ -205,24 +264,79 @@ class AuthRepository {
     await _firestoreService.userDoc(uid).delete();
   }
 
-  Future<void> _reauthenticateUser(User user, {String? password}) async {
-    final isGoogleUser = user.providerData.any(
+  bool _isGoogleAccount(User user) {
+    return user.providerData.any(
       (info) => info.providerId == GoogleAuthProvider.PROVIDER_ID,
     );
+  }
 
-    if (isGoogleUser) {
+  /// Memvalidasi kecocokan email akun Google yang dipilih saat reautentikasi
+  /// terhadap email akun Firebase yang sedang login (case-insensitive).
+  @visibleForTesting
+  static bool isMatchingGoogleEmail(
+    String? expectedEmail,
+    String? pickedEmail,
+  ) {
+    final expected = expectedEmail?.trim().toLowerCase();
+    final picked = pickedEmail?.trim().toLowerCase();
+    if (expected == null ||
+        expected.isEmpty ||
+        picked == null ||
+        picked.isEmpty) {
+      return true;
+    }
+    return expected == picked;
+  }
+
+  Future<void> _clearGoogleCredentialSelection() async {
+    if (kIsWeb) return;
+    try {
+      await _ensureGoogleInitialized();
+      await GoogleSignIn.instance.signOut();
+    } catch (_) {}
+  }
+
+  Future<void> _reauthenticateUser(User user, {String? password}) async {
+    if (_isGoogleAccount(user)) {
       if (kIsWeb) {
-        await user.reauthenticateWithPopup(GoogleAuthProvider());
-      } else {
-        await _ensureGoogleInitialized();
-        final googleUser = await GoogleSignIn.instance.authenticate();
-        final googleAuth = googleUser.authentication;
-        if (googleAuth.idToken == null) {
-          throw Exception('Verifikasi Google gagal.');
+        try {
+          await user.reauthenticateWithPopup(GoogleAuthProvider());
+        } on FirebaseAuthException catch (e) {
+          if (e.code == 'popup-closed-by-user' ||
+              e.code == 'cancelled-popup-request') {
+            throw const ReauthCanceledException();
+          }
+          rethrow;
         }
-        final cred = GoogleAuthProvider.credential(idToken: googleAuth.idToken);
-        await user.reauthenticateWithCredential(cred);
+        return;
       }
+
+      await _ensureGoogleInitialized();
+      final GoogleSignInAccount googleUser;
+      try {
+        googleUser = await GoogleSignIn.instance.authenticate();
+      } on GoogleSignInException catch (e) {
+        if (e.code == GoogleSignInExceptionCode.canceled) {
+          throw const ReauthCanceledException();
+        }
+        rethrow;
+      }
+
+      if (!isMatchingGoogleEmail(user.email, googleUser.email)) {
+        await _clearGoogleCredentialSelection();
+        throw FirebaseAuthException(
+          code: 'user-mismatch',
+          message:
+              'Akun Google yang dipilih tidak sesuai dengan akun yang sedang login.',
+        );
+      }
+
+      final googleAuth = googleUser.authentication;
+      if (googleAuth.idToken == null) {
+        throw Exception('Verifikasi Google gagal.');
+      }
+      final cred = GoogleAuthProvider.credential(idToken: googleAuth.idToken);
+      await user.reauthenticateWithCredential(cred);
       return;
     }
 
@@ -235,42 +349,87 @@ class AuthRepository {
     }
   }
 
+  /// Memvalidasi apakah sesi login masih cukup baru (< 4 menit) sehingga
+  /// `user.delete()` dapat dijalankan tanpa perlu re-autentikasi ulang.
+  @visibleForTesting
+  static bool isSessionFreshForDeletion(
+    DateTime? lastSignInTime, {
+    DateTime? now,
+  }) {
+    if (lastSignInTime == null) return false;
+    final ref = now ?? DateTime.now();
+    final elapsed = ref.difference(lastSignInTime);
+    return elapsed < const Duration(minutes: 4);
+  }
+
+  /// Membatalkan pendaftaran akun Email/Password yang belum terverifikasi
+  /// (misalnya karena pengguna salah ketik alamat email saat mendaftar):
+  /// memverifikasi ulang status di server, memastikan belum terverifikasi,
+  /// menghapus data bootstrap Firestore, lalu menghapus akun Firebase Auth.
+  Future<void> cancelUnverifiedRegistration({String? password}) async {
+    _firestoreService.ensureOnline(actionLabel: 'membatalkan pendaftaran');
+    final current = _auth.currentUser;
+    if (current == null) {
+      throw Exception('Sesi pengguna tidak ditemukan.');
+    }
+
+    await current.reload();
+    final user = _auth.currentUser ?? current;
+    if (user.emailVerified) {
+      throw const AccountAlreadyVerifiedException();
+    }
+
+    final email = user.email?.trim() ?? '';
+    final trimmedPassword = password?.trim() ?? '';
+
+    if (trimmedPassword.isNotEmpty) {
+      if (email.isEmpty) {
+        throw Exception('Alamat email akun tidak ditemukan.');
+      }
+      final cred = EmailAuthProvider.credential(
+        email: email,
+        password: trimmedPassword,
+      );
+      await user.reauthenticateWithCredential(cred);
+    } else if (!isSessionFreshForDeletion(user.metadata.lastSignInTime)) {
+      throw FirebaseAuthException(
+        code: 'requires-recent-login',
+        message: 'Masukkan password akunmu untuk membatalkan pendaftaran.',
+      );
+    }
+
+    final uid = user.uid;
+    await deleteUserFirestoreData(uid);
+    await user.delete();
+  }
+
   Future<void> deleteAccount({String? password}) async {
+    _firestoreService.ensureOnline(actionLabel: 'menghapus akun');
     final user = _auth.currentUser;
     if (user == null) {
       throw Exception('Sesi pengguna tidak ditemukan.');
     }
 
     final uid = user.uid;
-    final bool isGoogleUser = user.providerData.any(
-      (info) => info.providerId == GoogleAuthProvider.PROVIDER_ID,
-    );
+    final bool isGoogleUser = _isGoogleAccount(user);
 
-    if (password != null && password.isNotEmpty) {
-      await _reauthenticateUser(user, password: password);
-    }
-    await deleteUserFirestoreData(uid);
-
-    try {
-      await user.delete();
-    } on FirebaseAuthException catch (e) {
-      if (e.code == 'requires-recent-login') {
-        if (isGoogleUser) {
-          await _reauthenticateUser(user);
-          await user.delete();
-        } else {
-          rethrow;
-        }
-      } else {
-        rethrow;
+    if (isGoogleUser) {
+      await _reauthenticateUser(user);
+    } else {
+      if (password == null || password.trim().isEmpty) {
+        throw FirebaseAuthException(
+          code: 'requires-recent-login',
+          message: 'Password diperlukan untuk menghapus akun.',
+        );
       }
+      await _reauthenticateUser(user, password: password.trim());
     }
+
+    await deleteUserFirestoreData(uid);
+    await user.delete();
 
     if (!kIsWeb && (isGoogleUser || _googleInit != null)) {
-      try {
-        await _ensureGoogleInitialized();
-        await GoogleSignIn.instance.signOut();
-      } catch (_) {}
+      await _clearGoogleCredentialSelection();
     }
   }
 

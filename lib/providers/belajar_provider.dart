@@ -160,9 +160,33 @@ class BelajarProvider extends ChangeNotifier {
   Future<void> _fetchProgress(String targetUid) async {
     final progress = await _repository.getProgress(targetUid);
     if (_uid != targetUid) return;
-    _completedModules = Set<String>.from(progress.completedModules);
-    _completedQuizzes = Set<String>.from(progress.completedQuizzes);
+    final validModuleIds = <String>{
+      for (final level in _baseLevels)
+        for (final mod in level.modules) mod.id,
+    };
+    final rawModules = Set<String>.from(progress.completedModules);
+    final rawQuizzes = Set<String>.from(progress.completedQuizzes);
+
+    if (validModuleIds.isNotEmpty) {
+      _completedModules = rawModules.intersection(validModuleIds);
+      _completedQuizzes = rawQuizzes.intersection(validModuleIds);
+      if (_completedModules.length != rawModules.length ||
+          _completedQuizzes.length != rawQuizzes.length) {
+        unawaited(_persistProgress());
+      }
+    } else {
+      _completedModules = rawModules;
+      _completedQuizzes = rawQuizzes;
+    }
     _recomputeLocks();
+    if (validModuleIds.isNotEmpty && _missionProvider != null) {
+      unawaited(
+        _missionProvider!.syncOneTimeLearningProgress(
+          completedModulesCount: _completedModules.length,
+          completedQuizzesCount: _completedQuizzes.length,
+        ),
+      );
+    }
   }
 
   // Aksi user
@@ -183,15 +207,38 @@ class BelajarProvider extends ChangeNotifier {
     final mod = _moduleAt(levelIndex, moduleIndex);
     if (mod == null || mod.status != ModuleStatus.available) return;
 
+    final previousModules = Set<String>.from(_completedModules);
+    final previousQuizzes = Set<String>.from(_completedQuizzes);
+    final previousLastLearnedAt = _lastLearnedAt;
+
     final isFirstTime = !_completedModules.contains(mod.id);
     _completedModules.add(mod.id);
     _lastLearnedAt = DateTime.now();
     _recomputeLocks();
     notifyListeners();
-    await _persistProgress();
-    if (isFirstTime && _missionProvider != null) {
+
+    try {
+      await _persistProgress(rethrowOnError: true);
+    } catch (_) {
+      _completedModules = previousModules;
+      _completedQuizzes = previousQuizzes;
+      _lastLearnedAt = previousLastLearnedAt;
+      _recomputeLocks();
+      notifyListeners();
+      rethrow;
+    }
+
+    if (_missionProvider != null) {
+      if (isFirstTime) {
+        unawaited(
+          _missionProvider!.recordTrigger(MissionTrigger.completeModule),
+        );
+      }
       unawaited(
-        _missionProvider!.recordTrigger(MissionTrigger.completeModule),
+        _missionProvider!.syncOneTimeLearningProgress(
+          completedModulesCount: _completedModules.length,
+          completedQuizzesCount: _completedQuizzes.length,
+        ),
       );
     }
   }
@@ -207,6 +254,10 @@ class BelajarProvider extends ChangeNotifier {
       return false;
     }
 
+    final previousModules = Set<String>.from(_completedModules);
+    final previousQuizzes = Set<String>.from(_completedQuizzes);
+    final previousLastLearnedAt = _lastLearnedAt;
+
     final wasModuleCompleted = _completedModules.contains(mod.id);
     final wasQuizCompleted = _completedQuizzes.contains(mod.id);
     _completedModules.add(mod.id);
@@ -214,7 +265,18 @@ class BelajarProvider extends ChangeNotifier {
     _lastLearnedAt = DateTime.now();
     _recomputeLocks();
     notifyListeners();
-    await _persistProgress();
+
+    try {
+      await _persistProgress(rethrowOnError: true);
+    } catch (_) {
+      _completedModules = previousModules;
+      _completedQuizzes = previousQuizzes;
+      _lastLearnedAt = previousLastLearnedAt;
+      _recomputeLocks();
+      notifyListeners();
+      rethrow;
+    }
+
     if (_missionProvider != null) {
       if (!wasModuleCompleted) {
         unawaited(
@@ -226,6 +288,12 @@ class BelajarProvider extends ChangeNotifier {
           _missionProvider!.recordTrigger(MissionTrigger.passQuiz),
         );
       }
+      unawaited(
+        _missionProvider!.syncOneTimeLearningProgress(
+          completedModulesCount: _completedModules.length,
+          completedQuizzesCount: _completedQuizzes.length,
+        ),
+      );
     }
     return true;
   }
@@ -238,7 +306,7 @@ class BelajarProvider extends ChangeNotifier {
     return modules[moduleIndex];
   }
 
-  Future<void> _persistProgress() async {
+  Future<void> _persistProgress({bool rethrowOnError = false}) async {
     final targetUid = _uid;
     if (targetUid == null) return;
     try {
@@ -250,6 +318,7 @@ class BelajarProvider extends ChangeNotifier {
         ),
       );
     } catch (e) {
+      if (rethrowOnError) rethrow;
       debugPrint('Gagal menyimpan progres: $e');
     }
   }

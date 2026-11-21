@@ -1,6 +1,7 @@
 import 'package:flutter/widgets.dart';
 import '../models/recurring_model.dart';
 import '../repositories/recurring_repository.dart';
+import '../services/connectivity_service.dart';
 import '../services/notification_service.dart';
 import '../utils/error_mapper.dart';
 import 'dompet_provider.dart';
@@ -105,7 +106,14 @@ class RecurringProvider extends ChangeNotifier with WidgetsBindingObserver {
     }
 
     try {
-      final catchUpResult = await _repository.processDue(targetUid);
+      RecurringCatchUpResult catchUpResult = const RecurringCatchUpResult();
+      if (!ConnectivityService.instance.isOffline) {
+        try {
+          catchUpResult = await _repository.processDue(targetUid);
+        } on OfflineException {
+          // Lewati catch-up saat offline agar jadwal tetap terbaca dari cache.
+        }
+      }
       if (_uid != targetUid) return;
 
       final fetched = await _repository.getRecurringTemplates(targetUid);

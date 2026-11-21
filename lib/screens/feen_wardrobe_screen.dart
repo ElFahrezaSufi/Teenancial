@@ -1,9 +1,10 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
 import '../data/feen_catalog.dart';
 import '../providers/user_provider.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_text_styles.dart';
+import '../utils/error_mapper.dart';
 import '../widgets/common/custom_app_bar.dart';
 import '../widgets/common/custom_card.dart';
 import '../widgets/feen/feen_avatar.dart';
@@ -48,25 +49,48 @@ class FeenWardrobeScreen extends StatelessWidget {
                   CustomCard(
                     borderRadius: 24,
                     backgroundColor: cardBg,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
                     child: Column(
                       children: [
                         FeenAvatar(
                           level: level,
                           equipped: equipped,
-                          size: 200,
+                          size: 190,
                         ),
-                        const SizedBox(height: 4),
-                        Text(
-                          'Level $level  •  ${tier.label}',
-                          style: AppTextStyles.sectionTitle,
+                        const SizedBox(height: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 14,
+                            vertical: 6,
+                          ),
+                          decoration: BoxDecoration(
+                            color: inputBg,
+                            borderRadius: BorderRadius.circular(100),
+                            border: Border.all(
+                              color: primaryGreen,
+                              width: 1.5,
+                            ),
+                          ),
+                          child: Text(
+                            'Level $level  |  Feen ${tier.label}',
+                            style: const TextStyle(
+                              color: primaryGreen,
+                              fontSize: 13,
+                              fontFamily: 'Inter',
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
                         ),
-                        const SizedBox(height: 4),
+                        const SizedBox(height: 12),
+                        _FeenEvolutionStagesRow(
+                          currentLevel: level,
+                          currentTier: tier,
+                        ),
+                        const SizedBox(height: 6),
                         TextButton(
                           onPressed: equipped.isEmpty
                               ? null
-                              : () =>
-                                  context.read<UserProvider>().unequipAllFeen(),
+                              : () => _handleUnequipAll(context),
                           child: Text(
                             'Lepas semua aksesoris',
                             style: TextStyle(
@@ -119,12 +143,29 @@ class FeenWardrobeScreen extends StatelessWidget {
     );
   }
 
-  void _onTapAccessory(
+  Future<void> _handleUnequipAll(BuildContext context) async {
+    try {
+      await context.read<UserProvider>().unequipAllFeen();
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(
+            SnackBar(
+              content: Text(ErrorMapper.message(e)),
+              backgroundColor: Colors.redAccent,
+            ),
+          );
+      }
+    }
+  }
+
+  Future<void> _onTapAccessory(
     BuildContext context, {
     required FeenAccessory accessory,
     required int level,
     required bool selected,
-  }) {
+  }) async {
     if (level < accessory.unlockLevel) {
       ScaffoldMessenger.of(context)
         ..hideCurrentSnackBar()
@@ -138,9 +179,126 @@ class FeenWardrobeScreen extends StatelessWidget {
         );
       return;
     }
-    context
-        .read<UserProvider>()
-        .equipFeen(accessory.slot, selected ? null : accessory.id);
+    try {
+      await context
+          .read<UserProvider>()
+          .equipFeen(accessory.slot, selected ? null : accessory.id);
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(
+            SnackBar(
+              content: Text(ErrorMapper.message(e)),
+              backgroundColor: Colors.redAccent,
+            ),
+          );
+      }
+    }
+  }
+}
+
+class _FeenEvolutionStagesRow extends StatelessWidget {
+  final int currentLevel;
+  final FeenTier currentTier;
+
+  const _FeenEvolutionStagesRow({
+    required this.currentLevel,
+    required this.currentTier,
+  });
+
+  static const List<({FeenTier tier, int minLevel})> _stages = [
+    (tier: FeenTier.rookie, minLevel: 1),
+    (tier: FeenTier.saver, minLevel: 6),
+    (tier: FeenTier.pro, minLevel: 11),
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        for (int i = 0; i < _stages.length; i++) ...[
+          if (i > 0)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 4),
+              child: Icon(
+                Icons.arrow_forward_rounded,
+                size: 13,
+                color: primaryGreen.withValues(alpha: 0.55),
+              ),
+            ),
+          Expanded(
+            child: Builder(
+              builder: (context) {
+                final stage = _stages[i];
+                final isCurrent = currentTier == stage.tier;
+                final isUnlocked = currentLevel >= stage.minLevel;
+
+                return Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 6,
+                    vertical: 6,
+                  ),
+                  decoration: BoxDecoration(
+                    color: isCurrent
+                        ? primaryGreen
+                        : (isUnlocked
+                            ? inputBg
+                            : inputBg.withValues(alpha: 0.55)),
+                    borderRadius: BorderRadius.circular(100),
+                    border: Border.all(
+                      color: isUnlocked
+                          ? primaryGreen
+                          : primaryGreen.withValues(alpha: 0.3),
+                      width: isCurrent ? 1.5 : 1,
+                    ),
+                  ),
+                  child: Center(
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            isCurrent
+                                ? Icons.auto_awesome_rounded
+                                : (isUnlocked
+                                    ? Icons.check_circle_rounded
+                                    : Icons.lock_outline_rounded),
+                            size: 12,
+                            color: isCurrent
+                                ? const Color(0xFFDAB62C)
+                                : (isUnlocked
+                                    ? primaryGreen
+                                    : primaryGreen.withValues(alpha: 0.5)),
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            '${stage.tier.label} (Lv.${stage.minLevel})',
+                            style: TextStyle(
+                              color: isCurrent
+                                  ? Colors.white
+                                  : (isUnlocked
+                                      ? primaryGreen
+                                      : primaryGreen.withValues(alpha: 0.55)),
+                              fontSize: 10.5,
+                              fontFamily: 'Inter',
+                              fontWeight: isCurrent
+                                  ? FontWeight.w800
+                                  : FontWeight.w700,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
+      ],
+    );
   }
 }
 

@@ -90,6 +90,22 @@ class DompetProvider extends ChangeNotifier {
     await loadDompets(silent: true);
   }
 
+  Future<void> setInitialWalletBalance(
+    String dompetId,
+    double initialBalance,
+  ) async {
+    final targetUid = _uid;
+    if (targetUid == null) {
+      throw Exception('Sesi pengguna tidak ditemukan');
+    }
+    await _repository.setInitialWalletBalance(
+      targetUid,
+      dompetId,
+      initialBalance,
+    );
+    await loadDompets(silent: true);
+  }
+
   Future<void> updateDompet(DompetItem item) async {
     final targetUid = _uid;
     if (targetUid == null) {

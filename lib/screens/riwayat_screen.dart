@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
@@ -14,7 +14,6 @@ import '../utils/transaction_actions.dart';
 import '../widgets/common/async_state_view.dart';
 import '../widgets/common/custom_app_bar.dart';
 import '../widgets/common/custom_card.dart';
-import '../widgets/common/custom_filter_chip.dart';
 import '../widgets/common/skeleton.dart';
 import '../widgets/transaction/transaction_group.dart';
 import '../widgets/transaction/trend_chart_painter.dart';
@@ -34,10 +33,16 @@ class RiwayatScreen extends StatefulWidget {
     final cutoff = cutoffForFilter(filterIndex);
     final filtered =
         allTransactions.where((t) => !t.date.isBefore(cutoff)).toList();
-    if (filtered.isEmpty) return [];
+    return buildAllGroups(filtered);
+  }
+
+  static List<TransactionGroupData> buildAllGroups(
+    List<TransactionModel> transactions,
+  ) {
+    if (transactions.isEmpty) return [];
 
     final Map<String, List<TransactionModel>> groups = {};
-    for (final t in filtered) {
+    for (final t in transactions) {
       final dateStr = DateFormat('EEEE, dd MMMM yyyy', 'id_ID').format(t.date);
       groups.putIfAbsent(dateStr, () => []).add(t);
     }
@@ -116,9 +121,8 @@ class _RiwayatScreenState extends State<RiwayatScreen> {
     final txProvider = context.watch<TransactionProvider>();
     final dompetProvider = context.watch<DompetProvider>();
     final allTransactions = txProvider.transactions;
-    final filteredGroups =
-        RiwayatScreen.buildFilteredGroups(allTransactions, _selectedFilter);
-    final visibleGroups = filteredGroups.take(5).toList();
+    final allGroups = RiwayatScreen.buildAllGroups(allTransactions);
+    final visibleGroups = allGroups.take(5).toList();
 
     final cutoff = RiwayatScreen.cutoffForFilter(_selectedFilter);
     final periodEvents = <({DateTime date, double delta})>[];
@@ -199,28 +203,6 @@ class _RiwayatScreenState extends State<RiwayatScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Row(
-                        children: [
-                          CustomFilterChip(
-                            label: 'Mingguan',
-                            selected: _selectedFilter == 0,
-                            onTap: () => _setFilter(0),
-                          ),
-                          const SizedBox(width: 8),
-                          CustomFilterChip(
-                            label: 'Bulanan',
-                            selected: _selectedFilter == 1,
-                            onTap: () => _setFilter(1),
-                          ),
-                          const SizedBox(width: 8),
-                          CustomFilterChip(
-                            label: 'Tahunan',
-                            selected: _selectedFilter == 2,
-                            onTap: () => _setFilter(2),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 14),
                       GestureDetector(
                         onTap: () => context.push(
                           AppRoutes.semuaAktivitas,
@@ -270,11 +252,20 @@ class _RiwayatScreenState extends State<RiwayatScreen> {
                           ),
                         ),
                       ),
-                      if (filteredGroups.isEmpty) ...[
-                        const SizedBox(height: 16),
-                        Align(
-                          alignment: Alignment.centerRight,
-                          child: GestureDetector(
+                      const SizedBox(height: 20),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text(
+                            'Tren Saldo',
+                            style: TextStyle(
+                              color: primaryGreen,
+                              fontSize: 14,
+                              fontFamily: 'Inter',
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                          GestureDetector(
                             onTap: () => context.push(AppRoutes.laporan),
                             child: const Row(
                               mainAxisSize: MainAxisSize.min,
@@ -297,108 +288,85 @@ class _RiwayatScreenState extends State<RiwayatScreen> {
                               ],
                             ),
                           ),
-                        ),
-                        Padding(
-                          padding: const EdgeInsets.only(top: 40),
-                          child: _buildEmpty(),
-                        ),
-                      ] else ...[
-                        const SizedBox(height: 20),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        ],
+                      ),
+                      const SizedBox(height: 10),
+                      CustomCard(
+                        backgroundColor: cardBg,
+                        borderRadius: 16,
+                        padding: const EdgeInsets.all(14),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
-                            const Text(
-                              'Tren Saldo',
-                              style: TextStyle(
-                                color: primaryGreen,
-                                fontSize: 14,
-                                fontFamily: 'Inter',
-                                fontWeight: FontWeight.w700,
+                            Container(
+                              padding: const EdgeInsets.all(4),
+                              decoration: BoxDecoration(
+                                color: inputBg,
+                                borderRadius: BorderRadius.circular(100),
+                                border: Border.all(
+                                  color: primaryGreen.withValues(alpha: 0.35),
+                                  width: 1,
+                                ),
+                              ),
+                              child: Row(
+                                children: [
+                                  _buildTrendFilterTab(0, 'Mingguan'),
+                                  _buildTrendFilterTab(1, 'Bulanan'),
+                                  _buildTrendFilterTab(2, 'Tahunan'),
+                                ],
                               ),
                             ),
-                            GestureDetector(
-                              onTap: () => context.push(AppRoutes.laporan),
-                              child: const Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(
-                                    Icons.donut_large_rounded,
-                                    size: 15,
-                                    color: orangeText,
+                            const SizedBox(height: 14),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(
+                                  'Saldo: ${Formatters.rupiah(currentTotalSaldo)}',
+                                  style: const TextStyle(
+                                    color: primaryGreen,
+                                    fontSize: 12,
+                                    fontFamily: 'Inter',
+                                    fontWeight: FontWeight.w700,
                                   ),
-                                  SizedBox(width: 5),
-                                  Text(
-                                    'Laporan Keuangan ›',
-                                    style: TextStyle(
-                                      color: orangeText,
-                                      fontSize: 13,
-                                      fontFamily: 'Inter',
-                                      fontWeight: FontWeight.w700,
-                                    ),
+                                ),
+                                Text(
+                                  netDeltaLabel,
+                                  style: TextStyle(
+                                    color: isNetPositive
+                                        ? primaryGreen
+                                        : Colors.redAccent,
+                                    fontSize: 12,
+                                    fontFamily: 'Inter',
+                                    fontWeight: FontWeight.w600,
                                   ),
-                                ],
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 6),
+                            SizedBox(
+                              height: 150,
+                              child: CustomPaint(
+                                painter: TrendChartPainter(trendData),
+                                child: const SizedBox.expand(),
                               ),
                             ),
                           ],
                         ),
-                        const SizedBox(height: 10),
-                        CustomCard(
-                          backgroundColor: cardBg,
-                          borderRadius: 16,
-                          padding: const EdgeInsets.all(12),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                              Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Text(
-                                    'Saldo: ${Formatters.rupiah(currentTotalSaldo)}',
-                                    style: const TextStyle(
-                                      color: primaryGreen,
-                                      fontSize: 12,
-                                      fontFamily: 'Inter',
-                                      fontWeight: FontWeight.w700,
-                                    ),
-                                  ),
-                                  Text(
-                                    netDeltaLabel,
-                                    style: TextStyle(
-                                      color: isNetPositive
-                                          ? primaryGreen
-                                          : Colors.redAccent,
-                                      fontSize: 12,
-                                      fontFamily: 'Inter',
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 6),
-                              SizedBox(
-                                height: 150,
-                                child: CustomPaint(
-                                  painter: TrendChartPainter(trendData),
-                                  child: const SizedBox.expand(),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(height: 24),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            const Text(
-                              'Aktivitas Terbaru',
-                              style: TextStyle(
-                                color: primaryGreen,
-                                fontSize: 14,
-                                fontFamily: 'Inter',
-                                fontWeight: FontWeight.w700,
-                              ),
+                      ),
+                      const SizedBox(height: 24),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text(
+                            'Aktivitas Terbaru',
+                            style: TextStyle(
+                              color: primaryGreen,
+                              fontSize: 14,
+                              fontFamily: 'Inter',
+                              fontWeight: FontWeight.w700,
                             ),
+                          ),
+                          if (visibleGroups.isNotEmpty)
                             GestureDetector(
                               onTap: () => context.push(
                                 AppRoutes.semuaAktivitas,
@@ -414,9 +382,15 @@ class _RiwayatScreenState extends State<RiwayatScreen> {
                                 ),
                               ),
                             ),
-                          ],
-                        ),
-                        const SizedBox(height: 12),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      if (visibleGroups.isEmpty)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 16),
+                          child: _buildEmpty(),
+                        )
+                      else
                         ...visibleGroups.map(
                           (group) => TransactionGroupList(
                             group: group,
@@ -427,7 +401,6 @@ class _RiwayatScreenState extends State<RiwayatScreen> {
                                 TransactionActions.delete(context, id),
                           ),
                         ),
-                      ],
                       const SizedBox(height: 80),
                     ],
                   ),
@@ -435,6 +408,34 @@ class _RiwayatScreenState extends State<RiwayatScreen> {
               ),
             ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildTrendFilterTab(int index, String label) {
+    final isSelected = _selectedFilter == index;
+    return Expanded(
+      child: GestureDetector(
+        onTap: () => _setFilter(index),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 160),
+          padding: const EdgeInsets.symmetric(vertical: 7),
+          decoration: BoxDecoration(
+            color: isSelected ? primaryGreen : Colors.transparent,
+            borderRadius: BorderRadius.circular(100),
+          ),
+          child: Center(
+            child: Text(
+              label,
+              style: TextStyle(
+                color: isSelected ? Colors.white : primaryGreen,
+                fontSize: 12,
+                fontFamily: 'Inter',
+                fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600,
+              ),
+            ),
+          ),
+        ),
       ),
     );
   }

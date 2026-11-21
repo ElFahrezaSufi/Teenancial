@@ -9,6 +9,7 @@ class TargetItem {
   final bool isPinned;
   final DateTime createdAt;
   final DateTime? deadline;
+  final bool isSettled;
 
   TargetItem({
     required this.id,
@@ -19,11 +20,11 @@ class TargetItem {
     this.isPinned = false,
     DateTime? createdAt,
     this.deadline,
+    this.isSettled = false,
   }) : createdAt = createdAt ?? DateTime.now();
 
-  double get progress => targetAmount > 0
-      ? (savedAmount / targetAmount).clamp(0.0, 1.0)
-      : 0.0;
+  double get progress =>
+      targetAmount > 0 ? (savedAmount / targetAmount).clamp(0.0, 1.0) : 0.0;
 
   bool get isAchieved => targetAmount > 0 && savedAmount >= targetAmount;
 
@@ -40,6 +41,7 @@ class TargetItem {
       'isPinned': isPinned,
       'createdAt': Timestamp.fromDate(createdAt),
       'deadline': deadline != null ? Timestamp.fromDate(deadline!) : null,
+      'isSettled': isSettled,
     };
   }
 
@@ -67,6 +69,7 @@ class TargetItem {
       isPinned: map['isPinned'] == true,
       createdAt: parsedCreatedAt,
       deadline: _parseDateTime(map['deadline']),
+      isSettled: map['isSettled'] == true,
     );
   }
 
@@ -80,6 +83,7 @@ class TargetItem {
     DateTime? createdAt,
     DateTime? deadline,
     bool clearDeadline = false,
+    bool? isSettled,
   }) {
     return TargetItem(
       id: id ?? this.id,
@@ -90,6 +94,7 @@ class TargetItem {
       isPinned: isPinned ?? this.isPinned,
       createdAt: createdAt ?? this.createdAt,
       deadline: clearDeadline ? null : (deadline ?? this.deadline),
+      isSettled: isSettled ?? this.isSettled,
     );
   }
 }

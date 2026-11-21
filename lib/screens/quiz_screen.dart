@@ -1,8 +1,9 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
 import '../models/belajar_model.dart';
 import '../providers/belajar_provider.dart';
 import '../theme/app_colors.dart';
+import '../utils/error_mapper.dart';
 import '../widgets/common/custom_app_bar.dart';
 import '../widgets/common/async_state_view.dart';
 
@@ -69,12 +70,27 @@ class _QuizScreenState extends State<QuizScreen> {
 
   Future<void> _klaimXp() async {
     setState(() => _isClaiming = true);
-    await context.read<BelajarProvider>().completeQuiz(
-          widget.levelIndex,
-          widget.moduleIndex,
-          scorePercent: _scorePercent,
-        );
-    if (mounted) Navigator.pop(context);
+    try {
+      await context.read<BelajarProvider>().completeQuiz(
+            widget.levelIndex,
+            widget.moduleIndex,
+            scorePercent: _scorePercent,
+          );
+      if (mounted) Navigator.pop(context);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(
+            SnackBar(
+              content: Text(ErrorMapper.message(e)),
+              backgroundColor: Colors.redAccent,
+            ),
+          );
+      }
+    } finally {
+      if (mounted) setState(() => _isClaiming = false);
+    }
   }
 
   Future<bool> _onWillPop() async {

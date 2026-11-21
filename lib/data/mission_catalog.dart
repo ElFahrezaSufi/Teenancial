@@ -8,7 +8,7 @@ class MissionCatalog {
       title: 'Catat Keuangan Hari Ini',
       description: 'Catat minimal 1 pemasukan atau pengeluaran hari ini.',
       period: MissionPeriod.daily,
-      trigger: MissionTrigger.addTransaction,
+      trigger: MissionTrigger.addIncomeExpense,
       targetCount: 1,
       xpReward: 20,
     ),

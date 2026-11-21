@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
 import '../../data/category_catalog.dart';
 import '../../models/transaction_model.dart';
@@ -13,12 +13,17 @@ class TransactionCard extends StatelessWidget {
   final Function(TransactionModel) onEdit;
   final Function(String) onDelete;
 
+  /// Bila true, keterangan transaksi ditampilkan penuh (bisa beberapa baris)
+  /// dan nominal tetap di atas. Dipakai di halaman "Lihat semua".
+  final bool allowSubtitleWrap;
+
   const TransactionCard({
     super.key,
     required this.item,
     required this.formatCurrency,
     required this.onEdit,
     required this.onDelete,
+    this.allowSubtitleWrap = false,
   });
 
   @override
@@ -30,8 +35,6 @@ class TransactionCard extends StatelessWidget {
             item.categoryId,
             fallbackType: item.type,
           );
-    final Color iconBgColor = cat.color.withValues(alpha: 0.18);
-    final Color iconFgColor = cat.color;
     // Piutang & Transfer keluar = uang keluar, Hutang & Pemasukan = uang masuk
     final bool isExpense = item.type == TransactionType.expense ||
         item.type == TransactionType.receivable ||
@@ -39,13 +42,34 @@ class TransactionCard extends StatelessWidget {
             item.destinationDompetId == null);
     final bool isInternalTransfer = item.type == TransactionType.transfer &&
         item.destinationDompetId != null;
+    final bool isTargetTransaction =
+        item.targetId != null && item.targetId!.isNotEmpty;
+    // Alokasi tabungan target = perpindahan dana internal, bukan pengeluaran.
+    final bool isTargetAllocation =
+        item.isBalanceAdjustment && isTargetTransaction;
+    final bool isTargetSettlement =
+        !item.isBalanceAdjustment && isTargetTransaction;
+    final bool isWalletAdjustment =
+        item.isBalanceAdjustment && !isTargetTransaction;
+
+    final IconData leadingIcon = isTargetAllocation
+        ? Icons.savings_outlined
+        : (isWalletAdjustment ? Icons.tune_rounded : cat.icon);
+    final Color iconFgColor =
+        (isTargetAllocation || isWalletAdjustment) ? primaryGreen : cat.color;
+    final Color iconBgColor = (isTargetAllocation || isWalletAdjustment)
+        ? primaryGreen.withValues(alpha: 0.14)
+        : cat.color.withValues(alpha: 0.18);
     final bool isLoan = LoanHelper.isLoan(item);
     final LoanDueInfo? dueInfo = LoanHelper.describe(item);
 
-    final String prefix = isInternalTransfer
-        ? ''
+    // Penanda nominal:
+    // '+' pemasukan, '-' pengeluaran, '⇄' perpindahan dana internal
+    // (alokasi/tarik tabungan target & transfer antar dompet).
+    final String prefix = (isTargetAllocation || isInternalTransfer)
+        ? '⇄ '
         : (isExpense ? '- ' : '+ ');
-    final Color amountColor = isInternalTransfer
+    final Color amountColor = (isInternalTransfer || isTargetAllocation)
         ? primaryGreen
         : (isExpense ? Colors.red : primaryGreen);
 
@@ -56,12 +80,16 @@ class TransactionCard extends StatelessWidget {
     final bool isStandardIncomeOrExpense =
         (item.type == TransactionType.income ||
                 item.type == TransactionType.expense) &&
-            !item.isBalanceAdjustment;
+            !item.isBalanceAdjustment &&
+            !isTargetSettlement;
 
     final String displayTitle;
     String? displaySubtitle;
 
-    if (isStandardIncomeOrExpense) {
+    if (isTargetSettlement) {
+      displayTitle = item.title.trim().isNotEmpty ? item.title.trim() : cat.name;
+      displaySubtitle = cat.name;
+    } else if (isStandardIncomeOrExpense) {
       displayTitle = cat.name;
       final trimmedNotes = item.notes.trim();
       final trimmedTitle = item.title.trim();
@@ -92,7 +120,7 @@ class TransactionCard extends StatelessWidget {
               color: iconBgColor,
               borderRadius: BorderRadius.circular(8),
             ),
-            child: Icon(cat.icon, color: iconFgColor, size: 22),
+            child: Icon(leadingIcon, color: iconFgColor, size: 22),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -117,7 +145,10 @@ class TransactionCard extends StatelessWidget {
                     ),
                     if (displaySubtitle == null && hasRecurringBadge) ...[
                       const SizedBox(width: 6),
-                      const _RecurringBadge(),
+                      const _MetaBadge(
+                        icon: Icons.autorenew_rounded,
+                        label: 'Berulang',
+                      ),
                     ],
                   ],
                 ),
@@ -134,13 +165,25 @@ class TransactionCard extends StatelessWidget {
                             fontFamily: 'Inter',
                             fontWeight: FontWeight.w500,
                           ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
+                          maxLines: allowSubtitleWrap ? null : 1,
+                          overflow: allowSubtitleWrap
+                              ? TextOverflow.visible
+                              : TextOverflow.ellipsis,
                         ),
                       ),
+                      if (isTargetSettlement) ...[
+                        const SizedBox(width: 6),
+                        const _MetaBadge(
+                          icon: Icons.flag_outlined,
+                          label: 'Target',
+                        ),
+                      ],
                       if (hasRecurringBadge) ...[
                         const SizedBox(width: 6),
-                        const _RecurringBadge(),
+                        const _MetaBadge(
+                          icon: Icons.autorenew_rounded,
+                          label: 'Berulang',
+                        ),
                       ],
                     ],
                   ),
@@ -195,47 +238,80 @@ class TransactionCard extends StatelessWidget {
               ],
             ),
           ),
-          Text(
-            prefix + formatCurrency(item.amount),
-            style: TextStyle(
-              color: amountColor,
-              fontSize: 14,
-              fontFamily: 'Inter',
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-          PopupMenuButton<String>(
-            icon: const Icon(Icons.more_vert, color: primaryGreen, size: 20),
-            onSelected: (value) {
-              if (value == 'edit') {
-                onEdit(item);
-              } else if (value == 'delete') {
-                onDelete(item.id);
-              }
-            },
-            itemBuilder: (context) => [
-              if (canEdit)
-                const PopupMenuItem(
-                  value: 'edit',
-                  child: Row(
-                    children: [
-                      Icon(Icons.edit_outlined, color: primaryGreen),
-                      SizedBox(width: 8),
-                      Text('Edit', style: TextStyle(color: primaryGreen)),
-                    ],
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              SizedBox(
+                width: 16,
+                child: Text(
+                  prefix.trim(),
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: amountColor,
+                    fontSize: 14,
+                    fontFamily: 'Inter',
+                    fontWeight: FontWeight.w700,
                   ),
                 ),
-              const PopupMenuItem(
-                value: 'delete',
-                child: Row(
-                  children: [
-                    Icon(Icons.delete_outline, color: Colors.red),
-                    SizedBox(width: 8),
-                    Text('Hapus', style: TextStyle(color: Colors.red)),
-                  ],
+              ),
+              Text(
+                formatCurrency(item.amount),
+                style: TextStyle(
+                  color: amountColor,
+                  fontSize: 14,
+                  fontFamily: 'Inter',
+                  fontWeight: FontWeight.w700,
                 ),
               ),
             ],
+          ),
+          // Slot selebar tombol menu selalu disediakan supaya tepi kanan
+          // nominal tetap sejajar untuk semua baris (termasuk transaksi
+          // tabungan target yang menunya disembunyikan).
+          SizedBox(
+            width: 40,
+            child: isTargetTransaction
+                ? const SizedBox.shrink()
+                : PopupMenuButton<String>(
+                    icon: const Icon(
+                      Icons.more_vert,
+                      color: primaryGreen,
+                      size: 20,
+                    ),
+                    onSelected: (value) {
+                      if (value == 'edit') {
+                        onEdit(item);
+                      } else if (value == 'delete') {
+                        onDelete(item.id);
+                      }
+                    },
+                    itemBuilder: (context) => [
+                      if (canEdit)
+                        const PopupMenuItem(
+                          value: 'edit',
+                          child: Row(
+                            children: [
+                              Icon(Icons.edit_outlined, color: primaryGreen),
+                              SizedBox(width: 8),
+                              Text(
+                                'Edit',
+                                style: TextStyle(color: primaryGreen),
+                              ),
+                            ],
+                          ),
+                        ),
+                      const PopupMenuItem(
+                        value: 'delete',
+                        child: Row(
+                          children: [
+                            Icon(Icons.delete_outline, color: Colors.red),
+                            SizedBox(width: 8),
+                            Text('Hapus', style: TextStyle(color: Colors.red)),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
           ),
         ],
       ),
@@ -243,8 +319,14 @@ class TransactionCard extends StatelessWidget {
   }
 }
 
-class _RecurringBadge extends StatelessWidget {
-  const _RecurringBadge();
+class _MetaBadge extends StatelessWidget {
+  final IconData icon;
+  final String label;
+
+  const _MetaBadge({
+    required this.icon,
+    required this.label,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -254,18 +336,18 @@ class _RecurringBadge extends StatelessWidget {
         color: primaryGreen.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(100),
       ),
-      child: const Row(
+      child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           Icon(
-            Icons.autorenew_rounded,
+            icon,
             size: 10,
             color: primaryGreen,
           ),
-          SizedBox(width: 2.5),
+          const SizedBox(width: 2.5),
           Text(
-            'Berulang',
-            style: TextStyle(
+            label,
+            style: const TextStyle(
               color: primaryGreen,
               fontSize: 9.5,
               fontFamily: 'Inter',

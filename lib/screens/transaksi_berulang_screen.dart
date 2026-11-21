@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../config/app_routes.dart';
@@ -678,8 +678,8 @@ class _TransaksiBerulangScreenState extends State<TransaksiBerulangScreen> {
                     Expanded(
                       child: Text(
                         item.skippedCount > 0
-                            ? 'Dilewati (${item.skippedCount}x) — ${item.lastSkipReason!}'
-                            : 'Dilewati — ${item.lastSkipReason!}',
+                            ? 'Dilewati (${item.skippedCount}x): ${item.lastSkipReason!}'
+                            : 'Dilewati: ${item.lastSkipReason!}',
                         style: const TextStyle(
                           color: Colors.red,
                           fontSize: 11,

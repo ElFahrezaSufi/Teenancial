@@ -1,5 +1,5 @@
 import 'dart:async';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
 import '../data/feen_catalog.dart';
 import '../data/mission_catalog.dart';
@@ -7,6 +7,7 @@ import '../models/mission_model.dart';
 import '../providers/mission_provider.dart';
 import '../providers/user_provider.dart';
 import '../theme/app_colors.dart';
+import '../utils/error_mapper.dart';
 import '../widgets/common/custom_app_bar.dart';
 import '../widgets/common/custom_card.dart';
 import '../widgets/feen/feen_avatar.dart';
@@ -61,11 +62,11 @@ class _MisiScreenState extends State<MisiScreen> {
 
     if (diff.inDays >= 1) {
       final hours = diff.inHours % 24;
-      return 'Reset dalam ${diff.inDays} hari ${hours} jam';
+      return 'Reset dalam ${diff.inDays} hari $hours jam';
     }
     final hours = diff.inHours;
     final minutes = diff.inMinutes % 60;
-    return 'Reset dalam ${hours} jam ${minutes} menit';
+    return 'Reset dalam $hours jam $minutes menit';
   }
 
   Future<void> _handleClaim(MissionItem mission) async {
@@ -96,12 +97,19 @@ class _MisiScreenState extends State<MisiScreen> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Gagal mengklaim XP, coba lagi.'),
-            backgroundColor: Colors.redAccent,
-          ),
-        );
+        ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(
+            SnackBar(
+              content: Text(
+                ErrorMapper.message(
+                  e,
+                  fallback: 'Gagal mengklaim XP, coba lagi.',
+                ),
+              ),
+              backgroundColor: Colors.redAccent,
+            ),
+          );
       }
     }
   }
@@ -111,6 +119,7 @@ class _MisiScreenState extends State<MisiScreen> {
     final user = context.watch<UserProvider>();
     final missionProvider = context.watch<MissionProvider>();
     final missions = MissionCatalog.byPeriod(_selectedPeriod);
+    final tier = tierForLevel(user.level);
 
     final int currentXp = user.xpIntoLevel;
     final int nextLevelXp = user.xpNeededForNext;
@@ -160,15 +169,56 @@ class _MisiScreenState extends State<MisiScreen> {
                                     mainAxisAlignment:
                                         MainAxisAlignment.spaceBetween,
                                     children: [
-                                      Text(
-                                        'Level ${user.level}',
-                                        style: const TextStyle(
-                                          color: primaryGreen,
-                                          fontSize: 17,
-                                          fontFamily: 'Inter',
-                                          fontWeight: FontWeight.w800,
+                                      Flexible(
+                                        child: Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            Text(
+                                              'Level ${user.level}',
+                                              style: const TextStyle(
+                                                color: primaryGreen,
+                                                fontSize: 17,
+                                                fontFamily: 'Inter',
+                                                fontWeight: FontWeight.w800,
+                                              ),
+                                            ),
+                                            const SizedBox(width: 8),
+                                            Flexible(
+                                              child: Container(
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                  horizontal: 8,
+                                                  vertical: 3,
+                                                ),
+                                                decoration: BoxDecoration(
+                                                  color: inputBg,
+                                                  borderRadius:
+                                                      BorderRadius.circular(
+                                                    100,
+                                                  ),
+                                                  border: Border.all(
+                                                    color: primaryGreen,
+                                                    width: 1,
+                                                  ),
+                                                ),
+                                                child: Text(
+                                                  'Feen ${tier.label}',
+                                                  maxLines: 1,
+                                                  overflow:
+                                                      TextOverflow.ellipsis,
+                                                  style: const TextStyle(
+                                                    color: primaryGreen,
+                                                    fontSize: 10,
+                                                    fontFamily: 'Inter',
+                                                    fontWeight: FontWeight.w700,
+                                                  ),
+                                                ),
+                                              ),
+                                            ),
+                                          ],
                                         ),
                                       ),
+                                      const SizedBox(width: 8),
                                       Text(
                                         '$currentXp / $nextLevelXp XP',
                                         style: const TextStyle(
@@ -215,11 +265,12 @@ class _MisiScreenState extends State<MisiScreen> {
                       const SizedBox(height: 16),
                       Row(
                         children: [
-                          Expanded(
-                            child: SingleChildScrollView(
-                              scrollDirection: Axis.horizontal,
-                              child: Row(
-                                children: _visiblePeriods.map((period) {
+                          for (int i = 0; i < _visiblePeriods.length; i++) ...[
+                            if (i > 0) const SizedBox(width: 6),
+                            Expanded(
+                              child: Builder(
+                                builder: (context) {
+                                  final period = _visiblePeriods[i];
                                   final isSelected = _selectedPeriod == period;
                                   final hasClaimable =
                                       MissionCatalog.byPeriod(period).any(
@@ -228,62 +279,66 @@ class _MisiScreenState extends State<MisiScreen> {
                                         MissionClaimStatus.claimable,
                                   );
 
-                                  return Padding(
-                                    padding: const EdgeInsets.only(right: 8),
-                                    child: GestureDetector(
-                                      onTap: () => setState(
-                                        () => _selectedPeriod = period,
+                                  return GestureDetector(
+                                    onTap: () => setState(
+                                      () => _selectedPeriod = period,
+                                    ),
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 6,
+                                        vertical: 9,
                                       ),
-                                      child: Container(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 16,
-                                          vertical: 9,
+                                      decoration: BoxDecoration(
+                                        color: isSelected
+                                            ? primaryGreen
+                                            : inputBg,
+                                        borderRadius:
+                                            BorderRadius.circular(100),
+                                        border: Border.all(
+                                          color: primaryGreen,
+                                          width: 1.5,
                                         ),
-                                        decoration: BoxDecoration(
-                                          color: isSelected
-                                              ? primaryGreen
-                                              : inputBg,
-                                          borderRadius:
-                                              BorderRadius.circular(100),
-                                          border: Border.all(
-                                            color: primaryGreen,
-                                            width: 1.5,
-                                          ),
-                                        ),
-                                        child: Row(
-                                          mainAxisSize: MainAxisSize.min,
-                                          children: [
-                                            Text(
-                                              period.label,
-                                              style: TextStyle(
-                                                color: isSelected
-                                                    ? Colors.white
-                                                    : primaryGreen,
-                                                fontSize: 12,
-                                                fontFamily: 'Inter',
-                                                fontWeight: FontWeight.w700,
-                                              ),
-                                            ),
-                                            if (hasClaimable) ...[
-                                              const SizedBox(width: 6),
-                                              Container(
-                                                width: 8,
-                                                height: 8,
-                                                decoration: const BoxDecoration(
-                                                  color: Color(0xFFDAB62C),
-                                                  shape: BoxShape.circle,
+                                      ),
+                                      child: Center(
+                                        child: FittedBox(
+                                          fit: BoxFit.scaleDown,
+                                          child: Row(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              Text(
+                                                period.label,
+                                                maxLines: 1,
+                                                style: TextStyle(
+                                                  color: isSelected
+                                                      ? Colors.white
+                                                      : primaryGreen,
+                                                  fontSize: 11.5,
+                                                  fontFamily: 'Inter',
+                                                  fontWeight: FontWeight.w700,
                                                 ),
                                               ),
+                                              if (hasClaimable) ...[
+                                                const SizedBox(width: 4),
+                                                Container(
+                                                  width: 7,
+                                                  height: 7,
+                                                  decoration:
+                                                      const BoxDecoration(
+                                                    color: Color(0xFFDAB62C),
+                                                    shape: BoxShape.circle,
+                                                  ),
+                                                ),
+                                              ],
                                             ],
-                                          ],
+                                          ),
                                         ),
                                       ),
                                     ),
                                   );
-                                }).toList(),
+                                },
                               ),
                             ),
-                          ),
+                          ],
                         ],
                       ),
                       const SizedBox(height: 10),

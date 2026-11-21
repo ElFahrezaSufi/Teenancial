@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_text_styles.dart';
 import '../common/custom_card.dart';
@@ -38,7 +38,15 @@ class TotalSaldoCard extends StatelessWidget {
           children: [
             const Text('Total Saldo', style: AppTextStyles.sectionTitle),
             const SizedBox(height: 4),
-            Text(formatRupiah(totalSaldoReal), style: AppTextStyles.balanceText),
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerLeft,
+              child: Text(
+                formatRupiah(totalSaldoReal),
+                maxLines: 1,
+                style: AppTextStyles.balanceText,
+              ),
+            ),
             const SizedBox(height: 16),
             ClipRRect(
               borderRadius: BorderRadius.circular(10),
@@ -62,35 +70,43 @@ class TotalSaldoCard extends StatelessWidget {
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Row(
-                    children: [
-                      Image.asset(
-                        'assets/images/perkiraan.png',
-                        width: 16,
-                        height: 16,
+                  Image.asset(
+                    'assets/images/perkiraan.png',
+                    width: 16,
+                    height: 16,
+                    color: iconLightGreen,
+                  ),
+                  const SizedBox(width: 8),
+                  const Expanded(
+                    child: Text(
+                      'Perkiraan Minggu Depan',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
                         color: iconLightGreen,
+                        fontSize: 12,
+                        fontFamily: 'Inter',
+                        fontWeight: FontWeight.w500,
                       ),
-                      const SizedBox(width: 8),
-                      const Text(
-                        'Perkiraan Minggu Depan',
-                        style: TextStyle(
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 160),
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.centerRight,
+                      child: Text(
+                        formatRupiah(perkiraanMingguanReal),
+                        maxLines: 1,
+                        style: const TextStyle(
                           color: iconLightGreen,
                           fontSize: 12,
                           fontFamily: 'Inter',
-                          fontWeight: FontWeight.w500,
+                          fontWeight: FontWeight.w700,
                         ),
                       ),
-                    ],
-                  ),
-                  Text(
-                    formatRupiah(perkiraanMingguanReal),
-                    style: const TextStyle(
-                      color: iconLightGreen,
-                      fontSize: 12,
-                      fontFamily: 'Inter',
-                      fontWeight: FontWeight.w700,
                     ),
                   ),
                 ],

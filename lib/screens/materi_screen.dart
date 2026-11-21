@@ -1,10 +1,11 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
 import '../data/feen_catalog.dart';
 import '../models/belajar_model.dart';
 import '../providers/belajar_provider.dart';
 import '../providers/user_provider.dart';
 import '../theme/app_colors.dart';
+import '../utils/error_mapper.dart';
 import '../widgets/common/custom_app_bar.dart';
 import '../widgets/common/custom_card.dart';
 import '../widgets/common/skeleton.dart';
@@ -31,10 +32,25 @@ class _MateriScreenState extends State<MateriScreen> {
 
   Future<void> _tandaiSelesai() async {
     setState(() => _isCompleting = true);
-    await context
-        .read<BelajarProvider>()
-        .completeModule(widget.levelIndex, widget.moduleIndex);
-    if (mounted) Navigator.pop(context);
+    try {
+      await context
+          .read<BelajarProvider>()
+          .completeModule(widget.levelIndex, widget.moduleIndex);
+      if (mounted) Navigator.pop(context);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(
+            SnackBar(
+              content: Text(ErrorMapper.message(e)),
+              backgroundColor: Colors.redAccent,
+            ),
+          );
+      }
+    } finally {
+      if (mounted) setState(() => _isCompleting = false);
+    }
   }
 
   @override
@@ -213,24 +229,28 @@ class _MateriScreenState extends State<MateriScreen> {
                                 ),
                               ),
                               const SizedBox(height: 10),
-                              ...module.references.map(
-                                (ref) => Padding(
+                              ...module.references.asMap().entries.map(
+                                (entry) => Padding(
                                   padding: const EdgeInsets.only(bottom: 6),
                                   child: Row(
                                     crossAxisAlignment:
                                         CrossAxisAlignment.start,
                                     children: [
-                                      const Text(
-                                        '• ',
-                                        style: TextStyle(
-                                          color: primaryGreen,
-                                          fontSize: 13,
-                                          fontFamily: 'Inter',
+                                      SizedBox(
+                                        width: 22,
+                                        child: Text(
+                                          '${entry.key + 1}.',
+                                          style: const TextStyle(
+                                            color: primaryGreen,
+                                            fontSize: 13,
+                                            fontFamily: 'Inter',
+                                            fontWeight: FontWeight.w600,
+                                          ),
                                         ),
                                       ),
                                       Expanded(
                                         child: Text(
-                                          ref,
+                                          entry.value,
                                           style: const TextStyle(
                                             color: primaryGreen,
                                             fontSize: 13,

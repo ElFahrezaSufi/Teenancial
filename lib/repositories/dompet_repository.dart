@@ -10,7 +10,7 @@ class DompetRepository {
 
   Future<List<DompetItem>> getDompets(String uid) async {
     final walletsRef = _firestoreService.walletsCol(uid);
-    final snapshot = await walletsRef.get();
+    final snapshot = await _firestoreService.getQuerySnapshot(walletsRef);
 
     if (snapshot.docs.isEmpty) {
       return [];
@@ -34,6 +34,7 @@ class DompetRepository {
   }
 
   Future<void> addDompet(String uid, DompetItem item) async {
+    _firestoreService.ensureOnline(actionLabel: 'menambahkan dompet');
     final walletsRef = _firestoreService.walletsCol(uid);
     final docRef =
         item.id.isEmpty ? walletsRef.doc() : walletsRef.doc(item.id);
@@ -44,11 +45,35 @@ class DompetRepository {
     await docRef.set(toSave.toMap());
   }
 
+  /// Mengatur saldo awal dompet (misalnya `Dompet Tunai` `d1` saat onboarding)
+  /// secara langsung tanpa membuat entri "Penyesuaian Saldo" di Riwayat.
+  Future<void> setInitialWalletBalance(
+    String uid,
+    String dompetId,
+    double initialBalance,
+  ) async {
+    _firestoreService.ensureOnline(actionLabel: 'menyimpan saldo awal');
+    final double safeBalance = initialBalance < 0 ? 0.0 : initialBalance;
+    final walletRef = _firestoreService.walletsCol(uid).doc(dompetId);
+
+    await _firestoreService.runTransaction(
+      (fsTx) async {
+        final walletSnap = await fsTx.get(walletRef);
+        if (!walletSnap.exists || walletSnap.data() == null) {
+          throw Exception('Dompet tidak ditemukan');
+        }
+        fsTx.update(walletRef, {'jumlah': safeBalance});
+      },
+      actionLabel: 'menyimpan saldo awal',
+    );
+  }
+
   Future<void> updateDompet(String uid, DompetItem item) async {
     final walletRef = _firestoreService.walletsCol(uid).doc(item.id);
     final txColRef = _firestoreService.transactionsCol(uid);
 
-    await _firestoreService.runTransaction((fsTx) async {
+    await _firestoreService.runTransaction(
+      (fsTx) async {
       final walletSnap = await fsTx.get(walletRef);
       if (!walletSnap.exists || walletSnap.data() == null) {
         throw Exception('Dompet tidak ditemukan');
@@ -79,10 +104,13 @@ class DompetRepository {
         );
         fsTx.set(txDocRef, adjustmentTx.toMap());
       }
-    });
+      },
+      actionLabel: 'memperbarui dompet',
+    );
   }
 
   Future<void> deleteDompet(String uid, String dompetId) async {
+    _firestoreService.ensureOnline(actionLabel: 'menghapus dompet');
     final walletsRef = _firestoreService.walletsCol(uid);
     final walletsSnap = await walletsRef.get();
     final remainingCount =

@@ -32,15 +32,32 @@ void main() {
       expect(result.text, 'Rp 100.000');
     });
 
-    test('membatasi input maksimal 12 digit (Rp 999.999.999.999) untuk mencegah overflow', () {
+    test('membatasi input maksimal 9 digit (Rp 999.999.999) untuk menjaga nominal tetap realistis', () {
       const oldValue = TextEditingValue.empty;
       const newValue = TextEditingValue(
-        text: '999999999999123',
-        selection: TextSelection.collapsed(offset: 15),
+        text: '999999999123',
+        selection: TextSelection.collapsed(offset: 12),
       );
 
       final result = formatter.formatEditUpdate(oldValue, newValue);
-      expect(result.text, 'Rp 999.999.999.999');
+      expect(result.text, 'Rp 999.999.999');
+    });
+
+    test('membersihkan angka nol di depan sebelum memotong batas digit saat paste', () {
+      const oldValue = TextEditingValue.empty;
+      const pastedLeadingZeros = TextEditingValue(
+        text: '000000000000500',
+        selection: TextSelection.collapsed(offset: 15),
+      );
+      final result = formatter.formatEditUpdate(oldValue, pastedLeadingZeros);
+      expect(result.text, 'Rp 500');
+
+      const pastedAllZeros = TextEditingValue(
+        text: '0000000000',
+        selection: TextSelection.collapsed(offset: 10),
+      );
+      final zeroResult = formatter.formatEditUpdate(oldValue, pastedAllZeros);
+      expect(zeroResult.text, 'Rp 0');
     });
 
     test('mengembalikan string kosong bila input tidak mengandung angka', () {

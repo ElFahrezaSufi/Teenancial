@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:teenancial/data/category_catalog.dart';
 import 'package:teenancial/data/category_icons.dart';
@@ -88,6 +88,30 @@ void main() {
         18,
       );
     });
+
+    test(
+      'initialBalanceOnboardingDone default true untuk pengguna lama dan terserialisasi dengan benar untuk pengguna baru',
+      () {
+        final legacyUser = UserModel.fromMap({
+          'uid': 'old_u1',
+          'email': 'lama@example.com',
+          'name': 'User Lama',
+        });
+        expect(legacyUser.initialBalanceOnboardingDone, isTrue);
+
+        final newUser = UserModel.fromMap({
+          'uid': 'new_u1',
+          'email': 'baru@example.com',
+          'name': 'User Baru',
+          'initialBalanceOnboardingDone': false,
+        });
+        expect(newUser.initialBalanceOnboardingDone, isFalse);
+        expect(newUser.toMap()['initialBalanceOnboardingDone'], isFalse);
+
+        final finished = newUser.copyWith(initialBalanceOnboardingDone: true);
+        expect(finished.initialBalanceOnboardingDone, isTrue);
+      },
+    );
   });
 
   group('DompetItem & BelajarProgressModel', () {
@@ -112,17 +136,32 @@ void main() {
 
     test('BelajarProgressModel serialisasi toMap & fromMap secara terurut', () {
       const progress = BelajarProgressModel(
-        completedModules: {'0_1', '0_0'},
-        completedQuizzes: {'0_0'},
+        completedModules: {'mod_b', 'mod_a'},
+        completedQuizzes: {'mod_a'},
       );
 
       final map = progress.toMap();
-      expect(map['completedModules'], ['0_0', '0_1']);
-      expect(map['completedQuizzes'], ['0_0']);
+      expect(map['completedModules'], ['mod_a', 'mod_b']);
+      expect(map['completedQuizzes'], ['mod_a']);
 
       final restored = BelajarProgressModel.fromMap(map);
-      expect(restored.completedModules, {'0_0', '0_1'});
-      expect(restored.completedQuizzes, {'0_0'});
+      expect(restored.completedModules, {'mod_a', 'mod_b'});
+      expect(restored.completedQuizzes, {'mod_a'});
+    });
+
+    test('BelajarProgressModel memfilter key legacy indeks dan key kosong', () {
+      expect(BelajarProgressModel.isLegacyKey('0_0'), isTrue);
+      expect(BelajarProgressModel.isLegacyKey('1_2'), isTrue);
+      expect(BelajarProgressModel.isLegacyKey('mod_1'), isFalse);
+      expect(BelajarProgressModel.isLegacyKey(''), isFalse);
+
+      final restored = BelajarProgressModel.fromMap({
+        'completedModules': ['0_0', '0_1', 'mod_1', '', 'mod_2'],
+        'completedQuizzes': ['0_0', 'mod_1', '  '],
+      });
+
+      expect(restored.completedModules, {'mod_1', 'mod_2'});
+      expect(restored.completedQuizzes, {'mod_1'});
     });
   });
 
