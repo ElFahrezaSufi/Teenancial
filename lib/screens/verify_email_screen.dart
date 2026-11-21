@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:firebase_auth/firebase_auth.dart' hide AuthProvider;
 import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
@@ -21,8 +22,11 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen>
     with WidgetsBindingObserver {
   bool _isChecking = false;
   bool _isLoggingOut = false;
+  bool _isCanceling = false;
   int _cooldown = 0;
   Timer? _cooldownTimer;
+
+  bool get _isBusy => _isChecking || _isLoggingOut || _isCanceling;
 
   @override
   void initState() {
@@ -39,33 +43,13 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen>
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed && !_isChecking && !_isLoggingOut) {
+    if (state == AppLifecycleState.resumed && !_isBusy) {
       _handleCheckVerification(silent: true);
     }
   }
 
-  /// Samarkan email: hanya karakter pertama & terakhir bagian lokal yang
-  /// tampak, sisanya diganti '*'. Domain tetap ditampilkan.
-  String _maskEmail(String email) {
-    final atIndex = email.indexOf('@');
-    if (atIndex <= 0) return email;
-
-    final local = email.substring(0, atIndex);
-    final domain = email.substring(atIndex);
-
-    if (local.length <= 2) {
-      return '${local[0]}***$domain';
-    }
-
-    final first = local[0];
-    final last = local[local.length - 1];
-    final hiddenCount = local.length - 2;
-    final stars = '*' * (hiddenCount < 3 ? 3 : hiddenCount);
-    return '$first$stars$last$domain';
-  }
-
   Future<void> _handleCheckVerification({bool silent = false}) async {
-    if (_isChecking || _isLoggingOut) return;
+    if (_isBusy) return;
     if (!silent) {
       setState(() => _isChecking = true);
     } else {
@@ -113,7 +97,7 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen>
   }
 
   Future<void> _handleResendEmail() async {
-    if (_cooldown > 0 || _isChecking || _isLoggingOut) return;
+    if (_cooldown > 0 || _isBusy) return;
 
     try {
       await context.read<AuthProvider>().resendVerificationEmail();
@@ -142,7 +126,7 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen>
   }
 
   Future<void> _handleLogout() async {
-    if (_isLoggingOut) return;
+    if (_isBusy) return;
     setState(() => _isLoggingOut = true);
     try {
       await context.read<AuthProvider>().logout();
@@ -155,6 +139,248 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen>
           backgroundColor: Colors.redAccent,
         ),
       );
+    }
+  }
+
+  Future<String?> _promptPasswordForCancel() async {
+    String typedPassword = '';
+    bool obscure = true;
+    String? errorText;
+
+    return showDialog<String>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          backgroundColor: appBarBg,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          title: const Text(
+            'Verifikasi Password',
+            style: TextStyle(
+              color: primaryGreen,
+              fontFamily: 'Inter',
+              fontWeight: FontWeight.w800,
+              fontSize: 18,
+            ),
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Sesi masukmu sudah agak lama. Masukkan password yang kamu pakai saat mendaftar untuk membatalkan pendaftaran ini.',
+                style: TextStyle(
+                  color: primaryGreen.withValues(alpha: 0.85),
+                  fontFamily: 'Inter',
+                  fontSize: 13,
+                  height: 1.4,
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                obscureText: obscure,
+                autofocus: true,
+                onChanged: (val) {
+                  typedPassword = val;
+                  if (errorText != null && val.trim().isNotEmpty) {
+                    setDialogState(() => errorText = null);
+                  }
+                },
+                style: const TextStyle(
+                  color: primaryGreen,
+                  fontFamily: 'Inter',
+                  fontWeight: FontWeight.w600,
+                ),
+                decoration: InputDecoration(
+                  hintText: 'Masukkan password pendaftaran',
+                  errorText: errorText,
+                  filled: true,
+                  fillColor: Colors.white,
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 12,
+                  ),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(14),
+                    borderSide: const BorderSide(color: primaryGreen),
+                  ),
+                  suffixIcon: IconButton(
+                    icon: Icon(
+                      obscure ? Icons.visibility_off : Icons.visibility,
+                      color: primaryGreen,
+                      size: 18,
+                    ),
+                    onPressed: () => setDialogState(() => obscure = !obscure),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(null),
+              child: Text(
+                'Batal',
+                style: TextStyle(
+                  color: primaryGreen.withValues(alpha: 0.7),
+                  fontFamily: 'Inter',
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.redAccent,
+                foregroundColor: Colors.white,
+                elevation: 0,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(100),
+                ),
+              ),
+              onPressed: () {
+                if (typedPassword.trim().isEmpty) {
+                  setDialogState(() => errorText = 'Password wajib diisi');
+                  return;
+                }
+                Navigator.of(ctx).pop(typedPassword.trim());
+              },
+              child: const Text(
+                'Batalkan Pendaftaran',
+                style: TextStyle(
+                  fontFamily: 'Inter',
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _handleCancelRegistration(String email) async {
+    if (_isBusy) return;
+
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: appBarBg,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text(
+          'Batalkan Pendaftaran?',
+          style: TextStyle(
+            color: primaryGreen,
+            fontFamily: 'Inter',
+            fontWeight: FontWeight.w800,
+            fontSize: 18,
+          ),
+        ),
+        content: Text(
+          'Pendaftaran untuk "$email" akan dihapus agar kamu bisa mendaftar ulang dengan alamat email yang benar.',
+          style: TextStyle(
+            color: primaryGreen.withValues(alpha: 0.85),
+            fontFamily: 'Inter',
+            fontSize: 13,
+            height: 1.5,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: Text(
+              'Kembali',
+              style: TextStyle(
+                color: primaryGreen.withValues(alpha: 0.7),
+                fontFamily: 'Inter',
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.redAccent,
+              foregroundColor: Colors.white,
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(100),
+              ),
+            ),
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text(
+              'Ya, Batalkan',
+              style: TextStyle(
+                fontFamily: 'Inter',
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true || !mounted) return;
+
+    final authProvider = context.read<AuthProvider>();
+    setState(() => _isCanceling = true);
+
+    try {
+      try {
+        await authProvider.cancelUnverifiedRegistration();
+      } on FirebaseAuthException catch (e) {
+        if (e.code != 'requires-recent-login') rethrow;
+        if (!mounted) return;
+        setState(() => _isCanceling = false);
+
+        final password = await _promptPasswordForCancel();
+        if (password == null || password.isEmpty || !mounted) return;
+
+        setState(() => _isCanceling = true);
+        await authProvider.cancelUnverifiedRegistration(password: password);
+      }
+
+      rootScaffoldMessengerKey.currentState
+        ?..hideCurrentSnackBar()
+        ..showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Pendaftaran dibatalkan. Silakan daftar ulang dengan email yang benar.',
+            ),
+            backgroundColor: primaryGreen,
+          ),
+        );
+      appRouter.go(AppRoutes.signup);
+    } on AccountAlreadyVerifiedException {
+      await authProvider.refreshVerificationStatus();
+      rootScaffoldMessengerKey.currentState
+        ?..hideCurrentSnackBar()
+        ..showSnackBar(
+          const SnackBar(
+            content: Text(
+              '✅ Emailmu sudah terverifikasi! Selamat datang di Teenancial.',
+            ),
+            backgroundColor: primaryGreen,
+          ),
+        );
+      appRouter.go(AppRoutes.home);
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _isCanceling = false);
+      final String message = (e is FirebaseAuthException &&
+              (e.code == 'wrong-password' || e.code == 'invalid-credential'))
+          ? 'Password yang kamu masukkan salah.'
+          : ErrorMapper.message(
+              e,
+              fallback: 'Gagal membatalkan pendaftaran. Coba lagi nanti.',
+            );
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          SnackBar(
+            content: Text(message),
+            backgroundColor: Colors.redAccent,
+          ),
+        );
     }
   }
 
@@ -180,7 +406,6 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen>
   @override
   Widget build(BuildContext context) {
     final email = context.watch<AuthProvider>().user?.email ?? '-';
-    final maskedEmail = _maskEmail(email);
     final mediaPadding = MediaQuery.of(context).padding;
 
     return Scaffold(
@@ -256,8 +481,9 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen>
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Text(
-                        maskedEmail,
+                        email,
                         textAlign: TextAlign.center,
+                        softWrap: true,
                         style: const TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w700,
@@ -268,24 +494,25 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen>
                     ),
                     const SizedBox(height: 16),
                     Text(
-                      'Klik link di email untuk membuktikan email itu benar milikmu. '
-                      'Setelah terverifikasi, akunmu terdaftar dan bisa dipakai '
-                      'untuk masuk.',
+                      'Periksa alamat email di atas. Klik link verifikasi di inbox atau folder spam untuk mengaktifkan akunmu.',
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         fontSize: 13,
-                        color: primaryGreen.withValues(alpha: 0.7),
+                        color: primaryGreen.withValues(alpha: 0.75),
                         fontFamily: 'Inter',
+                        height: 1.45,
                       ),
                     ),
                     const SizedBox(height: 32),
                     GestureDetector(
-                      onTap: _isChecking ? null : _handleCheckVerification,
+                      onTap: _isBusy ? null : _handleCheckVerification,
                       child: Container(
                         width: double.infinity,
                         padding: const EdgeInsets.symmetric(vertical: 16),
                         decoration: BoxDecoration(
-                          color: primaryGreen,
+                          color: _isBusy
+                              ? primaryGreen.withValues(alpha: 0.7)
+                              : primaryGreen,
                           borderRadius: BorderRadius.circular(14),
                         ),
                         child: Center(
@@ -312,9 +539,8 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen>
                     ),
                     const SizedBox(height: 14),
                     OutlinedButton(
-                      onPressed: (_cooldown > 0 || _isChecking)
-                          ? null
-                          : _handleResendEmail,
+                      onPressed:
+                          (_cooldown > 0 || _isBusy) ? null : _handleResendEmail,
                       style: OutlinedButton.styleFrom(
                         foregroundColor: primaryGreen,
                         padding: const EdgeInsets.symmetric(vertical: 14),
@@ -334,16 +560,35 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen>
                         ),
                       ),
                     ),
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 18),
                     Center(
                       child: TextButton(
-                        onPressed:
-                            (_isLoggingOut || _isChecking) ? null : _handleLogout,
+                        onPressed: _isBusy
+                            ? null
+                            : () => _handleCancelRegistration(email),
+                        child: Text(
+                          _isCanceling
+                              ? 'Membatalkan pendaftaran...'
+                              : 'Salah email? Batalkan pendaftaran',
+                          style: const TextStyle(
+                            color: Colors.redAccent,
+                            fontSize: 13.5,
+                            fontWeight: FontWeight.w700,
+                            fontFamily: 'Inter',
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Center(
+                      child: TextButton(
+                        onPressed: _isBusy ? null : _handleLogout,
                         child: Text(
                           _isLoggingOut ? 'Keluar...' : 'Keluar',
-                          style: const TextStyle(
-                            color: orangeText,
-                            fontWeight: FontWeight.w700,
+                          style: TextStyle(
+                            color: primaryGreen.withValues(alpha: 0.75),
+                            fontSize: 13.5,
+                            fontWeight: FontWeight.w600,
                             fontFamily: 'Inter',
                           ),
                         ),

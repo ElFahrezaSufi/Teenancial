@@ -577,6 +577,38 @@ void main() {
     });
 
     test(
+      'isSessionFreshForDeletion mengembalikan true hanya jika sesi login < 4 menit',
+      () {
+        final now = DateTime(2026, 11, 21, 13, 0, 0);
+        expect(
+          AuthRepository.isSessionFreshForDeletion(
+            now.subtract(const Duration(minutes: 2)),
+            now: now,
+          ),
+          isTrue,
+        );
+        expect(
+          AuthRepository.isSessionFreshForDeletion(
+            now.subtract(const Duration(minutes: 4)),
+            now: now,
+          ),
+          isFalse,
+        );
+        expect(
+          AuthRepository.isSessionFreshForDeletion(
+            now.subtract(const Duration(hours: 2)),
+            now: now,
+          ),
+          isFalse,
+        );
+        expect(
+          AuthRepository.isSessionFreshForDeletion(null, now: now),
+          isFalse,
+        );
+      },
+    );
+
+    test(
       'ErrorMapper menerjemahkan error reautentikasi ke Bahasa Indonesia',
       () {
         expect(
