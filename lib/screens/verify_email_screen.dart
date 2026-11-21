@@ -492,62 +492,32 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen>
                         ),
                       ),
                     ),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 6),
                     Align(
                       alignment: Alignment.centerLeft,
-                      child: Padding(
-                        padding: const EdgeInsets.only(left: 4),
-                        child: _isCanceling
-                            ? Text(
-                                'Membatalkan pendaftaran...',
-                                style: TextStyle(
-                                  color: primaryGreen.withValues(alpha: 0.75),
-                                  fontSize: 13.5,
-                                  fontWeight: FontWeight.w600,
-                                  fontFamily: 'Inter',
-                                ),
-                              )
-                            : Wrap(
-                                crossAxisAlignment: WrapCrossAlignment.center,
-                                children: [
-                                  Text(
-                                    'Salah email? ',
-                                    style: TextStyle(
-                                      color: primaryGreen.withValues(alpha: 0.8),
-                                      fontSize: 13.5,
-                                      fontWeight: FontWeight.w500,
-                                      fontFamily: 'Inter',
-                                    ),
-                                  ),
-                                  TextButton(
-                                    onPressed: _isBusy
-                                        ? null
-                                        : () =>
-                                            _handleCancelRegistration(email),
-                                    style: TextButton.styleFrom(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 2,
-                                        vertical: 4,
-                                      ),
-                                      minimumSize: Size.zero,
-                                      tapTargetSize:
-                                          MaterialTapTargetSize.shrinkWrap,
-                                    ),
-                                    child: const Text(
-                                      'Batalkan pendaftaran',
-                                      style: TextStyle(
-                                        color: Colors.redAccent,
-                                        fontSize: 13.5,
-                                        fontWeight: FontWeight.w700,
-                                        fontFamily: 'Inter',
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
+                      child: TextButton(
+                        onPressed: _isBusy
+                            ? null
+                            : () => _handleCancelRegistration(email),
+                        style: TextButton.styleFrom(
+                          padding: EdgeInsets.zero,
+                          minimumSize: const Size(0, 0),
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        ),
+                        child: Text(
+                          _isCanceling
+                              ? 'Membatalkan pendaftaran...'
+                              : 'Salah email? Batalkan pendaftaran',
+                          style: const TextStyle(
+                            color: primaryGreen,
+                            fontSize: 13,
+                            fontFamily: 'Inter',
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
                       ),
                     ),
-                    const SizedBox(height: 18),
+                    const SizedBox(height: 14),
                     Text(
                       'Periksa alamat email di atas. Klik link verifikasi di inbox atau folder spam untuk mengaktifkan akunmu.',
                       textAlign: TextAlign.center,
@@ -558,7 +528,7 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen>
                         height: 1.45,
                       ),
                     ),
-                    const SizedBox(height: 32),
+                    const SizedBox(height: 20),
                     GestureDetector(
                       onTap: _isBusy ? null : _handleCheckVerification,
                       child: Container(
