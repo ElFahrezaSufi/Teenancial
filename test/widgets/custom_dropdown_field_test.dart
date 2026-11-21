@@ -214,6 +214,38 @@ void main() {
         expect(find.textContaining('•'), findsNothing);
       },
     );
+
+    testWidgets(
+      'transaksi Saldo Awal menampilkan ikon dompet, judul Saldo Awal, dan catatan standar',
+      (WidgetTester tester) async {
+        final txInitial = DompetRepository.buildInitialBalanceTransaction(
+          walletId: 'd1',
+          walletName: 'Dompet Tunai',
+          amount: 150000,
+          date: DateTime(2026, 11, 22),
+        );
+
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: TransactionCard(
+                item: txInitial,
+                formatCurrency: Formatters.rupiah,
+                onEdit: (_) {},
+                onDelete: (_) {},
+              ),
+            ),
+          ),
+        );
+
+        expect(find.text('Saldo Awal (Dompet Tunai)'), findsOneWidget);
+        expect(find.text(TransactionModel.initialBalanceNote), findsOneWidget);
+        expect(
+          find.byIcon(Icons.account_balance_wallet_outlined),
+          findsOneWidget,
+        );
+      },
+    );
   });
 
   group('TotalSaldoCard Anti-Overflow Test', () {

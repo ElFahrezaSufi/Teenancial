@@ -51,10 +51,13 @@ class TransactionCard extends StatelessWidget {
         !item.isBalanceAdjustment && isTargetTransaction;
     final bool isWalletAdjustment =
         item.isBalanceAdjustment && !isTargetTransaction;
+    final bool isInitialBalance = item.isInitialBalance;
 
     final IconData leadingIcon = isTargetAllocation
         ? Icons.savings_outlined
-        : (isWalletAdjustment ? Icons.tune_rounded : cat.icon);
+        : (isInitialBalance
+            ? Icons.account_balance_wallet_outlined
+            : (isWalletAdjustment ? Icons.tune_rounded : cat.icon));
     final Color iconFgColor =
         (isTargetAllocation || isWalletAdjustment) ? primaryGreen : cat.color;
     final Color iconBgColor = (isTargetAllocation || isWalletAdjustment)
@@ -103,8 +106,9 @@ class TransactionCard extends StatelessWidget {
       }
     } else {
       displayTitle = item.title;
-      displaySubtitle =
-          item.notes.trim().isNotEmpty ? item.notes.trim() : cat.name;
+      displaySubtitle = item.notes.trim().isNotEmpty
+          ? item.notes.trim()
+          : (isInitialBalance ? 'Saldo Awal' : cat.name);
     }
 
     return CustomCard(

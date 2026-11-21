@@ -88,6 +88,18 @@ void main() {
 
         final txs = [
           TransactionModel(
+            id: 'init_w1',
+            title: 'Saldo Awal (Tunai)',
+            amount: 200000,
+            date: DateTime(2026, 11, 16, 8, 0),
+            notes: TransactionModel.initialBalanceNote,
+            categoryId: 'c19',
+            type: TransactionType.income,
+            dompetId: 'w1',
+            isAdjustment: true,
+            isInitialBalance: true,
+          ),
+          TransactionModel(
             id: 'tx_adjust',
             title: 'Penyesuaian Saldo (Tunai)',
             amount: 50000,
@@ -142,7 +154,7 @@ void main() {
         );
         final decoded = utf8.decode(bytes.sublist(3));
         final lines = decoded.trim().split(CsvExporter.lineEnding);
-        expect(lines.length, 5);
+        expect(lines.length, 6);
 
         // Urutan descending by date:
         // [1] tx_settle -> Pengeluaran + kategori pilihan (Belanja) + Target Menabung
@@ -171,6 +183,13 @@ void main() {
           ),
         );
         expect(lines[4], endsWith(';Penyesuaian Saldo'));
+
+        // [5] init_w1 -> Saldo Awal + kategori Saldo Awal + sumber Saldo Awal
+        expect(
+          lines[5],
+          contains(';Saldo Awal;Saldo Awal (Tunai);Saldo Awal;'),
+        );
+        expect(lines[5], endsWith(';Saldo Awal'));
       },
     );
   });

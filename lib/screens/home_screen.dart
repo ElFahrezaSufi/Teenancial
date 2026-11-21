@@ -98,6 +98,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
     final userProvider = context.read<UserProvider>();
     final dompetProvider = context.read<DompetProvider>();
+    final txProvider = context.read<TransactionProvider>();
 
     try {
       await showModalBottomSheet<bool>(
@@ -115,14 +116,23 @@ class _HomeScreenState extends State<HomeScreen> {
             FirestoreService.instance.ensureOnline(
               actionLabel: 'menyimpan saldo awal',
             );
-            if (input.cashInitialBalance > 0) {
-              await dompetProvider.setInitialWalletBalance(
-                AppConstants.defaultNewWalletId,
-                input.cashInitialBalance,
-              );
-            }
-            if (input.extraWallet != null) {
-              await dompetProvider.addDompet(input.extraWallet!);
+            bool mutatedWallets = false;
+            try {
+              if (input.cashInitialBalance > 0) {
+                await dompetProvider.setInitialWalletBalance(
+                  AppConstants.defaultNewWalletId,
+                  input.cashInitialBalance,
+                );
+                mutatedWallets = true;
+              }
+              if (input.extraWallet != null) {
+                await dompetProvider.addDompet(input.extraWallet!);
+                mutatedWallets = true;
+              }
+            } finally {
+              if (mutatedWallets) {
+                await txProvider.loadTransactions(silent: true);
+              }
             }
             await userProvider.markInitialBalanceOnboardingDone(
               allowOfflineLocalFallback: true,

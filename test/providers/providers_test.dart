@@ -935,7 +935,7 @@ void main() {
     );
 
     test(
-      'DompetProvider.setInitialWalletBalance memperbarui saldo awal d1 tanpa membuat transaksi penyesuaian',
+      'DompetProvider.setInitialWalletBalance memperbarui saldo awal d1 dan mencatat transaksi Saldo Awal secara konsisten',
       () async {
         final fakeDompetRepo = _InitialBalanceDompetRepository();
         final dompetProvider = DompetProvider(repository: fakeDompetRepo);
@@ -946,6 +946,96 @@ void main() {
         await dompetProvider.setInitialWalletBalance('d1', 150000);
         expect(dompetProvider.totalSaldo, 150000);
         expect(fakeDompetRepo.initialBalanceCalls, 1);
+
+        final initTx = DompetRepository.buildInitialBalanceTransaction(
+          walletId: 'd1',
+          walletName: 'Dompet Tunai',
+          amount: 150000,
+          date: DateTime(2026, 11, 22, 8, 0),
+        );
+        expect(initTx.id, 'init_d1');
+        expect(initTx.title, 'Saldo Awal (Dompet Tunai)');
+        expect(initTx.notes, TransactionModel.initialBalanceNote);
+        expect(initTx.isAdjustment, isTrue);
+        expect(initTx.isInitialBalance, isTrue);
+        expect(initTx.isBalanceAdjustment, isTrue);
+        expect(initTx.type, TransactionType.income);
+
+        // Pastikan serialisasi toMap/fromMap mempertahankan isInitialBalance
+        final roundTripped = TransactionModel.fromMap(
+          initTx.toMap(),
+          docId: initTx.id,
+        );
+        expect(roundTripped.isInitialBalance, isTrue);
+        expect(roundTripped.isBalanceAdjustment, isTrue);
+
+        // Pastikan Saldo Awal tidak dihitung sebagai pemasukan baru di Laporan Keuangan
+        expect(ReportCalculator.isReportIncome(roundTripped), isFalse);
+        expect(ReportCalculator.isReportExpense(roundTripped), isFalse);
+
+        // Pastikan balanceEvents tetap melaporkan +amount untuk grafik Tren Saldo
+        final events = roundTripped.balanceEvents();
+        expect(events.length, 1);
+        expect(events.first.delta, 150000);
+      },
+    );
+
+    test(
+      'DompetRepository.hasBlockingTransactions mengizinkan hapus dompet bila kosong atau hanya punya Saldo Awal, dan memblokir jika ada transaksi lain',
+      () {
+        final initialTx = DompetRepository.buildInitialBalanceTransaction(
+          walletId: 'w_new',
+          walletName: 'Dana',
+          amount: 100000,
+          date: DateTime(2026, 11, 22, 9, 0),
+        );
+        final normalExpense = TransactionModel(
+          id: 'tx_exp',
+          title: 'Makanan',
+          amount: 15000,
+          date: DateTime(2026, 11, 22, 10, 0),
+          categoryId: 'c3',
+          type: TransactionType.expense,
+          dompetId: 'w_new',
+        );
+        final editAdjustment = TransactionModel(
+          id: 'tx_adj',
+          title: 'Penyesuaian Saldo (Dana)',
+          amount: 20000,
+          date: DateTime(2026, 11, 22, 11, 0),
+          notes: 'Penyesuaian saldo otomatis saat edit dompet',
+          categoryId: 'c19',
+          type: TransactionType.income,
+          dompetId: 'w_new',
+          isAdjustment: true,
+        );
+        final targetAlloc = TransactionModel(
+          id: 'tx_tg',
+          title: 'Tabungan: Sepatu',
+          amount: 50000,
+          date: DateTime(2026, 11, 22, 12, 0),
+          notes: 'Alokasi ke target menabung',
+          categoryId: 'c6',
+          type: TransactionType.expense,
+          dompetId: 'w_new',
+          isAdjustment: true,
+          targetId: 'tg_1',
+        );
+
+        expect(DompetRepository.hasBlockingTransactions(const []), isFalse);
+        expect(DompetRepository.hasBlockingTransactions([initialTx]), isFalse);
+        expect(
+          DompetRepository.hasBlockingTransactions([initialTx, normalExpense]),
+          isTrue,
+        );
+        expect(
+          DompetRepository.hasBlockingTransactions([initialTx, editAdjustment]),
+          isTrue,
+        );
+        expect(
+          DompetRepository.hasBlockingTransactions([initialTx, targetAlloc]),
+          isTrue,
+        );
       },
     );
   });

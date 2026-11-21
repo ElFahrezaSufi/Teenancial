@@ -191,7 +191,7 @@ class _LaporanScreenState extends State<LaporanScreen> {
                     _buildSixMonthBarCard(trendPoints),
                     const SizedBox(height: 16),
                     Text(
-                      'Catatan: Transfer antar-dompet sendiri, pencatatan hutang/piutang, dan penyesuaian saldo otomatis tidak dihitung sebagai pemasukan maupun pengeluaran pada laporan ini.',
+                      'Catatan: Saldo awal dompet, transfer antar-dompet sendiri, pencatatan hutang/piutang, dan penyesuaian saldo otomatis tidak dihitung sebagai pemasukan maupun pengeluaran pada laporan ini.',
                       style: TextStyle(
                         color: primaryGreen.withValues(alpha: 0.65),
                         fontSize: 11,

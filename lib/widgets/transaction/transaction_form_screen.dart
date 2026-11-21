@@ -142,6 +142,7 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
         type: widget.type,
         dompetId: _selectedDompetId!,
         isAdjustment: widget.transactionToEdit?.isAdjustment ?? false,
+        isInitialBalance: widget.transactionToEdit?.isInitialBalance ?? false,
         recurringId: widget.transactionToEdit?.recurringId,
       );
 

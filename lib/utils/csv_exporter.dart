@@ -57,6 +57,7 @@ class CsvExporter {
 
   static String typeLabelForExport(TransactionModel tx) {
     if (tx.isBalanceAdjustment) {
+      if (tx.isInitialBalance) return 'Saldo Awal';
       final hasTarget = tx.targetId != null && tx.targetId!.trim().isNotEmpty;
       if (hasTarget) {
         return tx.type == TransactionType.expense
@@ -86,6 +87,7 @@ class CsvExporter {
     CategoryResolver resolveCategory,
   ) {
     if (tx.isBalanceAdjustment) {
+      if (tx.isInitialBalance) return 'Saldo Awal';
       final hasTarget = tx.targetId != null && tx.targetId!.trim().isNotEmpty;
       return hasTarget ? 'Target Menabung' : 'Penyesuaian Saldo';
     }
@@ -108,6 +110,7 @@ class CsvExporter {
     if (tx.targetId != null && tx.targetId!.trim().isNotEmpty) {
       return 'Target Menabung';
     }
+    if (tx.isInitialBalance) return 'Saldo Awal';
     if (tx.isBalanceAdjustment) return 'Penyesuaian Saldo';
     if (tx.recurringId != null && tx.recurringId!.trim().isNotEmpty) {
       return 'Berulang';

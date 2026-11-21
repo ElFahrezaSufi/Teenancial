@@ -110,10 +110,10 @@ class _TambahDompetScreenState extends State<TambahDompetScreen> {
       final txProvider = context.read<TransactionProvider>();
       if (widget.itemToEdit != null) {
         await dompetProvider.updateDompet(item);
-        await txProvider.loadTransactions(silent: true);
       } else {
         await dompetProvider.addDompet(item);
       }
+      await txProvider.loadTransactions(silent: true);
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -145,14 +145,18 @@ class _TambahDompetScreenState extends State<TambahDompetScreen> {
     final bool confirm = await showConfirmDialog(
       context,
       title: 'Hapus Dompet',
-      message: 'Yakin ingin menghapus dompet ini? Aksi tidak dapat dibatalkan.',
+      message:
+          'Yakin ingin menghapus dompet ini? Jika belum ada transaksi lain, catatan saldo awalnya di Riwayat juga akan ikut dihapus. Aksi tidak dapat dibatalkan.',
     );
 
     if (!confirm || !mounted) return;
 
     setState(() => _isLoading = true);
     try {
-      await context.read<DompetProvider>().deleteDompet(widget.itemToEdit!.id);
+      final dompetProvider = context.read<DompetProvider>();
+      final txProvider = context.read<TransactionProvider>();
+      await dompetProvider.deleteDompet(widget.itemToEdit!.id);
+      await txProvider.loadTransactions(silent: true);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
