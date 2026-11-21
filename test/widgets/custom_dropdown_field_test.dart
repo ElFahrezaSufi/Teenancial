@@ -179,5 +179,39 @@ void main() {
         expect(find.text('Beli Kopi'), findsOneWidget);
       },
     );
+
+    testWidgets(
+      'transaksi pembelian target menampilkan nama kategori dan badge Target tanpa simbol titik pemisah',
+      (WidgetTester tester) async {
+        final txTargetSettlement = TransactionModel(
+          id: 'tx_target_1',
+          title: 'Sepatu Lari',
+          amount: 450000,
+          date: DateTime(2026, 11, 21),
+          notes: '',
+          categoryId: 'c4', // Belanja
+          type: TransactionType.expense,
+          dompetId: 'd1',
+          targetId: 'target_1',
+        );
+
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: TransactionCard(
+                item: txTargetSettlement,
+                formatCurrency: Formatters.rupiah,
+                onEdit: (_) {},
+                onDelete: (_) {},
+              ),
+            ),
+          ),
+        );
+
+        expect(find.text('Sepatu Lari'), findsOneWidget);
+        expect(find.text('Target'), findsOneWidget);
+        expect(find.textContaining('•'), findsNothing);
+      },
+    );
   });
 }

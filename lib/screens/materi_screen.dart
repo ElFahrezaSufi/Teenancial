@@ -229,24 +229,28 @@ class _MateriScreenState extends State<MateriScreen> {
                                 ),
                               ),
                               const SizedBox(height: 10),
-                              ...module.references.map(
-                                (ref) => Padding(
+                              ...module.references.asMap().entries.map(
+                                (entry) => Padding(
                                   padding: const EdgeInsets.only(bottom: 6),
                                   child: Row(
                                     crossAxisAlignment:
                                         CrossAxisAlignment.start,
                                     children: [
-                                      const Text(
-                                        '• ',
-                                        style: TextStyle(
-                                          color: primaryGreen,
-                                          fontSize: 13,
-                                          fontFamily: 'Inter',
+                                      SizedBox(
+                                        width: 22,
+                                        child: Text(
+                                          '${entry.key + 1}.',
+                                          style: const TextStyle(
+                                            color: primaryGreen,
+                                            fontSize: 13,
+                                            fontFamily: 'Inter',
+                                            fontWeight: FontWeight.w600,
+                                          ),
                                         ),
                                       ),
                                       Expanded(
                                         child: Text(
-                                          ref,
+                                          entry.value,
                                           style: const TextStyle(
                                             color: primaryGreen,
                                             fontSize: 13,

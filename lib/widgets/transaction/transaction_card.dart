@@ -88,7 +88,7 @@ class TransactionCard extends StatelessWidget {
 
     if (isTargetSettlement) {
       displayTitle = item.title.trim().isNotEmpty ? item.title.trim() : cat.name;
-      displaySubtitle = '${cat.name} • Pembelian target';
+      displaySubtitle = cat.name;
     } else if (isStandardIncomeOrExpense) {
       displayTitle = cat.name;
       final trimmedNotes = item.notes.trim();
@@ -145,7 +145,10 @@ class TransactionCard extends StatelessWidget {
                     ),
                     if (displaySubtitle == null && hasRecurringBadge) ...[
                       const SizedBox(width: 6),
-                      const _RecurringBadge(),
+                      const _MetaBadge(
+                        icon: Icons.autorenew_rounded,
+                        label: 'Berulang',
+                      ),
                     ],
                   ],
                 ),
@@ -168,9 +171,19 @@ class TransactionCard extends StatelessWidget {
                               : TextOverflow.ellipsis,
                         ),
                       ),
+                      if (isTargetSettlement) ...[
+                        const SizedBox(width: 6),
+                        const _MetaBadge(
+                          icon: Icons.flag_outlined,
+                          label: 'Target',
+                        ),
+                      ],
                       if (hasRecurringBadge) ...[
                         const SizedBox(width: 6),
-                        const _RecurringBadge(),
+                        const _MetaBadge(
+                          icon: Icons.autorenew_rounded,
+                          label: 'Berulang',
+                        ),
                       ],
                     ],
                   ),
@@ -306,8 +319,14 @@ class TransactionCard extends StatelessWidget {
   }
 }
 
-class _RecurringBadge extends StatelessWidget {
-  const _RecurringBadge();
+class _MetaBadge extends StatelessWidget {
+  final IconData icon;
+  final String label;
+
+  const _MetaBadge({
+    required this.icon,
+    required this.label,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -317,18 +336,18 @@ class _RecurringBadge extends StatelessWidget {
         color: primaryGreen.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(100),
       ),
-      child: const Row(
+      child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           Icon(
-            Icons.autorenew_rounded,
+            icon,
             size: 10,
             color: primaryGreen,
           ),
-          SizedBox(width: 2.5),
+          const SizedBox(width: 2.5),
           Text(
-            'Berulang',
-            style: TextStyle(
+            label,
+            style: const TextStyle(
               color: primaryGreen,
               fontSize: 9.5,
               fontFamily: 'Inter',

@@ -1094,7 +1094,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                 title: 'Pengingat Harian',
                 subtitle: _hasOsNotificationPermission
                     ? 'Notifikasi catat transaksi & pinjaman'
-                    : 'Izin notifikasi perangkat nonaktif — aktifkan untuk menerima pengingat',
+                    : 'Izin notifikasi perangkat nonaktif. Aktifkan untuk menerima pengingat',
                 trailing: Switch(
                   value: _dailyReminder,
                   activeTrackColor: primaryGreen,

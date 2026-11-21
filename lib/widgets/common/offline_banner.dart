@@ -58,7 +58,7 @@ class OfflineBanner extends StatelessWidget {
                             const SizedBox(width: 8),
                             const Expanded(
                               child: Text(
-                                'Mode Offline — data dari cache. Ubah/simpan data butuh internet.',
+                                'Mode Offline: data dari cache. Ubah/simpan data butuh internet.',
                                 style: TextStyle(
                                   color: primaryGreen,
                                   fontSize: 11.5,
