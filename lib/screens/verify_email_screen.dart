@@ -492,36 +492,59 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen>
                         ),
                       ),
                     ),
-                    const SizedBox(height: 6),
+                    const SizedBox(height: 8),
                     Align(
                       alignment: Alignment.centerLeft,
-                      child: TextButton(
-                        onPressed: _isBusy
-                            ? null
-                            : () => _handleCancelRegistration(email),
-                        style: TextButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 4,
-                            vertical: 4,
-                          ),
-                          minimumSize: Size.zero,
-                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                        ),
-                        child: Text(
-                          _isCanceling
-                              ? 'Membatalkan pendaftaran...'
-                              : 'Salah email? Batalkan pendaftaran',
-                          style: TextStyle(
-                            color: Colors.redAccent,
-                            fontSize: 13.5,
-                            fontWeight: FontWeight.w700,
-                            fontFamily: 'Inter',
-                            decoration: _isCanceling
-                                ? TextDecoration.none
-                                : TextDecoration.underline,
-                            decorationColor: Colors.redAccent,
-                          ),
-                        ),
+                      child: Padding(
+                        padding: const EdgeInsets.only(left: 4),
+                        child: _isCanceling
+                            ? Text(
+                                'Membatalkan pendaftaran...',
+                                style: TextStyle(
+                                  color: primaryGreen.withValues(alpha: 0.75),
+                                  fontSize: 13.5,
+                                  fontWeight: FontWeight.w600,
+                                  fontFamily: 'Inter',
+                                ),
+                              )
+                            : Wrap(
+                                crossAxisAlignment: WrapCrossAlignment.center,
+                                children: [
+                                  Text(
+                                    'Salah email? ',
+                                    style: TextStyle(
+                                      color: primaryGreen.withValues(alpha: 0.8),
+                                      fontSize: 13.5,
+                                      fontWeight: FontWeight.w500,
+                                      fontFamily: 'Inter',
+                                    ),
+                                  ),
+                                  TextButton(
+                                    onPressed: _isBusy
+                                        ? null
+                                        : () =>
+                                            _handleCancelRegistration(email),
+                                    style: TextButton.styleFrom(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 2,
+                                        vertical: 4,
+                                      ),
+                                      minimumSize: Size.zero,
+                                      tapTargetSize:
+                                          MaterialTapTargetSize.shrinkWrap,
+                                    ),
+                                    child: const Text(
+                                      'Batalkan pendaftaran',
+                                      style: TextStyle(
+                                        color: Colors.redAccent,
+                                        fontSize: 13.5,
+                                        fontWeight: FontWeight.w700,
+                                        fontFamily: 'Inter',
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
                       ),
                     ),
                     const SizedBox(height: 18),
