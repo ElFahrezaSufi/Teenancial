@@ -511,11 +511,15 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen>
                           _isCanceling
                               ? 'Membatalkan pendaftaran...'
                               : 'Salah email? Batalkan pendaftaran',
-                          style: const TextStyle(
+                          style: TextStyle(
                             color: Colors.redAccent,
                             fontSize: 13.5,
                             fontWeight: FontWeight.w700,
                             fontFamily: 'Inter',
+                            decoration: _isCanceling
+                                ? TextDecoration.none
+                                : TextDecoration.underline,
+                            decorationColor: Colors.redAccent,
                           ),
                         ),
                       ),
@@ -588,20 +592,38 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen>
                         ),
                       ),
                     ),
-                    const SizedBox(height: 24),
-                    Center(
-                      child: TextButton(
-                        onPressed: _isBusy ? null : _handleLogout,
-                        child: Text(
-                          _isLoggingOut ? 'Keluar...' : 'Keluar',
-                          style: const TextStyle(
-                            color: Colors.redAccent,
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                            fontFamily: 'Inter',
-                          ),
+                    const SizedBox(height: 14),
+                    ElevatedButton(
+                      onPressed: _isBusy ? null : _handleLogout,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.redAccent,
+                        foregroundColor: Colors.white,
+                        disabledBackgroundColor:
+                            Colors.redAccent.withValues(alpha: 0.65),
+                        disabledForegroundColor: Colors.white,
+                        elevation: 0,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
                         ),
                       ),
+                      child: _isLoggingOut
+                          ? const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(
+                                color: Colors.white,
+                                strokeWidth: 2,
+                              ),
+                            )
+                          : const Text(
+                              'Keluar',
+                              style: TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w700,
+                                fontFamily: 'Inter',
+                              ),
+                            ),
                     ),
                   ],
                 ),
