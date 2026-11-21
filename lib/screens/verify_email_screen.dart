@@ -492,7 +492,62 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen>
                         ),
                       ),
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 6),
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: TextButton(
+                        onPressed: _isBusy
+                            ? null
+                            : () => _handleCancelRegistration(email),
+                        style: TextButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 4,
+                            vertical: 4,
+                          ),
+                          minimumSize: Size.zero,
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        ),
+                        child: _isCanceling
+                            ? Text(
+                                'Membatalkan pendaftaran...',
+                                style: TextStyle(
+                                  color: primaryGreen.withValues(alpha: 0.7),
+                                  fontSize: 12.5,
+                                  fontWeight: FontWeight.w600,
+                                  fontFamily: 'Inter',
+                                ),
+                              )
+                            : Text.rich(
+                                TextSpan(
+                                  style: const TextStyle(
+                                    fontSize: 12.5,
+                                    fontFamily: 'Inter',
+                                  ),
+                                  children: [
+                                    TextSpan(
+                                      text: 'Salah email? ',
+                                      style: TextStyle(
+                                        color: primaryGreen.withValues(
+                                          alpha: 0.75,
+                                        ),
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                    const TextSpan(
+                                      text: 'Batalkan pendaftaran',
+                                      style: TextStyle(
+                                        color: orangeText,
+                                        fontWeight: FontWeight.w700,
+                                        decoration: TextDecoration.underline,
+                                        decorationColor: orangeText,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                      ),
+                    ),
+                    const SizedBox(height: 18),
                     Text(
                       'Periksa alamat email di atas. Klik link verifikasi di inbox atau folder spam untuk mengaktifkan akunmu.',
                       textAlign: TextAlign.center,
@@ -560,34 +615,15 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen>
                         ),
                       ),
                     ),
-                    const SizedBox(height: 18),
-                    Center(
-                      child: TextButton(
-                        onPressed: _isBusy
-                            ? null
-                            : () => _handleCancelRegistration(email),
-                        child: Text(
-                          _isCanceling
-                              ? 'Membatalkan pendaftaran...'
-                              : 'Salah email? Batalkan pendaftaran',
-                          style: const TextStyle(
-                            color: Colors.redAccent,
-                            fontSize: 13.5,
-                            fontWeight: FontWeight.w700,
-                            fontFamily: 'Inter',
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: 24),
                     Center(
                       child: TextButton(
                         onPressed: _isBusy ? null : _handleLogout,
                         child: Text(
                           _isLoggingOut ? 'Keluar...' : 'Keluar',
-                          style: TextStyle(
-                            color: primaryGreen.withValues(alpha: 0.75),
-                            fontSize: 13.5,
+                          style: const TextStyle(
+                            color: Colors.redAccent,
+                            fontSize: 14,
                             fontWeight: FontWeight.w600,
                             fontFamily: 'Inter',
                           ),
