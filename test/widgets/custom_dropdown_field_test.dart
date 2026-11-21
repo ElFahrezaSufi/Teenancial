@@ -244,6 +244,45 @@ void main() {
           find.byIcon(Icons.account_balance_wallet_outlined),
           findsOneWidget,
         );
+        // Saldo Awal tidak boleh menampilkan menu titik tiga (Edit/Hapus)
+        expect(find.byType(PopupMenuButton<String>), findsNothing);
+      },
+    );
+
+    testWidgets(
+      'transaksi Penyesuaian Saldo hanya menampilkan aksi Hapus tanpa Edit di menu titik tiga',
+      (WidgetTester tester) async {
+        final txAdjustment = TransactionModel(
+          id: 'adj_1',
+          title: 'Penyesuaian Saldo (Dompet Tunai)',
+          amount: 35000,
+          date: DateTime(2026, 11, 22),
+          notes: 'Penyesuaian saldo otomatis saat edit dompet',
+          categoryId: 'c19',
+          type: TransactionType.income,
+          dompetId: 'd1',
+          isAdjustment: true,
+        );
+
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: TransactionCard(
+                item: txAdjustment,
+                formatCurrency: Formatters.rupiah,
+                onEdit: (_) {},
+                onDelete: (_) {},
+              ),
+            ),
+          ),
+        );
+
+        expect(find.byType(PopupMenuButton<String>), findsOneWidget);
+        await tester.tap(find.byIcon(Icons.more_vert));
+        await tester.pumpAndSettle();
+
+        expect(find.text('Hapus'), findsOneWidget);
+        expect(find.text('Edit'), findsNothing);
       },
     );
   });

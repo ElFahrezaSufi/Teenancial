@@ -68,11 +68,11 @@ class TransactionModel {
       notes == initialBalanceNote;
 
   /// Menentukan apakah transaksi ini dapat diedit dari Riwayat maupun Daftar Pinjaman.
-  /// Pinjaman yang sudah lunas tidak dapat diedit (hanya dapat dihapus).
+  /// Transaksi target menabung, saldo awal, penyesuaian saldo otomatis, dan
+  /// pinjaman yang sudah lunas tidak dapat diedit dari Riwayat.
   bool get isEditable {
-    // Transaksi alokasi tabungan target tidak boleh diedit agar saldo dompet
-    // dan dana target tetap sinkron.
     if (targetId != null && targetId!.isNotEmpty) return false;
+    if (isBalanceAdjustment) return false;
     switch (type) {
       case TransactionType.income:
       case TransactionType.expense:
@@ -82,6 +82,15 @@ class TransactionModel {
       case TransactionType.receivable:
         return !isPaid;
     }
+  }
+
+  /// Menentukan apakah transaksi ini boleh dihapus langsung dari layar Riwayat.
+  /// Transaksi target menabung dikelola di halaman Target Menabung, sedangkan
+  /// catatan Saldo Awal ikut terhapus otomatis ketika dompetnya dihapus.
+  bool get isDeletableFromHistory {
+    if (targetId != null && targetId!.isNotEmpty) return false;
+    if (isInitialBalance) return false;
+    return true;
   }
 
   /// Total nominal yang sudah dibayar/diterima untuk transaksi pinjaman.

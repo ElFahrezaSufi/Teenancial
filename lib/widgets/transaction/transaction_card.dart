@@ -77,6 +77,8 @@ class TransactionCard extends StatelessWidget {
         : (isExpense ? Colors.red : primaryGreen);
 
     final bool canEdit = item.isEditable;
+    final bool canDelete = item.isDeletableFromHistory;
+    final bool showActionMenu = canEdit || canDelete;
     final bool hasRecurringBadge =
         item.recurringId != null && item.recurringId!.isNotEmpty;
 
@@ -271,10 +273,10 @@ class TransactionCard extends StatelessWidget {
           ),
           // Slot selebar tombol menu selalu disediakan supaya tepi kanan
           // nominal tetap sejajar untuk semua baris (termasuk transaksi
-          // tabungan target yang menunya disembunyikan).
+          // target menabung & saldo awal yang menunya disembunyikan).
           SizedBox(
             width: 40,
-            child: isTargetTransaction
+            child: !showActionMenu
                 ? const SizedBox.shrink()
                 : PopupMenuButton<String>(
                     icon: const Icon(
@@ -304,16 +306,20 @@ class TransactionCard extends StatelessWidget {
                             ],
                           ),
                         ),
-                      const PopupMenuItem(
-                        value: 'delete',
-                        child: Row(
-                          children: [
-                            Icon(Icons.delete_outline, color: Colors.red),
-                            SizedBox(width: 8),
-                            Text('Hapus', style: TextStyle(color: Colors.red)),
-                          ],
+                      if (canDelete)
+                        const PopupMenuItem(
+                          value: 'delete',
+                          child: Row(
+                            children: [
+                              Icon(Icons.delete_outline, color: Colors.red),
+                              SizedBox(width: 8),
+                              Text(
+                                'Hapus',
+                                style: TextStyle(color: Colors.red),
+                              ),
+                            ],
+                          ),
                         ),
-                      ),
                     ],
                   ),
           ),

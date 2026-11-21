@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:teenancial/models/transaction_model.dart';
+import 'package:teenancial/utils/transaction_actions.dart';
 
 void main() {
   group('TransactionModel.walletEffects()', () {
@@ -333,6 +334,98 @@ void main() {
 
       final paidLoan = unpaidLoan.copyWith(isPaid: true);
       expect(paidLoan.isEditable, isFalse);
+      expect(paidLoan.isDeletableFromHistory, isTrue);
+
+      final initialBalanceTx = TransactionModel(
+        id: 'init_d1',
+        title: 'Saldo Awal (Dompet Tunai)',
+        amount: 150000,
+        date: loanDate,
+        notes: TransactionModel.initialBalanceNote,
+        categoryId: 'c19',
+        type: TransactionType.income,
+        dompetId: 'd1',
+        isAdjustment: true,
+        isInitialBalance: true,
+      );
+      expect(initialBalanceTx.isEditable, isFalse);
+      expect(initialBalanceTx.isDeletableFromHistory, isFalse);
+
+      final walletAdjustmentTx = TransactionModel(
+        id: 'adj_1',
+        title: 'Penyesuaian Saldo (Dompet Tunai)',
+        amount: 25000,
+        date: loanDate,
+        notes: 'Penyesuaian saldo otomatis saat edit dompet',
+        categoryId: 'c19',
+        type: TransactionType.income,
+        dompetId: 'd1',
+        isAdjustment: true,
+      );
+      expect(walletAdjustmentTx.isEditable, isFalse);
+      expect(walletAdjustmentTx.isDeletableFromHistory, isTrue);
+
+      final targetTx = TransactionModel(
+        id: 'tg_tx_1',
+        title: 'Tabungan: Sepatu',
+        amount: 50000,
+        date: loanDate,
+        categoryId: 'c6',
+        type: TransactionType.expense,
+        dompetId: 'd1',
+        isAdjustment: true,
+        targetId: 'tg_1',
+      );
+      expect(targetTx.isEditable, isFalse);
+      expect(targetTx.isDeletableFromHistory, isFalse);
+    });
+
+    test('TransactionActions.buildDeleteConfirmation menyesuaikan pesan untuk pinjaman, penyesuaian saldo, dan transaksi biasa', () {
+      final unpaidLoan = TransactionModel(
+        id: 'ln_u',
+        title: 'Hutang ke Budi',
+        amount: 100000,
+        date: loanDate,
+        categoryId: 'c11',
+        type: TransactionType.debt,
+        dompetId: 'd1',
+      );
+      final unpaidCopy = TransactionActions.buildDeleteConfirmation(unpaidLoan);
+      expect(unpaidCopy.title, 'Hapus Pinjaman?');
+      expect(unpaidCopy.message, contains('mengembalikan perubahan saldonya'));
+
+      final partiallyPaidLoan = unpaidLoan.copyWith(
+        payments: [
+          LoanPayment(
+            id: 'p1',
+            amount: 40000,
+            date: loanDate,
+            dompetId: 'd1',
+          ),
+        ],
+      );
+      final paidCopy =
+          TransactionActions.buildDeleteConfirmation(partiallyPaidLoan);
+      expect(paidCopy.title, 'Hapus Pinjaman?');
+      expect(paidCopy.message, contains('pokok beserta seluruh cicilannya'));
+
+      final adjustTx = TransactionModel(
+        id: 'adj_1',
+        title: 'Penyesuaian Saldo (Dompet Tunai)',
+        amount: 20000,
+        date: loanDate,
+        notes: 'Penyesuaian saldo otomatis saat edit dompet',
+        categoryId: 'c19',
+        type: TransactionType.income,
+        dompetId: 'd1',
+        isAdjustment: true,
+      );
+      final adjustCopy = TransactionActions.buildDeleteConfirmation(adjustTx);
+      expect(adjustCopy.title, 'Hapus Penyesuaian Saldo?');
+      expect(adjustCopy.message, contains('sebelum penyesuaian ini'));
+
+      final regularCopy = TransactionActions.buildDeleteConfirmation(null);
+      expect(regularCopy.title, 'Hapus Transaksi');
     });
   });
 }
