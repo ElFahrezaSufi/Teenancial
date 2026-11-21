@@ -507,44 +507,17 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen>
                           minimumSize: Size.zero,
                           tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                         ),
-                        child: _isCanceling
-                            ? Text(
-                                'Membatalkan pendaftaran...',
-                                style: TextStyle(
-                                  color: primaryGreen.withValues(alpha: 0.7),
-                                  fontSize: 12.5,
-                                  fontWeight: FontWeight.w600,
-                                  fontFamily: 'Inter',
-                                ),
-                              )
-                            : Text.rich(
-                                TextSpan(
-                                  style: const TextStyle(
-                                    fontSize: 12.5,
-                                    fontFamily: 'Inter',
-                                  ),
-                                  children: [
-                                    TextSpan(
-                                      text: 'Salah email? ',
-                                      style: TextStyle(
-                                        color: primaryGreen.withValues(
-                                          alpha: 0.75,
-                                        ),
-                                        fontWeight: FontWeight.w500,
-                                      ),
-                                    ),
-                                    const TextSpan(
-                                      text: 'Batalkan pendaftaran',
-                                      style: TextStyle(
-                                        color: orangeText,
-                                        fontWeight: FontWeight.w700,
-                                        decoration: TextDecoration.underline,
-                                        decorationColor: orangeText,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
+                        child: Text(
+                          _isCanceling
+                              ? 'Membatalkan pendaftaran...'
+                              : 'Salah email? Batalkan pendaftaran',
+                          style: const TextStyle(
+                            color: Colors.redAccent,
+                            fontSize: 13.5,
+                            fontWeight: FontWeight.w700,
+                            fontFamily: 'Inter',
+                          ),
+                        ),
                       ),
                     ),
                     const SizedBox(height: 18),
