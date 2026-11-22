@@ -57,13 +57,21 @@ class _LoanPaymentHistorySheetState extends State<LoanPaymentHistorySheet> {
     if (_removingPaymentId != null) return;
 
     final isDebt = loan.type == TransactionType.debt;
+    final isDirectFullSettlement = LoanHelper.isDirectFullSettlement(loan);
     final confirmed = await showConfirmDialog(
       context,
-      title: 'Batalkan Cicilan?',
-      message: isDebt
-          ? 'Cicilan ${Formatters.rupiah(payment.amount)} pada ${DateHelper.formatShort(payment.date)} akan dihapus dan saldo catatan di "$walletName" dikembalikan.'
-          : 'Penerimaan cicilan ${Formatters.rupiah(payment.amount)} pada ${DateHelper.formatShort(payment.date)} akan dibatalkan dan mengurangi saldo catatan di "$walletName".',
-      confirmLabel: 'Batalkan Cicilan',
+      title: isDirectFullSettlement
+          ? 'Batalkan Pelunasan?'
+          : 'Batalkan Cicilan?',
+      message: isDirectFullSettlement
+          ? (isDebt
+              ? 'Pelunasan ${Formatters.rupiah(payment.amount)} pada ${DateHelper.formatShort(payment.date)} akan dibatalkan dan saldo catatan di "$walletName" dikembalikan.'
+              : 'Penerimaan pelunasan ${Formatters.rupiah(payment.amount)} pada ${DateHelper.formatShort(payment.date)} akan dibatalkan dan mengurangi saldo catatan di "$walletName".')
+          : (isDebt
+              ? 'Cicilan ${Formatters.rupiah(payment.amount)} pada ${DateHelper.formatShort(payment.date)} akan dihapus dan saldo catatan di "$walletName" dikembalikan.'
+              : 'Penerimaan cicilan ${Formatters.rupiah(payment.amount)} pada ${DateHelper.formatShort(payment.date)} akan dibatalkan dan mengurangi saldo catatan di "$walletName".'),
+      confirmLabel:
+          isDirectFullSettlement ? 'Batalkan Pelunasan' : 'Batalkan Cicilan',
       confirmColor: Colors.redAccent,
     );
 
@@ -76,8 +84,12 @@ class _LoanPaymentHistorySheetState extends State<LoanPaymentHistorySheet> {
           .removeLoanPayment(loan.id, payment.id);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('✅ Cicilan berhasil dibatalkan'),
+          SnackBar(
+            content: Text(
+              isDirectFullSettlement
+                  ? '✅ Pelunasan berhasil dibatalkan'
+                  : '✅ Cicilan berhasil dibatalkan',
+            ),
             backgroundColor: primaryGreen,
           ),
         );
@@ -121,6 +133,7 @@ class _LoanPaymentHistorySheetState extends State<LoanPaymentHistorySheet> {
       contactName: contact?.name,
     );
     final payments = loan.payments;
+    final bool isDirectFullSettlement = LoanHelper.isDirectFullSettlement(loan);
 
     return SafeArea(
       child: Padding(
@@ -143,9 +156,11 @@ class _LoanPaymentHistorySheetState extends State<LoanPaymentHistorySheet> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text(
-                  'Riwayat Cicilan',
-                  style: TextStyle(
+                Text(
+                  isDirectFullSettlement
+                      ? 'Detail Pelunasan'
+                      : 'Riwayat Cicilan',
+                  style: const TextStyle(
                     color: primaryGreen,
                     fontSize: 18,
                     fontFamily: 'Inter',

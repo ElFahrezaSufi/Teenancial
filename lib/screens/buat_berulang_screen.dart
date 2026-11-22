@@ -58,7 +58,7 @@ class _BuatBerulangScreenState extends State<BuatBerulangScreen> {
   final _intervalController = TextEditingController(text: '1');
 
   late TransactionType _selectedType;
-  bool _isSelfTransfer = true;
+  bool _isSelfTransfer = false;
   String? _selectedSourceDompetId;
   String? _selectedDestDompetId;
   String? _selectedCategoryId;
@@ -452,46 +452,54 @@ class _BuatBerulangScreenState extends State<BuatBerulangScreen> {
                           );
                         },
                       ),
-                      if (_selectedType == TransactionType.transfer &&
-                          _isSelfTransfer)
-                        DompetSelectionDropdown(
-                          label: 'Ke Dompet',
-                          hint: 'Pilih Dompet Tujuan',
-                          dompets: dompets,
-                          selectedDompetId: _selectedDestDompetId,
-                          showBalanceInfo: true,
-                          checkSufficiency: false,
-                          onChanged: (val) =>
-                              setState(() => _selectedDestDompetId = val),
-                        ),
-                      if (_selectedType == TransactionType.transfer &&
-                          !_isSelfTransfer)
-                        ContactSelectionAutocomplete(
-                          label: 'Untuk',
-                          hint: 'Nama penerima',
-                          controller: _untukController,
-                          contacts: contacts,
-                          showSaveToListOption: true,
-                          saveToListValue: _simpanKeDaftar,
-                          onSaveToListChanged: (val) =>
-                              setState(() => _simpanKeDaftar = val),
-                          onManageContacts: () =>
-                              context.push(AppRoutes.kontak),
-                          validator: (value) {
-                            if (_selectedType == TransactionType.transfer &&
-                                !_isSelfTransfer &&
-                                (value == null || value.trim().isEmpty)) {
-                              return 'Nama penerima tidak boleh kosong';
-                            }
-                            return null;
-                          },
+                      if (_selectedType == TransactionType.transfer)
+                        AnimatedSize(
+                          duration: const Duration(milliseconds: 250),
+                          curve: Curves.easeInOut,
+                          alignment: Alignment.topCenter,
+                          child: _isSelfTransfer
+                              ? DompetSelectionDropdown(
+                                  label: 'Ke Dompet',
+                                  hint: 'Pilih Dompet Tujuan',
+                                  dompets: dompets,
+                                  selectedDompetId: _selectedDestDompetId,
+                                  showBalanceInfo: true,
+                                  checkSufficiency: false,
+                                  onChanged: (val) => setState(
+                                    () => _selectedDestDompetId = val,
+                                  ),
+                                )
+                              : ContactSelectionAutocomplete(
+                                  label: 'Untuk',
+                                  hint: 'Nama penerima',
+                                  controller: _untukController,
+                                  contacts: contacts,
+                                  showSaveToListOption: true,
+                                  saveToListValue: _simpanKeDaftar,
+                                  onSaveToListChanged: (val) =>
+                                      setState(() => _simpanKeDaftar = val),
+                                  onManageContacts: () =>
+                                      context.push(AppRoutes.kontak),
+                                  validator: (value) {
+                                    if (_selectedType ==
+                                            TransactionType.transfer &&
+                                        !_isSelfTransfer &&
+                                        (value == null ||
+                                            value.trim().isEmpty)) {
+                                      return 'Nama penerima tidak boleh kosong';
+                                    }
+                                    return null;
+                                  },
+                                ),
                         ),
                       CustomTextField(
                         label: 'Judul Jadwal',
                         hint: _selectedType == TransactionType.income
                             ? 'Contoh: Uang Saku Bulanan'
                             : (_selectedType == TransactionType.transfer
-                                ? 'Contoh: Tabungan Rutin'
+                                ? (_isSelfTransfer
+                                    ? 'Contoh: Tabungan Rutin'
+                                    : 'Contoh: Kirim Uang ke Ibu')
                                 : 'Contoh: Langganan Spotify'),
                         controller: _judulController,
                         validator: (value) {

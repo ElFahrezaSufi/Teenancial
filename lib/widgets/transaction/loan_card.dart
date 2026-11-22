@@ -56,6 +56,8 @@ class LoanCard extends StatelessWidget {
         : 0.0;
     final bool hasHistory =
         onShowHistory != null && (item.payments.isNotEmpty || item.isPaid);
+    final bool isDirectFullSettlement = LoanHelper.isDirectFullSettlement(item);
+    final String? paymentBadgeLabel = LoanHelper.paymentBadgeLabel(item);
     final bool canShowMenu =
         (onEdit != null && !item.isPaid) || hasHistory || onDelete != null;
 
@@ -198,15 +200,15 @@ class LoanCard extends StatelessWidget {
                           value: 'history',
                           child: Row(
                             children: [
-                              const Icon(
-                                Icons.history_rounded,
+                              Icon(
+                                isDirectFullSettlement
+                                    ? Icons.receipt_long_outlined
+                                    : Icons.history_rounded,
                                 color: primaryGreen,
                               ),
                               const SizedBox(width: 8),
                               Text(
-                                item.payments.isNotEmpty
-                                    ? 'Riwayat Cicilan (${item.payments.length})'
-                                    : 'Detail Pelunasan',
+                                LoanHelper.paymentHistoryLabel(item),
                                 style: const TextStyle(
                                   color: primaryGreen,
                                   fontWeight: FontWeight.w600,
@@ -294,7 +296,7 @@ class LoanCard extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
-              if (item.payments.isNotEmpty && onShowHistory != null) ...[
+              if (paymentBadgeLabel != null && onShowHistory != null) ...[
                 GestureDetector(
                   onTap: onShowHistory,
                   child: Container(
@@ -309,14 +311,16 @@ class LoanCard extends StatelessWidget {
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(
-                          Icons.history_rounded,
+                        Icon(
+                          isDirectFullSettlement
+                              ? Icons.receipt_long_outlined
+                              : Icons.history_rounded,
                           size: 12,
                           color: primaryGreen,
                         ),
                         const SizedBox(width: 4),
                         Text(
-                          '${item.payments.length}x cicilan',
+                          paymentBadgeLabel,
                           style: const TextStyle(
                             color: primaryGreen,
                             fontSize: 11,

@@ -85,5 +85,45 @@ void main() {
       expect(LoanHelper.describe(paidLoan)?.label, 'Lunas');
       expect(LoanHelper.describe(paidLoan)?.isOverdue, isFalse);
     });
+
+    test(
+      'paymentBadgeLabel dan paymentHistoryLabel membedakan Bayar Penuh (1x lunas) vs cicilan bertahap',
+      () {
+        final unpaid = buildLoan(isPaid: false);
+        expect(LoanHelper.isDirectFullSettlement(unpaid), isFalse);
+        expect(LoanHelper.paymentBadgeLabel(unpaid), isNull);
+
+        final partial = unpaid.withPayment(
+          LoanPayment(id: 'p1', amount: 20000, date: today, dompetId: 'd1'),
+        );
+        expect(LoanHelper.isDirectFullSettlement(partial), isFalse);
+        expect(LoanHelper.paymentBadgeLabel(partial), '1x cicilan');
+        expect(LoanHelper.paymentHistoryLabel(partial), 'Riwayat Cicilan (1)');
+
+        final paidInTwo = partial.withPayment(
+          LoanPayment(id: 'p2', amount: 30000, date: today, dompetId: 'd1'),
+        );
+        expect(paidInTwo.isPaid, isTrue);
+        expect(LoanHelper.isDirectFullSettlement(paidInTwo), isFalse);
+        expect(LoanHelper.paymentBadgeLabel(paidInTwo), '2x cicilan');
+        expect(
+          LoanHelper.paymentHistoryLabel(paidInTwo),
+          'Riwayat Cicilan (2)',
+        );
+
+        final directFull = unpaid.withPayment(
+          LoanPayment(id: 'p_full', amount: 50000, date: today, dompetId: 'd1'),
+        );
+        expect(directFull.isPaid, isTrue);
+        expect(LoanHelper.isDirectFullSettlement(directFull), isTrue);
+        expect(LoanHelper.paymentBadgeLabel(directFull), 'Bayar Penuh');
+        expect(LoanHelper.paymentHistoryLabel(directFull), 'Detail Pelunasan');
+
+        final legacyPaid = buildLoan(isPaid: true);
+        expect(LoanHelper.isDirectFullSettlement(legacyPaid), isTrue);
+        expect(LoanHelper.paymentBadgeLabel(legacyPaid), 'Bayar Penuh');
+        expect(LoanHelper.paymentHistoryLabel(legacyPaid), 'Detail Pelunasan');
+      },
+    );
   });
 }

@@ -308,7 +308,9 @@ class _LoanPaymentDialogState extends State<LoanPaymentDialog> {
             ),
             CustomTextField(
               label: 'Catatan (Opsional)',
-              hint: 'Contoh: Cicilan ke-1 via transfer',
+              hint: widget.settleFull
+                  ? 'Contoh: Pelunasan via transfer'
+                  : 'Contoh: Cicilan ke-1 via transfer',
               controller: _noteController,
             ),
           ],

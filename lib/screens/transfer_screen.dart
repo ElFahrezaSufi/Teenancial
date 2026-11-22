@@ -348,11 +348,44 @@ class _TransferScreenState extends State<TransferScreen> {
                           ),
                         ),
                       ),
-                      AnimatedSwitcher(
-                        duration: const Duration(milliseconds: 400),
+                      ValueListenableBuilder<TextEditingValue>(
+                        valueListenable: _jumlahController,
+                        builder: (context, amountValue, _) {
+                          return DompetSelectionDropdown(
+                            label: _isSelfTransfer ? 'Dari' : 'Sumber Uang',
+                            hint: _isSelfTransfer
+                                ? 'Pilih Dompet Asal'
+                                : 'Pilih Sumber Uang',
+                            dompets: dompets,
+                            selectedDompetId: _selectedSourceDompetId,
+                            showBalanceInfo: true,
+                            checkSufficiency: true,
+                            enteredAmount: DompetSelectionDropdown.parseAmount(
+                              amountValue.text,
+                            ),
+                            editRefundAllowance: _sourceEditRefundAllowance,
+                            onChanged: (val) =>
+                                setState(() => _selectedSourceDompetId = val),
+                          );
+                        },
+                      ),
+                      AnimatedSize(
+                        duration: const Duration(milliseconds: 250),
+                        curve: Curves.easeInOut,
+                        alignment: Alignment.topCenter,
                         child: _isSelfTransfer
-                            ? _buildSelfTransferUI(dompets)
-                            : _buildNormalTransferUI(dompets),
+                            ? DompetSelectionDropdown(
+                                label: 'Ke',
+                                hint: 'Pilih Dompet Tujuan',
+                                dompets: dompets,
+                                selectedDompetId: _selectedDestDompetId,
+                                showBalanceInfo: true,
+                                checkSufficiency: false,
+                                onChanged: (val) => setState(
+                                  () => _selectedDestDompetId = val,
+                                ),
+                              )
+                            : const SizedBox.shrink(),
                       ),
                       CustomTextField(
                         label: 'Jumlah Uang',
@@ -404,8 +437,9 @@ class _TransferScreenState extends State<TransferScreen> {
                         },
                       ),
                       AnimatedSize(
-                        duration: const Duration(milliseconds: 300),
+                        duration: const Duration(milliseconds: 250),
                         curve: Curves.easeInOut,
+                        alignment: Alignment.topCenter,
                         child: !_isSelfTransfer
                             ? ContactSelectionAutocomplete(
                                 label: 'Untuk',
@@ -448,70 +482,5 @@ class _TransferScreenState extends State<TransferScreen> {
       return editing.amount;
     }
     return 0.0;
-  }
-
-  Widget _buildNormalTransferUI(List<DompetItem> dompets) {
-    return Column(
-      key: const ValueKey('normal_transfer'),
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        ValueListenableBuilder<TextEditingValue>(
-          valueListenable: _jumlahController,
-          builder: (context, amountValue, _) {
-            return DompetSelectionDropdown(
-              label: 'Sumber Uang',
-              hint: 'Pilih Sumber Uang',
-              dompets: dompets,
-              selectedDompetId: _selectedSourceDompetId,
-              showBalanceInfo: true,
-              checkSufficiency: true,
-              enteredAmount: DompetSelectionDropdown.parseAmount(
-                amountValue.text,
-              ),
-              editRefundAllowance: _sourceEditRefundAllowance,
-              onChanged: (val) =>
-                  setState(() => _selectedSourceDompetId = val),
-            );
-          },
-        ),
-      ],
-    );
-  }
-
-  Widget _buildSelfTransferUI(List<DompetItem> dompets) {
-    return Column(
-      key: const ValueKey('self_transfer'),
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        ValueListenableBuilder<TextEditingValue>(
-          valueListenable: _jumlahController,
-          builder: (context, amountValue, _) {
-            return DompetSelectionDropdown(
-              label: 'Dari',
-              hint: 'Pilih Dompet Asal',
-              dompets: dompets,
-              selectedDompetId: _selectedSourceDompetId,
-              showBalanceInfo: true,
-              checkSufficiency: true,
-              enteredAmount: DompetSelectionDropdown.parseAmount(
-                amountValue.text,
-              ),
-              editRefundAllowance: _sourceEditRefundAllowance,
-              onChanged: (val) =>
-                  setState(() => _selectedSourceDompetId = val),
-            );
-          },
-        ),
-        DompetSelectionDropdown(
-          label: 'Ke',
-          hint: 'Pilih Dompet Tujuan',
-          dompets: dompets,
-          selectedDompetId: _selectedDestDompetId,
-          showBalanceInfo: true,
-          checkSufficiency: false,
-          onChanged: (val) => setState(() => _selectedDestDompetId = val),
-        ),
-      ],
-    );
   }
 }

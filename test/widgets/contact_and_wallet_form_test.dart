@@ -11,10 +11,14 @@ import 'package:teenancial/providers/transaction_provider.dart';
 import 'package:teenancial/repositories/contact_repository.dart';
 import 'package:teenancial/repositories/dompet_repository.dart';
 import 'package:teenancial/repositories/transaction_repository.dart';
+import 'package:teenancial/screens/buat_berulang_screen.dart';
 import 'package:teenancial/screens/detail_kontak_screen.dart';
 import 'package:teenancial/screens/kontak_screen.dart';
+import 'package:teenancial/screens/transfer_screen.dart';
+import 'package:teenancial/utils/currency_formatter.dart';
 import 'package:teenancial/widgets/transaction/contact_selection_autocomplete.dart';
 import 'package:teenancial/widgets/transaction/dompet_selection_dropdown.dart';
+import 'package:teenancial/widgets/transaction/loan_card.dart';
 import 'package:teenancial/widgets/transaction/transaction_form_screen.dart';
 
 class _StubDompetRepo extends DompetRepository {
@@ -653,6 +657,152 @@ void main() {
           find.text('Tidak ada transaksi untuk filter ini'),
           findsOneWidget,
         );
+      },
+    );
+  });
+
+  group('Transfer/Berulang Default & LoanCard Bayar Penuh Widget Test', () {
+    const wallets = [
+      DompetItem(
+        id: 'd1',
+        jenis: JenisDompet.cash,
+        nama: 'Dompet Utama',
+        jumlah: 100000,
+      ),
+      DompetItem(
+        id: 'd2',
+        jenis: JenisDompet.accounts,
+        nama: 'Go-Pay',
+        jumlah: 50000,
+      ),
+    ];
+
+    testWidgets(
+      'TransferScreen berpindah mulus Eksternal <-> Internal dan BuatBerulangScreen default Eksternal',
+      (WidgetTester tester) async {
+        final dompetProvider = DompetProvider(
+          repository: _StubDompetRepo(wallets),
+        )..updateUser('u1');
+        final contactProvider = ContactProvider(
+          repository: _StubContactRepo(const []),
+        )..updateUser('u1');
+        final txProvider = TransactionProvider(
+          repository: _StubTxRepo(const []),
+        )..updateUser('u1');
+
+        // 1. TransferScreen default Eksternal -> toggle ke Internal
+        await tester.pumpWidget(
+          MultiProvider(
+            providers: [
+              ChangeNotifierProvider<DompetProvider>.value(
+                value: dompetProvider,
+              ),
+              ChangeNotifierProvider<ContactProvider>.value(
+                value: contactProvider,
+              ),
+              ChangeNotifierProvider<TransactionProvider>.value(
+                value: txProvider,
+              ),
+            ],
+            child: const MaterialApp(home: TransferScreen()),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        expect(find.text('Sumber Uang'), findsOneWidget);
+        expect(find.text('Untuk'), findsOneWidget);
+        expect(find.text('Ke'), findsNothing);
+
+        await tester.tap(find.text('Transfer ke diri sendiri'));
+        await tester.pumpAndSettle();
+
+        expect(tester.takeException(), isNull);
+        expect(find.text('Dari'), findsOneWidget);
+        expect(find.text('Ke'), findsOneWidget);
+        expect(find.text('Sumber Uang'), findsNothing);
+        expect(find.text('Untuk'), findsNothing);
+
+        // 2. BuatBerulangScreen Transfer default Eksternal (seragam dengan TransferScreen)
+        await tester.pumpWidget(
+          MultiProvider(
+            providers: [
+              ChangeNotifierProvider<DompetProvider>.value(
+                value: dompetProvider,
+              ),
+              ChangeNotifierProvider<ContactProvider>.value(
+                value: contactProvider,
+              ),
+              ChangeNotifierProvider<TransactionProvider>.value(
+                value: txProvider,
+              ),
+            ],
+            child: const MaterialApp(
+              home: BuatBerulangScreen(initialType: TransactionType.transfer),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        expect(find.text('Sumber Uang'), findsOneWidget);
+        expect(find.text('Untuk'), findsOneWidget);
+        expect(find.text('Ke Dompet'), findsNothing);
+      },
+    );
+
+    testWidgets(
+      'LoanCard menampilkan Bayar Penuh untuk pelunasan langsung 1x dan Nx cicilan untuk cicilan bertahap',
+      (WidgetTester tester) async {
+        final contactProvider = ContactProvider(
+          repository: _StubContactRepo(const []),
+        )..updateUser('u1');
+        final today = DateTime(2026, 11, 22);
+
+        final baseLoan = TransactionModel(
+          id: 'l1',
+          title: 'Hutang dari Budi',
+          amount: 50000,
+          date: today,
+          categoryId: 'c11',
+          type: TransactionType.debt,
+          dompetId: 'd1',
+          counterpartyName: 'Budi',
+        );
+        final directFull = baseLoan.withPayment(
+          LoanPayment(id: 'p1', amount: 50000, date: today, dompetId: 'd1'),
+        );
+        final partial = baseLoan.copyWith(id: 'l2').withPayment(
+          LoanPayment(id: 'p2', amount: 20000, date: today, dompetId: 'd1'),
+        );
+
+        await tester.pumpWidget(
+          ChangeNotifierProvider<ContactProvider>.value(
+            value: contactProvider,
+            child: MaterialApp(
+              home: Scaffold(
+                body: ListView(
+                  children: [
+                    LoanCard(
+                      item: directFull,
+                      formatCurrency: Formatters.rupiah,
+                      onMarkPaid: () {},
+                      onShowHistory: () {},
+                    ),
+                    LoanCard(
+                      item: partial,
+                      formatCurrency: Formatters.rupiah,
+                      onMarkPaid: () {},
+                      onShowHistory: () {},
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        expect(find.text('Bayar Penuh'), findsOneWidget);
+        expect(find.text('1x cicilan'), findsOneWidget);
       },
     );
   });
