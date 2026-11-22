@@ -86,10 +86,22 @@ class UserModel {
       gender: (map['gender'] ?? '').toString().trim(),
       profileImageUrl: map['profileImageUrl'] as String?,
       completedModules: rawModules is Iterable
-          ? rawModules.map((e) => e.toString()).toList()
+          ? rawModules
+              .map((e) => e.toString().trim())
+              .where(
+                (id) => id.isNotEmpty && !RegExp(r'^\d+_\d+$').hasMatch(id),
+              )
+              .toSet()
+              .toList()
           : const [],
       completedQuizzes: rawQuizzes is Iterable
-          ? rawQuizzes.map((e) => e.toString()).toList()
+          ? rawQuizzes
+              .map((e) => e.toString().trim())
+              .where(
+                (id) => id.isNotEmpty && !RegExp(r'^\d+_\d+$').hasMatch(id),
+              )
+              .toSet()
+              .toList()
           : const [],
       xp: rawXp is num ? rawXp.toInt() : 0,
       feenEquipped: rawEquipped is Map

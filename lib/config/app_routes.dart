@@ -7,6 +7,7 @@ class AppRoutes {
   static const String login = '/login';
   static const String signup = '/signup';
   static const String forgotPassword = '/forgot_password';
+  static const String verifyEmail = '/verify_email';
 
   // Main Shell Bottom Navigation Routes
   static const String home = '/home';
@@ -15,6 +16,7 @@ class AppRoutes {
   static const String profile = '/profile';
 
   // Feature Sub-Routes
+  static const String gantiPassword = '/ganti_password';
   static const String pemasukan = '/pemasukan';
   static const String pengeluaran = '/pengeluaran';
   static const String pinjaman = '/pinjaman';

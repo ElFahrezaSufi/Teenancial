@@ -235,6 +235,9 @@ class BelajarProgressModel {
     this.completedQuizzes = const {},
   });
 
+  static bool isLegacyKey(String key) =>
+      RegExp(r'^\d+_\d+$').hasMatch(key.trim());
+
   Map<String, dynamic> toMap() {
     return {
       'completedModules': completedModules.toList()..sort(),
@@ -248,10 +251,16 @@ class BelajarProgressModel {
     final rawQuizzes = map['completedQuizzes'];
     return BelajarProgressModel(
       completedModules: rawModules is Iterable
-          ? rawModules.map((e) => e.toString()).toSet()
+          ? rawModules
+              .map((e) => e.toString().trim())
+              .where((id) => id.isNotEmpty && !isLegacyKey(id))
+              .toSet()
           : const {},
       completedQuizzes: rawQuizzes is Iterable
-          ? rawQuizzes.map((e) => e.toString()).toSet()
+          ? rawQuizzes
+              .map((e) => e.toString().trim())
+              .where((id) => id.isNotEmpty && !isLegacyKey(id))
+              .toSet()
           : const {},
     );
   }

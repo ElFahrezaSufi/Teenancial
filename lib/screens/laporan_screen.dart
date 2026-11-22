@@ -1,6 +1,6 @@
 import 'dart:math' as math;
 import 'package:fl_chart/fl_chart.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../config/app_routes.dart';
@@ -299,43 +299,52 @@ class _LaporanScreenState extends State<LaporanScreen> {
           borderRadius: 16,
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
           child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Selisih Bersih',
-                    style: TextStyle(
-                      color: primaryGreen,
-                      fontSize: 12,
-                      fontFamily: 'Inter',
-                      fontWeight: FontWeight.w700,
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Selisih Bersih',
+                      style: TextStyle(
+                        color: primaryGreen,
+                        fontSize: 12,
+                        fontFamily: 'Inter',
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    summary.netCashflow > 0
-                        ? 'Surplus bulan ini'
-                        : (summary.netCashflow < 0
-                            ? 'Defisit bulan ini'
-                            : 'Arus kas seimbang'),
-                    style: TextStyle(
-                      color: primaryGreen.withValues(alpha: 0.7),
-                      fontSize: 11,
-                      fontFamily: 'Inter',
-                      fontWeight: FontWeight.w500,
+                    const SizedBox(height: 2),
+                    Text(
+                      summary.netCashflow > 0
+                          ? 'Surplus bulan ini'
+                          : (summary.netCashflow < 0
+                              ? 'Defisit bulan ini'
+                              : 'Arus kas seimbang'),
+                      style: TextStyle(
+                        color: primaryGreen.withValues(alpha: 0.7),
+                        fontSize: 11,
+                        fontFamily: 'Inter',
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-              Text(
-                '${isNetPositive ? '+' : '-'} ${Formatters.rupiah(summary.netCashflow.abs())}',
-                style: TextStyle(
-                  color: isNetPositive ? primaryGreen : const Color(0xFFC62828),
-                  fontSize: 16,
-                  fontFamily: 'Inter',
-                  fontWeight: FontWeight.w800,
+              const SizedBox(width: 8),
+              Flexible(
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerRight,
+                  child: Text(
+                    '${isNetPositive ? '+' : '-'} ${Formatters.rupiah(summary.netCashflow.abs())}',
+                    style: TextStyle(
+                      color:
+                          isNetPositive ? primaryGreen : const Color(0xFFC62828),
+                      fontSize: 16,
+                      fontFamily: 'Inter',
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
                 ),
               ),
             ],
@@ -449,8 +458,11 @@ class _LaporanScreenState extends State<LaporanScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          Wrap(
+            alignment: WrapAlignment.spaceBetween,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            spacing: 8,
+            runSpacing: 10,
             children: [
               const Text(
                 'Proporsi Kategori',
@@ -461,25 +473,28 @@ class _LaporanScreenState extends State<LaporanScreen> {
                   fontWeight: FontWeight.w800,
                 ),
               ),
-              Container(
-                padding: const EdgeInsets.all(3),
-                decoration: BoxDecoration(
-                  color: scaffoldBg,
-                  borderRadius: BorderRadius.circular(100),
-                  border: Border.all(color: primaryGreen, width: 1.2),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    _buildFlowToggleButton(
-                      label: 'Pengeluaran',
-                      flow: ReportFlowType.expense,
-                    ),
-                    _buildFlowToggleButton(
-                      label: 'Pemasukan',
-                      flow: ReportFlowType.income,
-                    ),
-                  ],
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Container(
+                  padding: const EdgeInsets.all(3),
+                  decoration: BoxDecoration(
+                    color: scaffoldBg,
+                    borderRadius: BorderRadius.circular(100),
+                    border: Border.all(color: primaryGreen, width: 1.2),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      _buildFlowToggleButton(
+                        label: 'Pengeluaran',
+                        flow: ReportFlowType.expense,
+                      ),
+                      _buildFlowToggleButton(
+                        label: 'Pemasukan',
+                        flow: ReportFlowType.income,
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ],

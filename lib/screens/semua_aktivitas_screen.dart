@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../config/app_routes.dart';
@@ -253,7 +253,8 @@ class _SemuaAktivitasScreenState extends State<SemuaAktivitasScreen> {
                             ),
                             decoration: InputDecoration(
                               isDense: true,
-                              hintText: 'Cari judul, catatan, kategori, nominal...',
+                              hintText:
+                                  'Cari judul, catatan, kategori, nominal...',
                               hintStyle: TextStyle(
                                 color: primaryGreen.withValues(alpha: 0.5),
                                 fontSize: 13,
@@ -448,6 +449,7 @@ class _SemuaAktivitasScreenState extends State<SemuaAktivitasScreen> {
                           transactions: filteredTransactions,
                           filterKey: _filter.signature,
                           formatCurrency: Formatters.rupiah,
+                          allowSubtitleWrap: true,
                           onEdit: (item) =>
                               TransactionActions.edit(context, item),
                           onDelete: (id) =>

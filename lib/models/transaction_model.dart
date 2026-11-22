@@ -23,8 +23,13 @@ class TransactionModel {
   final bool isPaid; // Status pelunasan (khusus hutang/piutang)
   final String? paidDompetId; // Dompet yang digunakan saat pelunasan pinjaman
   final List<LoanPayment> payments; // Riwayat cicilan pinjaman/piutang
-  final bool isAdjustment; // Penanda transaksi penyesuaian saldo otomatis saat edit dompet
-  final String? recurringId; // ID template transaksi berulang (jika dibuat otomatis)
+  final bool
+      isAdjustment; // Penanda transaksi penyesuaian saldo otomatis saat edit dompet
+  final String?
+      recurringId; // ID template transaksi berulang (jika dibuat otomatis)
+  final String? targetId; // ID target menabung terkait (alokasi/penyelesaian)
+  final bool
+      skipWalletEffect; // true = dicatat di riwayat tanpa mengubah saldo dompet
 
   TransactionModel({
     required this.id,
@@ -44,6 +49,8 @@ class TransactionModel {
     List<LoanPayment> payments = const [],
     this.isAdjustment = false,
     this.recurringId,
+    this.targetId,
+    this.skipWalletEffect = false,
   }) : payments = List<LoanPayment>.unmodifiable(payments);
 
   /// Menentukan apakah transaksi ini merupakan penyesuaian saldo otomatis
@@ -54,6 +61,9 @@ class TransactionModel {
   /// Menentukan apakah transaksi ini dapat diedit dari Riwayat maupun Daftar Pinjaman.
   /// Pinjaman yang sudah lunas tidak dapat diedit (hanya dapat dihapus).
   bool get isEditable {
+    // Transaksi alokasi tabungan target tidak boleh diedit agar saldo dompet
+    // dan dana target tetap sinkron.
+    if (targetId != null && targetId!.isNotEmpty) return false;
     switch (type) {
       case TransactionType.income:
       case TransactionType.expense:
@@ -96,9 +106,8 @@ class TransactionModel {
       throw Exception('Nominal cicilan melebihi sisa tagihan');
     }
 
-    final double normalizedAmount = payment.amount > remainingAmount
-        ? remainingAmount
-        : payment.amount;
+    final double normalizedAmount =
+        payment.amount > remainingAmount ? remainingAmount : payment.amount;
     final normalizedPayment = payment.copyWith(amount: normalizedAmount);
 
     final updatedPayments = [...payments, normalizedPayment]
@@ -146,6 +155,8 @@ class TransactionModel {
   /// Menghitung kontribusi bersih transaksi ini terhadap masing-masing dompet.
   /// Memastikan sinkronisasi saldo tetap konsisten saat tambah, ubah, hapus, & pelunasan/cicilan.
   Map<String, double> walletEffects() {
+    if (skipWalletEffect) return const {};
+
     final effects = <String, double>{};
 
     void addDelta(String walletId, double delta) {
@@ -194,6 +205,8 @@ class TransactionModel {
   /// Mengembalikan daftar peristiwa perubahan saldo gabungan seluruh dompet
   /// beserta tanggal terjadinya (untuk grafik Tren Saldo di Riwayat).
   List<({DateTime date, double delta})> balanceEvents() {
+    if (skipWalletEffect) return const [];
+
     switch (type) {
       case TransactionType.income:
         return [(date: date, delta: amount)];
@@ -250,6 +263,8 @@ class TransactionModel {
       'payments': payments.map((p) => p.toMap()).toList(),
       'isAdjustment': isAdjustment,
       'recurringId': recurringId,
+      'targetId': targetId,
+      'skipWalletEffect': skipWalletEffect,
     };
   }
 
@@ -306,6 +321,8 @@ class TransactionModel {
       payments: parsedPayments,
       isAdjustment: map['isAdjustment'] == true,
       recurringId: map['recurringId'] as String?,
+      targetId: map['targetId'] as String?,
+      skipWalletEffect: map['skipWalletEffect'] == true,
     );
   }
 
@@ -333,6 +350,9 @@ class TransactionModel {
     bool? isAdjustment,
     String? recurringId,
     bool clearRecurringId = false,
+    String? targetId,
+    bool clearTargetId = false,
+    bool? skipWalletEffect,
   }) {
     return TransactionModel(
       id: id ?? this.id,
@@ -357,6 +377,8 @@ class TransactionModel {
       payments: payments ?? this.payments,
       isAdjustment: isAdjustment ?? this.isAdjustment,
       recurringId: clearRecurringId ? null : (recurringId ?? this.recurringId),
+      targetId: clearTargetId ? null : (targetId ?? this.targetId),
+      skipWalletEffect: skipWalletEffect ?? this.skipWalletEffect,
     );
   }
 }

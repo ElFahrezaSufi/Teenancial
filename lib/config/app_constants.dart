@@ -10,6 +10,10 @@ class AppConstants {
   // SharedPreferences Keys
   static const String prefHasSeenGetStarted = 'has_seen_get_started';
   static const String prefRiwayatFilterIndex = 'riwayat_filter_index';
+  static const String prefDailyReminderEnabled = 'daily_reminder_enabled';
+  static const String prefDailyMissionLastRemindedDate =
+      'daily_mission_last_reminded_date';
+  static const String prefDailyMissionArmedDate = 'daily_mission_armed_date';
 
   // Firestore Collection Names
   static const String usersCollection = 'users';
