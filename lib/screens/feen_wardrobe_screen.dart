@@ -4,6 +4,7 @@ import '../data/feen_catalog.dart';
 import '../providers/user_provider.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_text_styles.dart';
+import '../utils/error_mapper.dart';
 import '../widgets/common/custom_app_bar.dart';
 import '../widgets/common/custom_card.dart';
 import '../widgets/feen/feen_avatar.dart';
@@ -89,8 +90,7 @@ class FeenWardrobeScreen extends StatelessWidget {
                         TextButton(
                           onPressed: equipped.isEmpty
                               ? null
-                              : () =>
-                                  context.read<UserProvider>().unequipAllFeen(),
+                              : () => _handleUnequipAll(context),
                           child: Text(
                             'Lepas semua aksesoris',
                             style: TextStyle(
@@ -143,12 +143,29 @@ class FeenWardrobeScreen extends StatelessWidget {
     );
   }
 
-  void _onTapAccessory(
+  Future<void> _handleUnequipAll(BuildContext context) async {
+    try {
+      await context.read<UserProvider>().unequipAllFeen();
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(
+            SnackBar(
+              content: Text(ErrorMapper.message(e)),
+              backgroundColor: Colors.redAccent,
+            ),
+          );
+      }
+    }
+  }
+
+  Future<void> _onTapAccessory(
     BuildContext context, {
     required FeenAccessory accessory,
     required int level,
     required bool selected,
-  }) {
+  }) async {
     if (level < accessory.unlockLevel) {
       ScaffoldMessenger.of(context)
         ..hideCurrentSnackBar()
@@ -162,9 +179,22 @@ class FeenWardrobeScreen extends StatelessWidget {
         );
       return;
     }
-    context
-        .read<UserProvider>()
-        .equipFeen(accessory.slot, selected ? null : accessory.id);
+    try {
+      await context
+          .read<UserProvider>()
+          .equipFeen(accessory.slot, selected ? null : accessory.id);
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(
+            SnackBar(
+              content: Text(ErrorMapper.message(e)),
+              backgroundColor: Colors.redAccent,
+            ),
+          );
+      }
+    }
   }
 }
 

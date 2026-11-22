@@ -69,4 +69,51 @@ class LocalStorageService {
       await prefs.setString(AppConstants.prefDailyMissionArmedDate, dateKey);
     }
   }
+
+  bool isInitialBalanceOnboardingDoneLocal(String uid) {
+    if (uid.trim().isEmpty) return false;
+    return _prefs?.getBool(
+          '${AppConstants.prefInitialBalanceOnboardingPrefix}$uid',
+        ) ??
+        false;
+  }
+
+  Future<void> setInitialBalanceOnboardingDoneLocal(
+    String uid,
+    bool value,
+  ) async {
+    if (uid.trim().isEmpty) return;
+    try {
+      final prefs = _prefs ??= await SharedPreferences.getInstance();
+      await prefs.setBool(
+        '${AppConstants.prefInitialBalanceOnboardingPrefix}$uid',
+        value,
+      );
+    } catch (_) {}
+  }
+
+  bool isInitialBalanceOnboardingPendingSync(String uid) {
+    if (uid.trim().isEmpty) return false;
+    return _prefs?.getBool(
+          '${AppConstants.prefInitialBalanceOnboardingPendingSyncPrefix}$uid',
+        ) ??
+        false;
+  }
+
+  Future<void> setInitialBalanceOnboardingPendingSync(
+    String uid,
+    bool value,
+  ) async {
+    if (uid.trim().isEmpty) return;
+    try {
+      final prefs = _prefs ??= await SharedPreferences.getInstance();
+      final key =
+          '${AppConstants.prefInitialBalanceOnboardingPendingSyncPrefix}$uid';
+      if (value) {
+        await prefs.setBool(key, true);
+      } else {
+        await prefs.remove(key);
+      }
+    } catch (_) {}
+  }
 }

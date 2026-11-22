@@ -25,10 +25,13 @@ class ProfileScreen extends StatefulWidget {
   State<ProfileScreen> createState() => _ProfileScreenState();
 }
 
-class _ProfileScreenState extends State<ProfileScreen> {
+class _ProfileScreenState extends State<ProfileScreen>
+    with WidgetsBindingObserver {
   bool _isEditing = false;
   bool _isSaving = false;
   bool _isDeletingAccount = false;
+  bool _isTogglingReminder = false;
+  bool _hasOsNotificationPermission = true;
   bool _dailyReminder = LocalStorageService.instance.dailyReminderEnabled;
 
   File? _pendingImageFile;
@@ -45,6 +48,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _dailyReminder = LocalStorageService.instance.dailyReminderEnabled;
     _fullNameController = TextEditingController(text: 'Memuat...');
     _emailController = TextEditingController(text: 'Memuat...');
@@ -57,15 +61,78 @@ class _ProfileScreenState extends State<ProfileScreen> {
       if (userProvider.profile == null && !userProvider.isLoading) {
         userProvider.loadProfile();
       }
+      _syncNotificationPermissionState();
     });
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _fullNameController.dispose();
     _ageController.dispose();
     _emailController.dispose();
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _syncNotificationPermissionState();
+    }
+  }
+
+  Future<void> _syncNotificationPermissionState() async {
+    final osAllowed =
+        await NotificationService.instance.areNotificationsEnabled();
+    if (!mounted) return;
+    final localEnabled = LocalStorageService.instance.dailyReminderEnabled;
+    final effective = localEnabled && osAllowed;
+    if (_dailyReminder != effective ||
+        _hasOsNotificationPermission != osAllowed) {
+      setState(() {
+        _hasOsNotificationPermission = osAllowed;
+        _dailyReminder = effective;
+      });
+    }
+  }
+
+  Future<void> _handleToggleDailyReminder(bool val) async {
+    if (_isTogglingReminder) return;
+    setState(() {
+      _isTogglingReminder = true;
+      _dailyReminder = val;
+    });
+
+    try {
+      final effectiveEnabled =
+          await NotificationService.instance.setRemindersEnabled(val);
+      final osAllowed =
+          await NotificationService.instance.areNotificationsEnabled();
+      if (!mounted) return;
+
+      setState(() {
+        _dailyReminder = effectiveEnabled;
+        _hasOsNotificationPermission = osAllowed;
+      });
+
+      if (val && !effectiveEnabled) {
+        ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(
+            const SnackBar(
+              content: Text(
+                'Izin notifikasi belum aktif di perangkat ini. Aktifkan notifikasi Teenancial di Pengaturan HP agar pengingat bisa berjalan.',
+              ),
+              backgroundColor: Colors.orange,
+              duration: Duration(seconds: 4),
+            ),
+          );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isTogglingReminder = false);
+      }
+    }
   }
 
   void _setControllerTextIfChanged(
@@ -333,8 +400,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
       await LocalStorageService.instance.setHasSeenGetStarted(true);
       if (!mounted) return;
       await context.read<AuthProvider>().logout();
-      if (!mounted) return;
-      context.go(AppRoutes.login);
+      if (mounted) {
+        context.go(AppRoutes.login);
+      }
+      rootScaffoldMessengerKey.currentState
+        ?..hideCurrentSnackBar()
+        ..showSnackBar(
+          const SnackBar(
+            content: Text('Berhasil keluar dari akun.'),
+            backgroundColor: primaryGreen,
+          ),
+        );
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -1016,14 +1092,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
               _AccountMenuTile(
                 icon: Icons.notifications_none_rounded,
                 title: 'Pengingat Harian',
-                subtitle: 'Notifikasi catat transaksi & pinjaman',
+                subtitle: _hasOsNotificationPermission
+                    ? 'Notifikasi catat transaksi & pinjaman'
+                    : 'Izin notifikasi perangkat nonaktif. Aktifkan untuk menerima pengingat',
                 trailing: Switch(
                   value: _dailyReminder,
                   activeTrackColor: primaryGreen,
-                  onChanged: (val) {
-                    setState(() => _dailyReminder = val);
-                    NotificationService.instance.setRemindersEnabled(val);
-                  },
+                  onChanged:
+                      _isTogglingReminder ? null : _handleToggleDailyReminder,
                 ),
               ),
               Divider(

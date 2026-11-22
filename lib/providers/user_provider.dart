@@ -3,6 +3,8 @@ import 'package:flutter/foundation.dart';
 import '../data/feen_catalog.dart';
 import '../models/user_model.dart';
 import '../repositories/user_repository.dart';
+import '../services/connectivity_service.dart';
+import '../services/local_storage_service.dart';
 import '../utils/error_mapper.dart';
 import '../utils/xp_helper.dart';
 
@@ -104,6 +106,7 @@ class UserProvider extends ChangeNotifier {
         _errorMessage = ErrorMapper.message(e);
         notifyListeners();
       }
+      rethrow;
     }
   }
 
@@ -200,5 +203,54 @@ class UserProvider extends ChangeNotifier {
         notifyListeners();
       }
     }
+  }
+
+  /// Menandai bahwa onboarding saldo awal untuk pengguna aktif sudah selesai
+  /// (baik melalui "Simpan Saldo Awal" maupun "Mulai dari Rp 0 / Lewati").
+  /// Bila [allowOfflineLocalFallback] bernilai `true` dan perangkat offline,
+  /// status tetap disimpan lokal per-UID dan ditandai untuk disinkronkan ulang
+  /// saat perangkat kembali online.
+  Future<void> markInitialBalanceOnboardingDone({
+    bool allowOfflineLocalFallback = false,
+  }) async {
+    final targetUid = _uid;
+    if (targetUid == null) return;
+
+    await LocalStorageService.instance
+        .setInitialBalanceOnboardingDoneLocal(targetUid, true);
+    if (_profile != null && !_profile!.initialBalanceOnboardingDone) {
+      _profile = _profile!.copyWith(initialBalanceOnboardingDone: true);
+      notifyListeners();
+    }
+
+    try {
+      await _repository.markInitialBalanceOnboardingDone(targetUid);
+      await LocalStorageService.instance
+          .setInitialBalanceOnboardingPendingSync(targetUid, false);
+    } on OfflineException {
+      if (allowOfflineLocalFallback) {
+        await LocalStorageService.instance
+            .setInitialBalanceOnboardingPendingSync(targetUid, true);
+        return;
+      }
+      rethrow;
+    }
+  }
+
+  /// Menyinkronkan flag selesai onboarding yang tertunda karena pengguna
+  /// memilih "Lewati" saat perangkat sedang offline.
+  Future<void> syncPendingOnboardingFlagIfNeeded() async {
+    final targetUid = _uid;
+    if (targetUid == null) return;
+    if (ConnectivityService.instance.isOffline) return;
+    if (!LocalStorageService.instance
+        .isInitialBalanceOnboardingPendingSync(targetUid)) {
+      return;
+    }
+    try {
+      await _repository.markInitialBalanceOnboardingDone(targetUid);
+      await LocalStorageService.instance
+          .setInitialBalanceOnboardingPendingSync(targetUid, false);
+    } catch (_) {}
   }
 }

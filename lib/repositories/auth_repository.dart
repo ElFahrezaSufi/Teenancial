@@ -11,6 +11,12 @@ class ReauthCanceledException implements Exception {
   const ReauthCanceledException();
 }
 
+/// Dilempar ketika pengguna mencoba membatalkan pendaftaran akun yang
+/// ternyata sudah terverifikasi di server Firebase Auth.
+class AccountAlreadyVerifiedException implements Exception {
+  const AccountAlreadyVerifiedException();
+}
+
 class AuthRepository {
   final FirebaseAuth? _firebaseAuth;
   final FirestoreService _firestoreService;
@@ -59,6 +65,7 @@ class AuthRepository {
           'profileImageUrl': user.photoURL,
         'completedModules': <String>[],
         'completedQuizzes': <String>[],
+        'initialBalanceOnboardingDone': false,
         'createdAt': FieldValue.serverTimestamp(),
       });
 
@@ -342,7 +349,62 @@ class AuthRepository {
     }
   }
 
+  /// Memvalidasi apakah sesi login masih cukup baru (< 4 menit) sehingga
+  /// `user.delete()` dapat dijalankan tanpa perlu re-autentikasi ulang.
+  @visibleForTesting
+  static bool isSessionFreshForDeletion(
+    DateTime? lastSignInTime, {
+    DateTime? now,
+  }) {
+    if (lastSignInTime == null) return false;
+    final ref = now ?? DateTime.now();
+    final elapsed = ref.difference(lastSignInTime);
+    return elapsed < const Duration(minutes: 4);
+  }
+
+  /// Membatalkan pendaftaran akun Email/Password yang belum terverifikasi
+  /// (misalnya karena pengguna salah ketik alamat email saat mendaftar):
+  /// memverifikasi ulang status di server, memastikan belum terverifikasi,
+  /// menghapus data bootstrap Firestore, lalu menghapus akun Firebase Auth.
+  Future<void> cancelUnverifiedRegistration({String? password}) async {
+    _firestoreService.ensureOnline(actionLabel: 'membatalkan pendaftaran');
+    final current = _auth.currentUser;
+    if (current == null) {
+      throw Exception('Sesi pengguna tidak ditemukan.');
+    }
+
+    await current.reload();
+    final user = _auth.currentUser ?? current;
+    if (user.emailVerified) {
+      throw const AccountAlreadyVerifiedException();
+    }
+
+    final email = user.email?.trim() ?? '';
+    final trimmedPassword = password?.trim() ?? '';
+
+    if (trimmedPassword.isNotEmpty) {
+      if (email.isEmpty) {
+        throw Exception('Alamat email akun tidak ditemukan.');
+      }
+      final cred = EmailAuthProvider.credential(
+        email: email,
+        password: trimmedPassword,
+      );
+      await user.reauthenticateWithCredential(cred);
+    } else if (!isSessionFreshForDeletion(user.metadata.lastSignInTime)) {
+      throw FirebaseAuthException(
+        code: 'requires-recent-login',
+        message: 'Masukkan password akunmu untuk membatalkan pendaftaran.',
+      );
+    }
+
+    final uid = user.uid;
+    await deleteUserFirestoreData(uid);
+    await user.delete();
+  }
+
   Future<void> deleteAccount({String? password}) async {
+    _firestoreService.ensureOnline(actionLabel: 'menghapus akun');
     final user = _auth.currentUser;
     if (user == null) {
       throw Exception('Sesi pengguna tidak ditemukan.');

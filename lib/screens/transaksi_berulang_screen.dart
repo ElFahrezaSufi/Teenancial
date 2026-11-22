@@ -678,8 +678,8 @@ class _TransaksiBerulangScreenState extends State<TransaksiBerulangScreen> {
                     Expanded(
                       child: Text(
                         item.skippedCount > 0
-                            ? 'Dilewati (${item.skippedCount}x) — ${item.lastSkipReason!}'
-                            : 'Dilewati — ${item.lastSkipReason!}',
+                            ? 'Dilewati (${item.skippedCount}x): ${item.lastSkipReason!}'
+                            : 'Dilewati: ${item.lastSkipReason!}',
                         style: const TextStyle(
                           color: Colors.red,
                           fontSize: 11,

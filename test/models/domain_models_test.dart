@@ -88,6 +88,30 @@ void main() {
         18,
       );
     });
+
+    test(
+      'initialBalanceOnboardingDone default true untuk pengguna lama dan terserialisasi dengan benar untuk pengguna baru',
+      () {
+        final legacyUser = UserModel.fromMap({
+          'uid': 'old_u1',
+          'email': 'lama@example.com',
+          'name': 'User Lama',
+        });
+        expect(legacyUser.initialBalanceOnboardingDone, isTrue);
+
+        final newUser = UserModel.fromMap({
+          'uid': 'new_u1',
+          'email': 'baru@example.com',
+          'name': 'User Baru',
+          'initialBalanceOnboardingDone': false,
+        });
+        expect(newUser.initialBalanceOnboardingDone, isFalse);
+        expect(newUser.toMap()['initialBalanceOnboardingDone'], isFalse);
+
+        final finished = newUser.copyWith(initialBalanceOnboardingDone: true);
+        expect(finished.initialBalanceOnboardingDone, isTrue);
+      },
+    );
   });
 
   group('DompetItem & BelajarProgressModel', () {

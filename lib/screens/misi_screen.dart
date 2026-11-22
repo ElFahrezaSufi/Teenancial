@@ -7,6 +7,7 @@ import '../models/mission_model.dart';
 import '../providers/mission_provider.dart';
 import '../providers/user_provider.dart';
 import '../theme/app_colors.dart';
+import '../utils/error_mapper.dart';
 import '../widgets/common/custom_app_bar.dart';
 import '../widgets/common/custom_card.dart';
 import '../widgets/feen/feen_avatar.dart';
@@ -96,12 +97,19 @@ class _MisiScreenState extends State<MisiScreen> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Gagal mengklaim XP, coba lagi.'),
-            backgroundColor: Colors.redAccent,
-          ),
-        );
+        ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(
+            SnackBar(
+              content: Text(
+                ErrorMapper.message(
+                  e,
+                  fallback: 'Gagal mengklaim XP, coba lagi.',
+                ),
+              ),
+              backgroundColor: Colors.redAccent,
+            ),
+          );
       }
     }
   }

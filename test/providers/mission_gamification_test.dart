@@ -552,6 +552,45 @@ void main() {
         );
       },
     );
+
+    test(
+      'buildDailyMissionScheduleDates menjadwalkan 7 hari one-shot mulai besok 20:00 saat minimal 1 misi harian sudah selesai sebelum 20:00 (termasuk lintas bulan)',
+      () {
+        final plan = NotificationService.buildDailyMissionReminderPlan(
+          now: DateTime(2026, 11, 30, 18, 30),
+          hasCompletedAnyDailyToday: true,
+        );
+        final dates = NotificationService.buildDailyMissionScheduleDates(
+          plan.scheduledDate,
+        );
+
+        expect(dates.length, NotificationService.dailyMissionScheduleHorizonDays);
+        expect(dates.first, DateTime(2026, 12, 1, 20, 0));
+        expect(dates.last, DateTime(2026, 12, 7, 20, 0));
+        // Pastikan hari ini (30 Nov 20:00) tidak pernah masuk jadwal
+        expect(
+          dates.any((d) => d.year == 2026 && d.month == 11 && d.day == 30),
+          isFalse,
+        );
+      },
+    );
+
+    test(
+      'buildDailyMissionScheduleDates mulai hari ini 20:00 saat belum ada misi harian selesai sebelum 20:00',
+      () {
+        final plan = NotificationService.buildDailyMissionReminderPlan(
+          now: DateTime(2026, 11, 21, 18, 30),
+          hasCompletedAnyDailyToday: false,
+        );
+        final dates = NotificationService.buildDailyMissionScheduleDates(
+          plan.scheduledDate,
+        );
+
+        expect(dates.length, 7);
+        expect(dates.first, DateTime(2026, 11, 21, 20, 0));
+        expect(dates.last, DateTime(2026, 11, 27, 20, 0));
+      },
+    );
   });
 
   group('AuthRepository.isMatchingGoogleEmail & ErrorMapper', () {
@@ -575,6 +614,38 @@ void main() {
         isTrue,
       );
     });
+
+    test(
+      'isSessionFreshForDeletion mengembalikan true hanya jika sesi login < 4 menit',
+      () {
+        final now = DateTime(2026, 11, 21, 13, 0, 0);
+        expect(
+          AuthRepository.isSessionFreshForDeletion(
+            now.subtract(const Duration(minutes: 2)),
+            now: now,
+          ),
+          isTrue,
+        );
+        expect(
+          AuthRepository.isSessionFreshForDeletion(
+            now.subtract(const Duration(minutes: 4)),
+            now: now,
+          ),
+          isFalse,
+        );
+        expect(
+          AuthRepository.isSessionFreshForDeletion(
+            now.subtract(const Duration(hours: 2)),
+            now: now,
+          ),
+          isFalse,
+        );
+        expect(
+          AuthRepository.isSessionFreshForDeletion(null, now: now),
+          isFalse,
+        );
+      },
+    );
 
     test(
       'ErrorMapper menerjemahkan error reautentikasi ke Bahasa Indonesia',

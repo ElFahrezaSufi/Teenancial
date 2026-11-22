@@ -3,6 +3,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import '../data/mission_catalog.dart';
 import '../models/mission_model.dart';
+import '../services/connectivity_service.dart';
+import '../services/firestore_service.dart';
 import '../services/notification_service.dart';
 import 'user_provider.dart';
 
@@ -73,7 +75,7 @@ class MissionProvider extends ChangeNotifier {
     }
   }
 
-  DocumentReference _docRef(String uid) {
+  DocumentReference<Map<String, dynamic>> _docRef(String uid) {
     final db = _firestore ?? FirebaseFirestore.instance;
     return db
         .collection('users')
@@ -302,12 +304,20 @@ class MissionProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final Object? rawData;
+      Object? rawData;
       if (_loadDocOverride != null) {
         rawData = await _loadDocOverride(targetUid);
-      } else {
+      } else if (_firestore != null) {
         final snap = await _docRef(targetUid).get();
         rawData = snap.data();
+      } else {
+        try {
+          final snap = await FirestoreService.instance
+              .getDocumentSnapshot(_docRef(targetUid));
+          rawData = snap.data();
+        } on OfflineException {
+          rawData = null;
+        }
       }
       if (_uid != targetUid) return;
 
@@ -351,7 +361,7 @@ class MissionProvider extends ChangeNotifier {
     }
   }
 
-  Future<void> _persist() async {
+  Future<void> _persist({bool rethrowOnError = false}) async {
     final targetUid = _uid;
     if (targetUid == null) return;
     _ensureValidAnchors();
@@ -365,10 +375,16 @@ class MissionProvider extends ChangeNotifier {
       if (_saveDocOverride != null) {
         await _saveDocOverride(targetUid, payload);
       } else {
+        if (_firestore == null) {
+          FirestoreService.instance.ensureOnline(
+            actionLabel: 'menyimpan progres misi',
+          );
+        }
         payload['updatedAt'] = FieldValue.serverTimestamp();
         await _docRef(targetUid).set(payload);
       }
     } catch (e) {
+      if (rethrowOnError) rethrow;
       debugPrint('Gagal menyimpan progres misi: $e');
     }
   }
@@ -408,14 +424,25 @@ class MissionProvider extends ChangeNotifier {
     if (_uid == null || _claimingId != null) return false;
     if (statusOf(mission) != MissionClaimStatus.claimable) return false;
 
+    if (_saveDocOverride == null && _firestore == null) {
+      FirestoreService.instance.ensureOnline(
+        actionLabel: 'mengklaim hadiah XP',
+      );
+    }
+
     _claimingId = mission.id;
     notifyListeners();
 
     try {
       _claimedKeys.add(_claimKey(mission));
-      await _persist();
+      await _persist(rethrowOnError: true);
       if (_userProvider != null) {
-        await _userProvider!.addXp(mission.xpReward);
+        final gained = await _userProvider!.addXp(mission.xpReward);
+        if (gained == null) {
+          throw const OfflineException(
+            'Gagal mengklaim hadiah XP. Periksa koneksi internetmu lalu coba lagi.',
+          );
+        }
       }
       unawaited(
         NotificationService.instance.syncDailyMissionReminder(

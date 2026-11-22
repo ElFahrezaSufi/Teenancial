@@ -207,12 +207,27 @@ class BelajarProvider extends ChangeNotifier {
     final mod = _moduleAt(levelIndex, moduleIndex);
     if (mod == null || mod.status != ModuleStatus.available) return;
 
+    final previousModules = Set<String>.from(_completedModules);
+    final previousQuizzes = Set<String>.from(_completedQuizzes);
+    final previousLastLearnedAt = _lastLearnedAt;
+
     final isFirstTime = !_completedModules.contains(mod.id);
     _completedModules.add(mod.id);
     _lastLearnedAt = DateTime.now();
     _recomputeLocks();
     notifyListeners();
-    await _persistProgress();
+
+    try {
+      await _persistProgress(rethrowOnError: true);
+    } catch (_) {
+      _completedModules = previousModules;
+      _completedQuizzes = previousQuizzes;
+      _lastLearnedAt = previousLastLearnedAt;
+      _recomputeLocks();
+      notifyListeners();
+      rethrow;
+    }
+
     if (_missionProvider != null) {
       if (isFirstTime) {
         unawaited(
@@ -239,6 +254,10 @@ class BelajarProvider extends ChangeNotifier {
       return false;
     }
 
+    final previousModules = Set<String>.from(_completedModules);
+    final previousQuizzes = Set<String>.from(_completedQuizzes);
+    final previousLastLearnedAt = _lastLearnedAt;
+
     final wasModuleCompleted = _completedModules.contains(mod.id);
     final wasQuizCompleted = _completedQuizzes.contains(mod.id);
     _completedModules.add(mod.id);
@@ -246,7 +265,18 @@ class BelajarProvider extends ChangeNotifier {
     _lastLearnedAt = DateTime.now();
     _recomputeLocks();
     notifyListeners();
-    await _persistProgress();
+
+    try {
+      await _persistProgress(rethrowOnError: true);
+    } catch (_) {
+      _completedModules = previousModules;
+      _completedQuizzes = previousQuizzes;
+      _lastLearnedAt = previousLastLearnedAt;
+      _recomputeLocks();
+      notifyListeners();
+      rethrow;
+    }
+
     if (_missionProvider != null) {
       if (!wasModuleCompleted) {
         unawaited(
@@ -276,7 +306,7 @@ class BelajarProvider extends ChangeNotifier {
     return modules[moduleIndex];
   }
 
-  Future<void> _persistProgress() async {
+  Future<void> _persistProgress({bool rethrowOnError = false}) async {
     final targetUid = _uid;
     if (targetUid == null) return;
     try {
@@ -288,6 +318,7 @@ class BelajarProvider extends ChangeNotifier {
         ),
       );
     } catch (e) {
+      if (rethrowOnError) rethrow;
       debugPrint('Gagal menyimpan progres: $e');
     }
   }

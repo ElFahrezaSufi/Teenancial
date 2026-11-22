@@ -25,11 +25,16 @@ class TransactionModel {
   final List<LoanPayment> payments; // Riwayat cicilan pinjaman/piutang
   final bool
       isAdjustment; // Penanda transaksi penyesuaian saldo otomatis saat edit dompet
+  final bool
+      isInitialBalance; // Penanda transaksi saldo awal saat pembuatan/onboarding dompet
   final String?
       recurringId; // ID template transaksi berulang (jika dibuat otomatis)
   final String? targetId; // ID target menabung terkait (alokasi/penyelesaian)
   final bool
       skipWalletEffect; // true = dicatat di riwayat tanpa mengubah saldo dompet
+
+  /// Catatan baku untuk transaksi saldo awal saat pembuatan atau onboarding dompet.
+  static const String initialBalanceNote = 'Saldo awal saat pembuatan dompet';
 
   TransactionModel({
     required this.id,
@@ -48,22 +53,26 @@ class TransactionModel {
     this.paidDompetId,
     List<LoanPayment> payments = const [],
     this.isAdjustment = false,
+    this.isInitialBalance = false,
     this.recurringId,
     this.targetId,
     this.skipWalletEffect = false,
   }) : payments = List<LoanPayment>.unmodifiable(payments);
 
   /// Menentukan apakah transaksi ini merupakan penyesuaian saldo otomatis
-  /// (mendukung flag `isAdjustment` baru maupun catatan penyesuaian lama).
+  /// atau catatan saldo awal (tidak dihitung sebagai arus kas Laporan/Misi).
   bool get isBalanceAdjustment =>
-      isAdjustment || notes == 'Penyesuaian saldo otomatis saat edit dompet';
+      isAdjustment ||
+      isInitialBalance ||
+      notes == 'Penyesuaian saldo otomatis saat edit dompet' ||
+      notes == initialBalanceNote;
 
   /// Menentukan apakah transaksi ini dapat diedit dari Riwayat maupun Daftar Pinjaman.
-  /// Pinjaman yang sudah lunas tidak dapat diedit (hanya dapat dihapus).
+  /// Transaksi target menabung, saldo awal, penyesuaian saldo otomatis, dan
+  /// pinjaman yang sudah lunas tidak dapat diedit dari Riwayat.
   bool get isEditable {
-    // Transaksi alokasi tabungan target tidak boleh diedit agar saldo dompet
-    // dan dana target tetap sinkron.
     if (targetId != null && targetId!.isNotEmpty) return false;
+    if (isBalanceAdjustment) return false;
     switch (type) {
       case TransactionType.income:
       case TransactionType.expense:
@@ -73,6 +82,15 @@ class TransactionModel {
       case TransactionType.receivable:
         return !isPaid;
     }
+  }
+
+  /// Menentukan apakah transaksi ini boleh dihapus langsung dari layar Riwayat.
+  /// Transaksi target menabung dikelola di halaman Target Menabung, sedangkan
+  /// catatan Saldo Awal ikut terhapus otomatis ketika dompetnya dihapus.
+  bool get isDeletableFromHistory {
+    if (targetId != null && targetId!.isNotEmpty) return false;
+    if (isInitialBalance) return false;
+    return true;
   }
 
   /// Total nominal yang sudah dibayar/diterima untuk transaksi pinjaman.
@@ -262,6 +280,7 @@ class TransactionModel {
       'paidDompetId': paidDompetId,
       'payments': payments.map((p) => p.toMap()).toList(),
       'isAdjustment': isAdjustment,
+      'isInitialBalance': isInitialBalance,
       'recurringId': recurringId,
       'targetId': targetId,
       'skipWalletEffect': skipWalletEffect,
@@ -301,12 +320,20 @@ class TransactionModel {
       parsedPayments.sort((a, b) => a.date.compareTo(b.date));
     }
 
+    final parsedNotes = (map['notes'] as String?) ?? '';
+    final parsedIsAdjustment = map['isAdjustment'] == true;
+    final parsedTargetId = map['targetId'] as String?;
+    final parsedIsInitialBalance = map['isInitialBalance'] == true ||
+        (parsedIsAdjustment &&
+            (parsedTargetId == null || parsedTargetId.trim().isEmpty) &&
+            parsedNotes == initialBalanceNote);
+
     return TransactionModel(
       id: docId ?? (map['id'] as String?) ?? '',
       title: (map['title'] as String?) ?? '',
       amount: (map['amount'] as num?)?.toDouble() ?? 0.0,
       date: _parseDateTime(map['date']) ?? DateTime.now(),
-      notes: (map['notes'] as String?) ?? '',
+      notes: parsedNotes,
       categoryId: rawCategoryId.isNotEmpty
           ? rawCategoryId
           : CategoryCatalog.defaultCategoryIdForType(parsedType),
@@ -319,9 +346,10 @@ class TransactionModel {
       isPaid: map['isPaid'] == true,
       paidDompetId: map['paidDompetId'] as String?,
       payments: parsedPayments,
-      isAdjustment: map['isAdjustment'] == true,
+      isAdjustment: parsedIsAdjustment || parsedIsInitialBalance,
+      isInitialBalance: parsedIsInitialBalance,
       recurringId: map['recurringId'] as String?,
-      targetId: map['targetId'] as String?,
+      targetId: parsedTargetId,
       skipWalletEffect: map['skipWalletEffect'] == true,
     );
   }
@@ -348,6 +376,7 @@ class TransactionModel {
     bool clearPaidDompetId = false,
     List<LoanPayment>? payments,
     bool? isAdjustment,
+    bool? isInitialBalance,
     String? recurringId,
     bool clearRecurringId = false,
     String? targetId,
@@ -376,6 +405,7 @@ class TransactionModel {
           clearPaidDompetId ? null : (paidDompetId ?? this.paidDompetId),
       payments: payments ?? this.payments,
       isAdjustment: isAdjustment ?? this.isAdjustment,
+      isInitialBalance: isInitialBalance ?? this.isInitialBalance,
       recurringId: clearRecurringId ? null : (recurringId ?? this.recurringId),
       targetId: clearTargetId ? null : (targetId ?? this.targetId),
       skipWalletEffect: skipWalletEffect ?? this.skipWalletEffect,

@@ -85,20 +85,79 @@ class NotificationService {
     }
   }
 
-  Future<void> requestPermissionIfNeeded() async {
-    if (!_initialized || kIsWeb || _permissionRequested) return;
-    _permissionRequested = true;
+  /// Mengecek apakah sistem operasi saat ini mengizinkan aplikasi menampilkan
+  /// notifikasi. Mengembalikan `true` pada web / lingkungan test tanpa plugin.
+  Future<bool> areNotificationsEnabled() async {
+    if (kIsWeb) return true;
+    if (!_initialized) {
+      await init();
+    }
+    if (!_initialized) return true;
 
     try {
       if (defaultTargetPlatform == TargetPlatform.android) {
-        await _plugin
-            .resolvePlatformSpecificImplementation<
-                AndroidFlutterLocalNotificationsPlugin>()
-            ?.requestNotificationsPermission();
+        final androidPlugin = _plugin.resolvePlatformSpecificImplementation<
+            AndroidFlutterLocalNotificationsPlugin>();
+        if (androidPlugin == null) return true;
+        return (await androidPlugin.areNotificationsEnabled()) ?? true;
+      }
+    } catch (e) {
+      debugPrint('Gagal mengecek status izin notifikasi: $e');
+    }
+    return true;
+  }
+
+  /// Memastikan izin notifikasi OS aktif. Bila [forcePrompt] bernilai `true`
+  /// (misalnya saat user menyalakan switch Pengingat Harian secara eksplisit),
+  /// aplikasi akan meminta ulang izin OS jika sebelumnya sempat ditolak.
+  Future<bool> ensureNotificationPermission({bool forcePrompt = false}) async {
+    if (kIsWeb) return true;
+    if (!_initialized) {
+      await init();
+    }
+    if (!_initialized) return true;
+
+    try {
+      if (defaultTargetPlatform == TargetPlatform.android) {
+        final androidPlugin = _plugin.resolvePlatformSpecificImplementation<
+            AndroidFlutterLocalNotificationsPlugin>();
+        if (androidPlugin == null) return true;
+
+        final alreadyEnabled = await androidPlugin.areNotificationsEnabled();
+        if (alreadyEnabled == true) {
+          _permissionRequested = true;
+          return true;
+        }
+
+        if (forcePrompt || !_permissionRequested) {
+          _permissionRequested = true;
+          final granted = await androidPlugin.requestNotificationsPermission();
+          if (granted == true) return true;
+          return (await androidPlugin.areNotificationsEnabled()) ?? false;
+        }
+        return alreadyEnabled ?? true;
+      }
+
+      if (defaultTargetPlatform == TargetPlatform.iOS &&
+          (forcePrompt || !_permissionRequested)) {
+        _permissionRequested = true;
+        final iosPlugin = _plugin.resolvePlatformSpecificImplementation<
+            IOSFlutterLocalNotificationsPlugin>();
+        final granted = await iosPlugin?.requestPermissions(
+          alert: true,
+          badge: true,
+          sound: true,
+        );
+        return granted ?? true;
       }
     } catch (e) {
       debugPrint('Gagal meminta izin notifikasi: $e');
     }
+    return true;
+  }
+
+  Future<void> requestPermissionIfNeeded() async {
+    await ensureNotificationPermission(forcePrompt: false);
   }
 
   int _hashId(String key) {
@@ -110,6 +169,9 @@ class NotificationService {
     return hash;
   }
 
+  @visibleForTesting
+  static const int dailyMissionScheduleHorizonDays = 7;
+
   int _dayBeforeId(String loanId) => _hashId('loan_h1_$loanId');
   int _dueDayId(String loanId) => _hashId('loan_h0_$loanId');
   int _instantId(String key) => _hashId('loan_instant_$key');
@@ -119,6 +181,26 @@ class NotificationService {
   int _recurringInstantId(String key) => _hashId('rec_instant_$key');
   int get _dailyMissionReminderId => _hashId('daily_mission_reminder_20h');
   int get _dailyMissionInstantId => _hashId('daily_mission_reminder_instant');
+  int _dailyMissionSlotId(int dayOffset) =>
+      _hashId('daily_mission_reminder_20h_d$dayOffset');
+
+  Set<int> get _allDailyMissionScheduledIds => {
+        _dailyMissionReminderId, // ID legacy agar alarm lama ikut dibatalkan
+        for (int i = 0; i < dailyMissionScheduleHorizonDays; i++)
+          _dailyMissionSlotId(i),
+      };
+
+  bool _isDailyMissionNotificationId(int? id) {
+    if (id == null) return false;
+    return id == _dailyMissionInstantId ||
+        _allDailyMissionScheduledIds.contains(id);
+  }
+
+  Future<void> _cancelAllDailyMissionScheduled() async {
+    for (final id in _allDailyMissionScheduledIds) {
+      await _plugin.cancel(id: id);
+    }
+  }
 
   Future<void> _dailyReminderQueue = Future.value();
   String? _inMemoryLastRemindedDate;
@@ -142,8 +224,7 @@ class NotificationService {
 
   bool _isDailyMissionNotificationResponse(NotificationResponse? response) {
     if (response == null) return false;
-    return response.id == _dailyMissionReminderId ||
-        response.id == _dailyMissionInstantId ||
+    return _isDailyMissionNotificationId(response.id) ||
         response.payload == 'daily_mission_reminder';
   }
 
@@ -165,7 +246,9 @@ class NotificationService {
     );
   }
 
-  /// Menghitung jadwal alarm berulang pukul 20:00 (`DateTimeComponents.time`)
+  /// Menghitung tanggal awal jadwal pengingat misi harian pukul 20:00 (yang
+  /// kemudian dijadwalkan sebagai alarm one-shot multi-hari tanpa
+  /// `matchDateTimeComponents` agar tanggal mulai benar-benar dihormati OS)
   /// serta apakah pengingat instan jendela 20:00–23:59 perlu ditampilkan saat
   /// aplikasi dibuka (maksimal 1x/hari bila belum ada misi harian selesai).
   ///
@@ -225,6 +308,27 @@ class NotificationService {
       shouldShowInstantNow: !alreadyCoveredToday,
       lastRemindedDateToRecord: todayStr,
       shouldClearArmedDate: true,
+    );
+  }
+
+  /// Menghasilkan daftar tanggal jadwal one-shot pukul 20:00 selama [days] hari
+  /// ke depan mulai tepat dari [firstScheduledDate].
+  @visibleForTesting
+  static List<DateTime> buildDailyMissionScheduleDates(
+    DateTime firstScheduledDate, {
+    int days = dailyMissionScheduleHorizonDays,
+  }) {
+    if (days <= 0) return const [];
+    return List<DateTime>.generate(
+      days,
+      (offset) => DateTime(
+        firstScheduledDate.year,
+        firstScheduledDate.month,
+        firstScheduledDate.day + offset,
+        firstScheduledDate.hour,
+        firstScheduledDate.minute,
+      ),
+      growable: false,
     );
   }
 
@@ -541,9 +645,12 @@ class NotificationService {
     }
   }
 
-  Future<void> setRemindersEnabled(bool enabled) async {
-    await LocalStorageService.instance.setDailyReminderEnabled(enabled);
+  /// Mengubah preferensi Pengingat Harian dan menyelaraskan dengan izin OS.
+  /// Mengembalikan status efektif apakah pengingat benar-benar aktif (`true`)
+  /// atau mati/terblokir izin sistem (`false`).
+  Future<bool> setRemindersEnabled(bool enabled) async {
     if (!enabled) {
+      await LocalStorageService.instance.setDailyReminderEnabled(false);
       await _clearArmedDateSafely();
       if (_initialized && !kIsWeb) {
         try {
@@ -554,9 +661,18 @@ class NotificationService {
           );
         }
       }
-      return;
+      return false;
     }
+
+    final hasPermission = await ensureNotificationPermission(forcePrompt: true);
+    if (!hasPermission) {
+      await LocalStorageService.instance.setDailyReminderEnabled(false);
+      return false;
+    }
+
+    await LocalStorageService.instance.setDailyReminderEnabled(true);
     await _rescheduleAllPending();
+    return true;
   }
 
   Future<void> syncDailyMissionReminder({
@@ -580,7 +696,7 @@ class NotificationService {
     try {
       final storage = LocalStorageService.instance;
       if (!storage.dailyReminderEnabled) {
-        await _plugin.cancel(id: _dailyMissionReminderId);
+        await _cancelAllDailyMissionScheduled();
         await _plugin.cancel(id: _dailyMissionInstantId);
         await _clearArmedDateSafely();
         return;
@@ -592,9 +708,7 @@ class NotificationService {
       try {
         final active = await _plugin.getActiveNotifications();
         hasActiveDailyNotification = active.any(
-          (n) =>
-              n.id == _dailyMissionReminderId ||
-              n.id == _dailyMissionInstantId,
+          (n) => _isDailyMissionNotificationId(n.id),
         );
       } catch (_) {}
 
@@ -615,7 +729,7 @@ class NotificationService {
         hasActiveDailyMissionNotification: hasActiveDailyNotification,
       );
 
-      await _plugin.cancel(id: _dailyMissionReminderId);
+      await _cancelAllDailyMissionScheduled();
       if (completedToday == true) {
         await _plugin.cancel(id: _dailyMissionInstantId);
       }
@@ -651,26 +765,31 @@ class NotificationService {
         );
       }
 
-      final scheduledEightPm = tz.TZDateTime(
-        tz.local,
-        plan.scheduledDate.year,
-        plan.scheduledDate.month,
-        plan.scheduledDate.day,
-        plan.scheduledDate.hour,
-        plan.scheduledDate.minute,
-      );
+      final scheduleDates = buildDailyMissionScheduleDates(plan.scheduledDate);
+      final scheduleNow = tz.TZDateTime.now(tz.local);
+      for (int i = 0; i < scheduleDates.length; i++) {
+        final date = scheduleDates[i];
+        final scheduledAt = tz.TZDateTime(
+          tz.local,
+          date.year,
+          date.month,
+          date.day,
+          date.hour,
+          date.minute,
+        );
+        if (!scheduledAt.isAfter(scheduleNow)) continue;
 
-      await _plugin.zonedSchedule(
-        id: _dailyMissionReminderId,
-        title: '🔥 Jangan Lewatkan Misi Harianmu!',
-        body:
-            'Hari tinggal 4 jam lagi! Yuk selesaikan misi harianmu bersama Feen dan klaim hadiah XP hari ini.',
-        scheduledDate: scheduledEightPm,
-        notificationDetails: _notificationDetails,
-        androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
-        matchDateTimeComponents: DateTimeComponents.time,
-        payload: 'daily_mission_reminder',
-      );
+        await _plugin.zonedSchedule(
+          id: _dailyMissionSlotId(i),
+          title: '🔥 Jangan Lewatkan Misi Harianmu!',
+          body:
+              'Hari tinggal 4 jam lagi! Yuk selesaikan misi harianmu bersama Feen dan klaim hadiah XP hari ini.',
+          scheduledDate: scheduledAt,
+          notificationDetails: _notificationDetails,
+          androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+          payload: 'daily_mission_reminder',
+        );
+      }
     } catch (e) {
       debugPrint('Gagal menjadwalkan pengingat misi harian: $e');
     }

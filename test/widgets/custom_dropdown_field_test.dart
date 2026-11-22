@@ -9,6 +9,7 @@ import 'package:teenancial/repositories/dompet_repository.dart';
 import 'package:teenancial/repositories/transaction_repository.dart';
 import 'package:teenancial/utils/currency_formatter.dart';
 import 'package:teenancial/widgets/common/custom_dropdown_field.dart';
+import 'package:teenancial/widgets/home/total_saldo_card.dart';
 import 'package:teenancial/widgets/transaction/transaction_card.dart';
 import 'package:teenancial/widgets/transaction/transaction_form_screen.dart';
 
@@ -177,6 +178,144 @@ void main() {
         // txWithDuplicateOldNote menampilkan 'Makanan' (di atas) dan 'Beli Kopi' 1 kali (di bawah)
         expect(find.text('Makanan'), findsOneWidget);
         expect(find.text('Beli Kopi'), findsOneWidget);
+      },
+    );
+
+    testWidgets(
+      'transaksi pembelian target menampilkan nama kategori dan badge Target tanpa simbol titik pemisah',
+      (WidgetTester tester) async {
+        final txTargetSettlement = TransactionModel(
+          id: 'tx_target_1',
+          title: 'Sepatu Lari',
+          amount: 450000,
+          date: DateTime(2026, 11, 21),
+          notes: '',
+          categoryId: 'c4', // Belanja
+          type: TransactionType.expense,
+          dompetId: 'd1',
+          targetId: 'target_1',
+        );
+
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: TransactionCard(
+                item: txTargetSettlement,
+                formatCurrency: Formatters.rupiah,
+                onEdit: (_) {},
+                onDelete: (_) {},
+              ),
+            ),
+          ),
+        );
+
+        expect(find.text('Sepatu Lari'), findsOneWidget);
+        expect(find.text('Target'), findsOneWidget);
+        expect(find.textContaining('•'), findsNothing);
+      },
+    );
+
+    testWidgets(
+      'transaksi Saldo Awal menampilkan ikon dompet, judul Saldo Awal, dan catatan standar',
+      (WidgetTester tester) async {
+        final txInitial = DompetRepository.buildInitialBalanceTransaction(
+          walletId: 'd1',
+          walletName: 'Dompet Tunai',
+          amount: 150000,
+          date: DateTime(2026, 11, 22),
+        );
+
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: TransactionCard(
+                item: txInitial,
+                formatCurrency: Formatters.rupiah,
+                onEdit: (_) {},
+                onDelete: (_) {},
+              ),
+            ),
+          ),
+        );
+
+        expect(find.text('Saldo Awal (Dompet Tunai)'), findsOneWidget);
+        expect(find.text(TransactionModel.initialBalanceNote), findsOneWidget);
+        expect(
+          find.byIcon(Icons.account_balance_wallet_outlined),
+          findsOneWidget,
+        );
+        // Saldo Awal tidak boleh menampilkan menu titik tiga (Edit/Hapus)
+        expect(find.byType(PopupMenuButton<String>), findsNothing);
+      },
+    );
+
+    testWidgets(
+      'transaksi Penyesuaian Saldo hanya menampilkan aksi Hapus tanpa Edit di menu titik tiga',
+      (WidgetTester tester) async {
+        final txAdjustment = TransactionModel(
+          id: 'adj_1',
+          title: 'Penyesuaian Saldo (Dompet Tunai)',
+          amount: 35000,
+          date: DateTime(2026, 11, 22),
+          notes: 'Penyesuaian saldo otomatis saat edit dompet',
+          categoryId: 'c19',
+          type: TransactionType.income,
+          dompetId: 'd1',
+          isAdjustment: true,
+        );
+
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: TransactionCard(
+                item: txAdjustment,
+                formatCurrency: Formatters.rupiah,
+                onEdit: (_) {},
+                onDelete: (_) {},
+              ),
+            ),
+          ),
+        );
+
+        expect(find.byType(PopupMenuButton<String>), findsOneWidget);
+        await tester.tap(find.byIcon(Icons.more_vert));
+        await tester.pumpAndSettle();
+
+        expect(find.text('Hapus'), findsOneWidget);
+        expect(find.text('Edit'), findsNothing);
+      },
+    );
+  });
+
+  group('TotalSaldoCard Anti-Overflow Test', () {
+    testWidgets(
+      'nominal besar pada layar sempit (320px) tidak menyebabkan RenderFlex overflow',
+      (WidgetTester tester) async {
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: SizedBox(
+                width: 320,
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: TotalSaldoCard(
+                    totalSaldoReal: 99999999999,
+                    perkiraanMingguanReal: 99999999999,
+                    xpProgress: 0.5,
+                    currentXP: 50,
+                    maxXP: 100,
+                    level: 2,
+                    formatRupiah: Formatters.rupiah,
+                    onTap: () {},
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+
+        expect(tester.takeException(), isNull);
+        expect(find.text('Rp 99.999.999.999'), findsNWidgets(2));
       },
     );
   });

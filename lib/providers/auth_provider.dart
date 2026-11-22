@@ -5,7 +5,8 @@ import '../repositories/auth_repository.dart';
 import '../services/local_storage_service.dart';
 import '../services/notification_service.dart';
 
-export '../repositories/auth_repository.dart' show ReauthCanceledException;
+export '../repositories/auth_repository.dart'
+    show AccountAlreadyVerifiedException, ReauthCanceledException;
 
 class AuthProvider extends ChangeNotifier {
   static final ValueNotifier<bool> _bootstrapNotifier =
@@ -213,6 +214,20 @@ class AuthProvider extends ChangeNotifier {
       _verificationNotifier.value++;
     }
     return isNowVerified;
+  }
+
+  /// Membatalkan pendaftaran akun yang belum terverifikasi dan membersihkan
+  /// akun Auth + dokumen bootstrap Firestore-nya.
+  Future<void> cancelUnverifiedRegistration({String? password}) async {
+    _setBootstrapping(true);
+    try {
+      await _repository.cancelUnverifiedRegistration(password: password);
+      _user = _auth.currentUser;
+      await NotificationService.instance.cancelAll();
+    } finally {
+      _setBootstrapping(false);
+      notifyListeners();
+    }
   }
 
   Future<void> deleteAccount({String? password}) async {

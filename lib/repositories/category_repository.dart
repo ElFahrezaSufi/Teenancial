@@ -65,7 +65,9 @@ class CategoryRepository {
   }
 
   Future<List<CategoryModel>> getCategories(String uid) async {
-    final snapshot = await _firestoreService.categoriesCol(uid).get();
+    final snapshot = await _firestoreService.getQuerySnapshot(
+      _firestoreService.categoriesCol(uid),
+    );
     final items = snapshot.docs
         .map((doc) => CategoryModel.fromMap(doc.data(), docId: doc.id))
         .toList();
@@ -86,6 +88,7 @@ class CategoryRepository {
     required String iconKey,
     required int colorValue,
   }) async {
+    _firestoreService.ensureOnline(actionLabel: 'menambahkan kategori');
     final existing = await getCategories(uid);
     final validatedName = validateCategoryName(
       name: name,
@@ -119,6 +122,7 @@ class CategoryRepository {
     required String iconKey,
     required int colorValue,
   }) async {
+    _firestoreService.ensureOnline(actionLabel: 'memperbarui kategori');
     final existing = await getCategories(uid);
     final index = existing.indexWhere((c) => c.id == categoryId);
     if (index == -1) {
@@ -154,14 +158,16 @@ class CategoryRepository {
   /// Menghitung berapa banyak transaksi atau jadwal berulang yang memakai
   /// `categoryId`.
   Future<int> countUsages(String uid, String categoryId) async {
-    final txSnap = await _firestoreService
-        .transactionsCol(uid)
-        .where('categoryId', isEqualTo: categoryId)
-        .get();
-    final recSnap = await _firestoreService
-        .recurringCol(uid)
-        .where('categoryId', isEqualTo: categoryId)
-        .get();
+    final txSnap = await _firestoreService.getQuerySnapshot(
+      _firestoreService
+          .transactionsCol(uid)
+          .where('categoryId', isEqualTo: categoryId),
+    );
+    final recSnap = await _firestoreService.getQuerySnapshot(
+      _firestoreService
+          .recurringCol(uid)
+          .where('categoryId', isEqualTo: categoryId),
+    );
     return txSnap.docs.length + recSnap.docs.length;
   }
 
@@ -174,6 +180,7 @@ class CategoryRepository {
     required String categoryId,
     required TransactionType type,
   }) async {
+    _firestoreService.ensureOnline(actionLabel: 'menghapus kategori');
     final fallbackId = CategoryCatalog.defaultCategoryIdForType(type);
 
     final txSnap = await _firestoreService

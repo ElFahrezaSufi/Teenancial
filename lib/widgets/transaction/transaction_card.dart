@@ -51,10 +51,13 @@ class TransactionCard extends StatelessWidget {
         !item.isBalanceAdjustment && isTargetTransaction;
     final bool isWalletAdjustment =
         item.isBalanceAdjustment && !isTargetTransaction;
+    final bool isInitialBalance = item.isInitialBalance;
 
     final IconData leadingIcon = isTargetAllocation
         ? Icons.savings_outlined
-        : (isWalletAdjustment ? Icons.tune_rounded : cat.icon);
+        : (isInitialBalance
+            ? Icons.account_balance_wallet_outlined
+            : (isWalletAdjustment ? Icons.tune_rounded : cat.icon));
     final Color iconFgColor =
         (isTargetAllocation || isWalletAdjustment) ? primaryGreen : cat.color;
     final Color iconBgColor = (isTargetAllocation || isWalletAdjustment)
@@ -74,6 +77,8 @@ class TransactionCard extends StatelessWidget {
         : (isExpense ? Colors.red : primaryGreen);
 
     final bool canEdit = item.isEditable;
+    final bool canDelete = item.isDeletableFromHistory;
+    final bool showActionMenu = canEdit || canDelete;
     final bool hasRecurringBadge =
         item.recurringId != null && item.recurringId!.isNotEmpty;
 
@@ -88,7 +93,7 @@ class TransactionCard extends StatelessWidget {
 
     if (isTargetSettlement) {
       displayTitle = item.title.trim().isNotEmpty ? item.title.trim() : cat.name;
-      displaySubtitle = '${cat.name} • Pembelian target';
+      displaySubtitle = cat.name;
     } else if (isStandardIncomeOrExpense) {
       displayTitle = cat.name;
       final trimmedNotes = item.notes.trim();
@@ -103,8 +108,9 @@ class TransactionCard extends StatelessWidget {
       }
     } else {
       displayTitle = item.title;
-      displaySubtitle =
-          item.notes.trim().isNotEmpty ? item.notes.trim() : cat.name;
+      displaySubtitle = item.notes.trim().isNotEmpty
+          ? item.notes.trim()
+          : (isInitialBalance ? 'Saldo Awal' : cat.name);
     }
 
     return CustomCard(
@@ -145,7 +151,10 @@ class TransactionCard extends StatelessWidget {
                     ),
                     if (displaySubtitle == null && hasRecurringBadge) ...[
                       const SizedBox(width: 6),
-                      const _RecurringBadge(),
+                      const _MetaBadge(
+                        icon: Icons.autorenew_rounded,
+                        label: 'Berulang',
+                      ),
                     ],
                   ],
                 ),
@@ -168,9 +177,19 @@ class TransactionCard extends StatelessWidget {
                               : TextOverflow.ellipsis,
                         ),
                       ),
+                      if (isTargetSettlement) ...[
+                        const SizedBox(width: 6),
+                        const _MetaBadge(
+                          icon: Icons.flag_outlined,
+                          label: 'Target',
+                        ),
+                      ],
                       if (hasRecurringBadge) ...[
                         const SizedBox(width: 6),
-                        const _RecurringBadge(),
+                        const _MetaBadge(
+                          icon: Icons.autorenew_rounded,
+                          label: 'Berulang',
+                        ),
                       ],
                     ],
                   ),
@@ -254,10 +273,10 @@ class TransactionCard extends StatelessWidget {
           ),
           // Slot selebar tombol menu selalu disediakan supaya tepi kanan
           // nominal tetap sejajar untuk semua baris (termasuk transaksi
-          // tabungan target yang menunya disembunyikan).
+          // target menabung & saldo awal yang menunya disembunyikan).
           SizedBox(
             width: 40,
-            child: isTargetTransaction
+            child: !showActionMenu
                 ? const SizedBox.shrink()
                 : PopupMenuButton<String>(
                     icon: const Icon(
@@ -287,16 +306,20 @@ class TransactionCard extends StatelessWidget {
                             ],
                           ),
                         ),
-                      const PopupMenuItem(
-                        value: 'delete',
-                        child: Row(
-                          children: [
-                            Icon(Icons.delete_outline, color: Colors.red),
-                            SizedBox(width: 8),
-                            Text('Hapus', style: TextStyle(color: Colors.red)),
-                          ],
+                      if (canDelete)
+                        const PopupMenuItem(
+                          value: 'delete',
+                          child: Row(
+                            children: [
+                              Icon(Icons.delete_outline, color: Colors.red),
+                              SizedBox(width: 8),
+                              Text(
+                                'Hapus',
+                                style: TextStyle(color: Colors.red),
+                              ),
+                            ],
+                          ),
                         ),
-                      ),
                     ],
                   ),
           ),
@@ -306,8 +329,14 @@ class TransactionCard extends StatelessWidget {
   }
 }
 
-class _RecurringBadge extends StatelessWidget {
-  const _RecurringBadge();
+class _MetaBadge extends StatelessWidget {
+  final IconData icon;
+  final String label;
+
+  const _MetaBadge({
+    required this.icon,
+    required this.label,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -317,18 +346,18 @@ class _RecurringBadge extends StatelessWidget {
         color: primaryGreen.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(100),
       ),
-      child: const Row(
+      child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           Icon(
-            Icons.autorenew_rounded,
+            icon,
             size: 10,
             color: primaryGreen,
           ),
-          SizedBox(width: 2.5),
+          const SizedBox(width: 2.5),
           Text(
-            'Berulang',
-            style: TextStyle(
+            label,
+            style: const TextStyle(
               color: primaryGreen,
               fontSize: 9.5,
               fontFamily: 'Inter',

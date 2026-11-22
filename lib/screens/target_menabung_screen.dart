@@ -1364,6 +1364,8 @@ class _TargetAllocationDialogState extends State<_TargetAllocationDialog> {
             const SizedBox(height: 16),
             DropdownButtonFormField<String>(
               initialValue: _selectedWalletId,
+              isExpanded: true,
+              dropdownColor: appBarBg,
               decoration: InputDecoration(
                 labelText: widget.isDeposit
                     ? 'Ambil saldo dari dompet'
@@ -1383,15 +1385,35 @@ class _TargetAllocationDialogState extends State<_TargetAllocationDialog> {
                   .map(
                     (wallet) => DropdownMenuItem<String>(
                       value: wallet.id,
-                      child: Text(
-                        '${wallet.nama} • ${Formatters.rupiah(wallet.jumlah)}',
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          color: primaryGreen,
-                          fontFamily: 'Inter',
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                        ),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              wallet.nama,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                color: primaryGreen,
+                                fontFamily: 'Inter',
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            Formatters.rupiah(wallet.jumlah),
+                            maxLines: 1,
+                            softWrap: false,
+                            style: TextStyle(
+                              color: primaryGreen.withValues(alpha: 0.75),
+                              fontFamily: 'Inter',
+                              fontSize: 12,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          const SizedBox(width: 4),
+                        ],
                       ),
                     ),
                   )

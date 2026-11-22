@@ -18,6 +18,7 @@ import 'package:teenancial/repositories/dompet_repository.dart';
 import 'package:teenancial/repositories/recurring_repository.dart';
 import 'package:teenancial/repositories/target_repository.dart';
 import 'package:teenancial/repositories/transaction_repository.dart';
+import 'package:teenancial/services/connectivity_service.dart';
 import 'package:teenancial/utils/report_calculator.dart';
 
 class _FakeTargetRepository extends TargetRepository {
@@ -851,7 +852,257 @@ void main() {
       await recProvider.deleteRecurring(added.id);
       expect(recProvider.items, isEmpty);
     });
+
+    test(
+      'saat offline runCatchUpAndLoad melewati processDue tanpa error dan tetap memuat templat dari cache',
+      () async {
+        fakeRecRepo.store.add(
+          RecurringModel(
+            id: 'rec_cached',
+            title: 'Uang Saku Mingguan',
+            amount: 100000,
+            categoryId: 'c1',
+            type: TransactionType.income,
+            dompetId: 'd1',
+            frequency: RecurrenceFrequency.weekly,
+            intervalCount: 1,
+            startDate: DateTime(2026, 11, 1),
+            nextRunDate: DateTime(2026, 11, 8),
+          ),
+        );
+
+        final callsBefore = fakeRecRepo.processDueCalls;
+        ConnectivityService.instance.setTestState(isOffline: true);
+        addTearDown(() => ConnectivityService.instance.resetForTesting());
+
+        await recProvider.runCatchUpAndLoad(silent: true);
+
+        expect(fakeRecRepo.processDueCalls, callsBefore);
+        expect(recProvider.errorMessage, isNull);
+        expect(recProvider.items.length, 1);
+        expect(recProvider.items.first.id, 'rec_cached');
+      },
+    );
   });
+
+  group('Offline Rollback BelajarProvider & Initial Wallet Balance DompetProvider',
+      () {
+    test(
+      'completeModule dan completeQuiz melakukan rollback state dan melempar ulang OfflineException saat gagal simpan',
+      () async {
+        final failingRepo = _FailingSaveBelajarRepository();
+        final belajarProvider = BelajarProvider(repository: failingRepo);
+        belajarProvider.updateUser('user_1');
+        await Future<void>.delayed(Duration.zero);
+
+        expect(
+          belajarProvider.levels.first.modules.first.status,
+          ModuleStatus.available,
+        );
+
+        await expectLater(
+          () => belajarProvider.completeModule(0, 0),
+          throwsA(isA<OfflineException>()),
+        );
+        expect(
+          belajarProvider.levels.first.modules.first.status,
+          ModuleStatus.available,
+        );
+        expect(belajarProvider.isRecentlyLearned, isFalse);
+
+        // Jika modul sudah selesai, lalu kuis gagal simpan karena offline -> kuis tetap available
+        failingRepo.shouldFailSave = false;
+        await belajarProvider.completeModule(0, 0);
+        expect(
+          belajarProvider.levels.first.modules.first.status,
+          ModuleStatus.completed,
+        );
+        expect(
+          belajarProvider.levels.first.modules.first.quiz.status,
+          ModuleStatus.available,
+        );
+
+        failingRepo.shouldFailSave = true;
+        await expectLater(
+          () => belajarProvider.completeQuiz(0, 0, scorePercent: 100),
+          throwsA(isA<OfflineException>()),
+        );
+        expect(
+          belajarProvider.levels.first.modules.first.quiz.status,
+          ModuleStatus.available,
+        );
+      },
+    );
+
+    test(
+      'DompetProvider.setInitialWalletBalance memperbarui saldo awal d1 dan mencatat transaksi Saldo Awal secara konsisten',
+      () async {
+        final fakeDompetRepo = _InitialBalanceDompetRepository();
+        final dompetProvider = DompetProvider(repository: fakeDompetRepo);
+        dompetProvider.updateUser('user_1');
+        await Future<void>.delayed(Duration.zero);
+
+        expect(dompetProvider.totalSaldo, 0);
+        await dompetProvider.setInitialWalletBalance('d1', 150000);
+        expect(dompetProvider.totalSaldo, 150000);
+        expect(fakeDompetRepo.initialBalanceCalls, 1);
+
+        final initTx = DompetRepository.buildInitialBalanceTransaction(
+          walletId: 'd1',
+          walletName: 'Dompet Tunai',
+          amount: 150000,
+          date: DateTime(2026, 11, 22, 8, 0),
+        );
+        expect(initTx.id, 'init_d1');
+        expect(initTx.title, 'Saldo Awal (Dompet Tunai)');
+        expect(initTx.notes, TransactionModel.initialBalanceNote);
+        expect(initTx.isAdjustment, isTrue);
+        expect(initTx.isInitialBalance, isTrue);
+        expect(initTx.isBalanceAdjustment, isTrue);
+        expect(initTx.type, TransactionType.income);
+
+        // Pastikan serialisasi toMap/fromMap mempertahankan isInitialBalance
+        final roundTripped = TransactionModel.fromMap(
+          initTx.toMap(),
+          docId: initTx.id,
+        );
+        expect(roundTripped.isInitialBalance, isTrue);
+        expect(roundTripped.isBalanceAdjustment, isTrue);
+
+        // Pastikan Saldo Awal tidak dihitung sebagai pemasukan baru di Laporan Keuangan
+        expect(ReportCalculator.isReportIncome(roundTripped), isFalse);
+        expect(ReportCalculator.isReportExpense(roundTripped), isFalse);
+
+        // Pastikan balanceEvents tetap melaporkan +amount untuk grafik Tren Saldo
+        final events = roundTripped.balanceEvents();
+        expect(events.length, 1);
+        expect(events.first.delta, 150000);
+      },
+    );
+
+    test(
+      'DompetRepository.hasBlockingTransactions mengizinkan hapus dompet bila kosong atau hanya punya Saldo Awal, dan memblokir jika ada transaksi lain',
+      () {
+        final initialTx = DompetRepository.buildInitialBalanceTransaction(
+          walletId: 'w_new',
+          walletName: 'Dana',
+          amount: 100000,
+          date: DateTime(2026, 11, 22, 9, 0),
+        );
+        final normalExpense = TransactionModel(
+          id: 'tx_exp',
+          title: 'Makanan',
+          amount: 15000,
+          date: DateTime(2026, 11, 22, 10, 0),
+          categoryId: 'c3',
+          type: TransactionType.expense,
+          dompetId: 'w_new',
+        );
+        final editAdjustment = TransactionModel(
+          id: 'tx_adj',
+          title: 'Penyesuaian Saldo (Dana)',
+          amount: 20000,
+          date: DateTime(2026, 11, 22, 11, 0),
+          notes: 'Penyesuaian saldo otomatis saat edit dompet',
+          categoryId: 'c19',
+          type: TransactionType.income,
+          dompetId: 'w_new',
+          isAdjustment: true,
+        );
+        final targetAlloc = TransactionModel(
+          id: 'tx_tg',
+          title: 'Tabungan: Sepatu',
+          amount: 50000,
+          date: DateTime(2026, 11, 22, 12, 0),
+          notes: 'Alokasi ke target menabung',
+          categoryId: 'c6',
+          type: TransactionType.expense,
+          dompetId: 'w_new',
+          isAdjustment: true,
+          targetId: 'tg_1',
+        );
+
+        expect(DompetRepository.hasBlockingTransactions(const []), isFalse);
+        expect(DompetRepository.hasBlockingTransactions([initialTx]), isFalse);
+        expect(
+          DompetRepository.hasBlockingTransactions([initialTx, normalExpense]),
+          isTrue,
+        );
+        expect(
+          DompetRepository.hasBlockingTransactions([initialTx, editAdjustment]),
+          isTrue,
+        );
+        expect(
+          DompetRepository.hasBlockingTransactions([initialTx, targetAlloc]),
+          isTrue,
+        );
+      },
+    );
+  });
+}
+
+class _InitialBalanceDompetRepository extends DompetRepository {
+  final List<DompetItem> store = [DompetItem.initialWallet()];
+  int initialBalanceCalls = 0;
+
+  @override
+  Future<List<DompetItem>> getDompets(String uid) async =>
+      List<DompetItem>.from(store);
+
+  @override
+  Future<void> setInitialWalletBalance(
+    String uid,
+    String dompetId,
+    double initialBalance,
+  ) async {
+    initialBalanceCalls++;
+    final idx = store.indexWhere((d) => d.id == dompetId);
+    if (idx != -1) {
+      store[idx] = store[idx].copyWith(jumlah: initialBalance);
+    }
+  }
+}
+
+class _FailingSaveBelajarRepository extends BelajarRepository {
+  bool shouldFailSave = true;
+
+  @override
+  Future<List<LevelData>> getLevels() async => const [
+        LevelData(
+          id: 'lvl_1',
+          order: 1,
+          tingkat: 'Level 1',
+          subtitle: 'Dasar Keuangan',
+        ),
+      ];
+
+  @override
+  Future<List<ModuleData>> getAllModules() async => const [
+        ModuleData(
+          id: 'mod_1',
+          levelId: 'lvl_1',
+          order: 1,
+          title: 'Dasar Menabung',
+          description: 'Pengantar',
+          sections: [
+            ModuleSection(heading: 'Ringkasan', body: 'Isi materi'),
+          ],
+          quiz: QuizData(label: 'Kuis 1', passingScore: 70, questions: []),
+        ),
+      ];
+
+  @override
+  Future<BelajarProgressModel> getProgress(String uid) async =>
+      const BelajarProgressModel();
+
+  @override
+  Future<void> saveProgress(String uid, BelajarProgressModel progress) async {
+    if (shouldFailSave) {
+      throw const OfflineException(
+        'Tidak ada koneksi internet. Hubungkan ke internet untuk menyimpan progres belajar.',
+      );
+    }
+  }
 }
 
 class _NoopDompetRepository extends DompetRepository {

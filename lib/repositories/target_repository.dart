@@ -17,7 +17,9 @@ class TargetRepository {
         _cloudinaryService = cloudinaryService ?? CloudinaryService.instance;
 
   Future<List<TargetItem>> getTargets(String uid) async {
-    final snapshot = await _firestoreService.targetsCol(uid).get();
+    final snapshot = await _firestoreService.getQuerySnapshot(
+      _firestoreService.targetsCol(uid),
+    );
     final items = snapshot.docs
         .map((doc) => TargetItem.fromMap(doc.data(), docId: doc.id))
         .toList();
@@ -37,6 +39,7 @@ class TargetRepository {
     bool isPinned = false,
     DateTime? deadline,
   }) async {
+    _firestoreService.ensureOnline(actionLabel: 'membuat target menabung');
     final secureUrl = await _cloudinaryService.uploadImage(imageFile);
     final docRef = _firestoreService.targetsCol(uid).doc();
     final item = TargetItem(
@@ -63,6 +66,7 @@ class TargetRepository {
     DateTime? deadline,
     bool clearDeadline = false,
   }) async {
+    _firestoreService.ensureOnline(actionLabel: 'memperbarui target menabung');
     String? newImageUrl;
     if (newImageFile != null) {
       newImageUrl = await _cloudinaryService.uploadImage(newImageFile);
@@ -86,6 +90,7 @@ class TargetRepository {
     required String targetId,
     required double savedAmount,
   }) async {
+    _firestoreService.ensureOnline(actionLabel: 'memperbarui dana target');
     await _firestoreService
         .targetsCol(uid)
         .doc(targetId)
@@ -97,6 +102,7 @@ class TargetRepository {
     required String targetId,
     required bool isSettled,
   }) async {
+    _firestoreService.ensureOnline(actionLabel: 'menyelesaikan target');
     await _firestoreService.targetsCol(uid).doc(targetId).update({
       'isSettled': isSettled,
       if (isSettled) 'isPinned': false,
@@ -260,6 +266,7 @@ class TargetRepository {
     required String targetId,
     required bool shouldPin,
   }) async {
+    _firestoreService.ensureOnline(actionLabel: 'menyematkan target menabung');
     final colRef = _firestoreService.targetsCol(uid);
     final snapshot = await colRef.get();
     final batch = _firestoreService.batch();
@@ -276,6 +283,7 @@ class TargetRepository {
   }
 
   Future<void> deleteTarget(String uid, String targetId) async {
+    _firestoreService.ensureOnline(actionLabel: 'menghapus target menabung');
     await _firestoreService.targetsCol(uid).doc(targetId).delete();
   }
 }
