@@ -2,6 +2,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
+import '../config/app_routes.dart';
 import '../data/category_catalog.dart';
 import '../models/dompet_model.dart';
 import '../models/recurring_model.dart';
@@ -66,6 +67,7 @@ class _BuatBerulangScreenState extends State<BuatBerulangScreen> {
   DateTime _startDate = RecurrenceRule.dateOnly(DateTime.now());
   bool _useEndDate = false;
   DateTime? _endDate;
+  bool _simpanKeDaftar = false;
   bool _isLoading = false;
 
   bool get _isEdit => widget.itemToEdit != null;
@@ -122,6 +124,19 @@ class _BuatBerulangScreenState extends State<BuatBerulangScreen> {
           catProvider.customCategories.isEmpty &&
           !catProvider.isLoading) {
         await catProvider.loadCategories(silent: true);
+      }
+      if (!mounted) return;
+      if (editing != null &&
+          editing.type == TransactionType.transfer &&
+          !editing.isInternalTransfer &&
+          _untukController.text.isEmpty &&
+          editing.contactId != null) {
+        final contact = contactProvider.getContactById(editing.contactId);
+        if (contact != null) {
+          setState(() {
+            _untukController.text = contact.name;
+          });
+        }
       }
     });
   }
@@ -240,7 +255,23 @@ class _BuatBerulangScreenState extends State<BuatBerulangScreen> {
           : CategoryCatalog.getById(categoryId, fallbackType: _selectedType);
 
       final rawTitle = _judulController.text.trim();
-      final recipientName = _untukController.text.trim();
+      String recipientName = _untukController.text.trim();
+      String? resolvedContactId;
+
+      if (_selectedType == TransactionType.transfer &&
+          !_isSelfTransfer &&
+          recipientName.isNotEmpty) {
+        final contactProvider = context.read<ContactProvider>();
+        final existing = contactProvider.findByName(recipientName);
+        if (existing != null) {
+          resolvedContactId = existing.id;
+          recipientName = existing.name;
+        } else if (_simpanKeDaftar) {
+          final newContact = await contactProvider.addContact(recipientName);
+          resolvedContactId = newContact.id;
+          recipientName = newContact.name;
+        }
+      }
 
       final String resolvedTitle;
       if (rawTitle.isNotEmpty) {
@@ -281,6 +312,9 @@ class _BuatBerulangScreenState extends State<BuatBerulangScreen> {
             (_selectedType == TransactionType.transfer && _isSelfTransfer)
                 ? _selectedDestDompetId
                 : null,
+        contactId: (_selectedType == TransactionType.transfer && !_isSelfTransfer)
+            ? resolvedContactId
+            : null,
         counterpartyName:
             (_selectedType == TransactionType.transfer && !_isSelfTransfer)
                 ? recipientName
@@ -420,6 +454,12 @@ class _BuatBerulangScreenState extends State<BuatBerulangScreen> {
                           hint: 'Nama penerima',
                           controller: _untukController,
                           contacts: contacts,
+                          showSaveToListOption: true,
+                          saveToListValue: _simpanKeDaftar,
+                          onSaveToListChanged: (val) =>
+                              setState(() => _simpanKeDaftar = val),
+                          onManageContacts: () =>
+                              context.push(AppRoutes.kontak),
                           validator: (value) {
                             if (_selectedType == TransactionType.transfer &&
                                 !_isSelfTransfer &&

@@ -208,17 +208,17 @@ class _TransferScreenState extends State<TransferScreen> {
       final txProvider = context.read<TransactionProvider>();
 
       String? contactId;
-      final recipientName = _untukController.text.trim();
+      String recipientName = _untukController.text.trim();
 
       if (!_isSelfTransfer && recipientName.isNotEmpty) {
-        final existing = contactProvider.contacts.where(
-          (c) => c.name.trim().toLowerCase() == recipientName.toLowerCase(),
-        );
-        if (existing.isNotEmpty) {
-          contactId = existing.first.id;
+        final existing = contactProvider.findByName(recipientName);
+        if (existing != null) {
+          contactId = existing.id;
+          recipientName = existing.name;
         } else if (_simpanKeDaftar) {
           final newContact = await contactProvider.addContact(recipientName);
           contactId = newContact.id;
+          recipientName = newContact.name;
         }
       }
 
@@ -407,54 +407,24 @@ class _TransferScreenState extends State<TransferScreen> {
                         duration: const Duration(milliseconds: 300),
                         curve: Curves.easeInOut,
                         child: !_isSelfTransfer
-                            ? Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  ContactSelectionAutocomplete(
-                                    label: 'Untuk',
-                                    hint: 'Nama teman',
-                                    controller: _untukController,
-                                    contacts: contacts,
-                                    validator: (value) {
-                                      if (!_isSelfTransfer &&
-                                          (value == null ||
-                                              value.trim().isEmpty)) {
-                                        return 'Nama tujuan tidak boleh kosong';
-                                      }
-                                      return null;
-                                    },
-                                  ),
-                                  GestureDetector(
-                                    onTap: () {
-                                      setState(() {
-                                        _simpanKeDaftar = !_simpanKeDaftar;
-                                      });
-                                    },
-                                    child: Padding(
-                                      padding:
-                                          const EdgeInsets.only(bottom: 24.0),
-                                      child: Row(
-                                        children: [
-                                          Icon(
-                                            _simpanKeDaftar
-                                                ? Icons.check_box
-                                                : Icons.check_box_outline_blank,
-                                            color: primaryGreen,
-                                            size: 24,
-                                          ),
-                                          const SizedBox(width: 8),
-                                          const Text(
-                                            'Simpan ke daftar',
-                                            style: TextStyle(
-                                              color: primaryGreen,
-                                              fontWeight: FontWeight.w700,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ),
-                                ],
+                            ? ContactSelectionAutocomplete(
+                                label: 'Untuk',
+                                hint: 'Nama teman',
+                                controller: _untukController,
+                                contacts: contacts,
+                                showSaveToListOption: true,
+                                saveToListValue: _simpanKeDaftar,
+                                onSaveToListChanged: (val) =>
+                                    setState(() => _simpanKeDaftar = val),
+                                onManageContacts: () =>
+                                    context.push(AppRoutes.kontak),
+                                validator: (value) {
+                                  if (!_isSelfTransfer &&
+                                      (value == null || value.trim().isEmpty)) {
+                                    return 'Nama tujuan tidak boleh kosong';
+                                  }
+                                  return null;
+                                },
                               )
                             : const SizedBox(height: 24),
                       ),
