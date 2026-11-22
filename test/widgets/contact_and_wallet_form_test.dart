@@ -456,6 +456,74 @@ void main() {
         expect(find.byKey(const Key('dompet_balance_warning')), findsNothing);
       },
     );
+
+    testWidgets(
+      'DompetSelectionDropdown mengurutkan item sesuai jenis Tunai -> Rekening & E-Wallet -> Kartu lalu waktu dibuat',
+      (WidgetTester tester) async {
+        final mixedWallets = [
+          DompetItem(
+            id: 'w_card',
+            jenis: JenisDompet.card,
+            nama: 'Mandiri',
+            jumlah: 100000,
+            createdAt: DateTime(2026, 1, 2),
+          ),
+          DompetItem(
+            id: 'w_acc_new',
+            jenis: JenisDompet.accounts,
+            nama: 'LinkAja',
+            jumlah: 40000,
+            createdAt: DateTime(2026, 1, 6),
+          ),
+          DompetItem(
+            id: 'w_acc_old',
+            jenis: JenisDompet.accounts,
+            nama: 'SeaBank',
+            jumlah: 80000,
+            createdAt: DateTime(2026, 1, 1),
+          ),
+          const DompetItem(
+            id: 'd1',
+            jenis: JenisDompet.cash,
+            nama: 'Dompet Utama',
+            jumlah: 50000,
+          ),
+        ];
+
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: Padding(
+                padding: const EdgeInsets.all(16),
+                child: DompetSelectionDropdown(
+                  label: 'Sumber Uang',
+                  hint: 'Pilih dompet',
+                  dompets: mixedWallets,
+                  selectedDompetId: 'd1',
+                  onChanged: (_) {},
+                ),
+              ),
+            ),
+          ),
+        );
+
+        await tester.tap(find.byType(DropdownButtonFormField<String>));
+        await tester.pumpAndSettle();
+
+        final yCash = tester.getTopLeft(find.text('Dompet Utama (Tunai)').last).dy;
+        final ySeaBank = tester
+            .getTopLeft(find.text('SeaBank (Rekening & E-Wallet)').last)
+            .dy;
+        final yLinkAja = tester
+            .getTopLeft(find.text('LinkAja (Rekening & E-Wallet)').last)
+            .dy;
+        final yMandiri = tester.getTopLeft(find.text('Mandiri (Kartu)').last).dy;
+
+        expect(yCash, lessThan(ySeaBank));
+        expect(ySeaBank, lessThan(yLinkAja));
+        expect(yLinkAja, lessThan(yMandiri));
+      },
+    );
   });
 
   group('KontakScreen & DetailKontakScreen Widget Test', () {

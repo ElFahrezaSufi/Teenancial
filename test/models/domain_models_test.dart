@@ -134,6 +134,69 @@ void main() {
       expect(updated.catatan, isNull);
     });
 
+    test(
+      'DompetItem.compareByTypeAndCreatedAt mengurutkan Tunai -> Rekening & E-Wallet -> Kartu lalu createdAt',
+      () {
+        final list = [
+          DompetItem(
+            id: 'd_card_1',
+            jenis: JenisDompet.card,
+            nama: 'Mandiri',
+            jumlah: 100000,
+            createdAt: DateTime(2026, 1, 2),
+          ),
+          DompetItem(
+            id: 'd_acc_2',
+            jenis: JenisDompet.accounts,
+            nama: 'Go-Pay',
+            jumlah: 50000,
+            createdAt: DateTime(2026, 1, 5),
+          ),
+          DompetItem(
+            id: 'd_cash_2',
+            jenis: JenisDompet.cash,
+            nama: 'Cadangan',
+            jumlah: 20000,
+            createdAt: DateTime(2026, 1, 10),
+          ),
+          DompetItem(
+            id: 'd_acc_1',
+            jenis: JenisDompet.accounts,
+            nama: 'SeaBank',
+            jumlah: 80000,
+            createdAt: DateTime(2026, 1, 1),
+          ),
+          const DompetItem(
+            id: 'd1',
+            jenis: JenisDompet.cash,
+            nama: 'Dompet Utama',
+            jumlah: 150000,
+          ),
+          DompetItem(
+            id: 'd_card_2',
+            jenis: JenisDompet.card,
+            nama: 'Bank Sumut',
+            jumlah: 30000,
+            createdAt: DateTime(2026, 1, 8),
+          ),
+        ];
+
+        list.sort(DompetItem.compareByTypeAndCreatedAt);
+
+        expect(
+          list.map((d) => d.nama).toList(),
+          [
+            'Dompet Utama',
+            'Cadangan',
+            'SeaBank',
+            'Go-Pay',
+            'Mandiri',
+            'Bank Sumut',
+          ],
+        );
+      },
+    );
+
     test('BelajarProgressModel serialisasi toMap & fromMap secara terurut', () {
       const progress = BelajarProgressModel(
         completedModules: {'mod_b', 'mod_a'},

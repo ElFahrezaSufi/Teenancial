@@ -14,6 +14,19 @@ extension JenisDompetLabel on JenisDompet {
         return 'Kartu';
     }
   }
+
+  /// Urutan standar pengelompokan jenis dompet di seluruh aplikasi:
+  /// Tunai -> Rekening & E-Wallet -> Kartu.
+  int get sortOrder {
+    switch (this) {
+      case JenisDompet.cash:
+        return 0;
+      case JenisDompet.accounts:
+        return 1;
+      case JenisDompet.card:
+        return 2;
+    }
+  }
 }
 
 class DompetItem {
@@ -32,6 +45,26 @@ class DompetItem {
     this.catatan,
     this.createdAt,
   });
+
+  /// Comparator standar urutan dompet:
+  /// 1. Jenis dompet: Tunai -> Rekening & E-Wallet -> Kartu.
+  /// 2. Waktu pembuatan (`createdAt`, terlama di atas; dompet lama tanpa
+  ///    `createdAt` seperti dompet awal diprioritaskan lebih dulu).
+  /// 3. Fallback deterministik berdasarkan `id`.
+  static int compareByTypeAndCreatedAt(DompetItem a, DompetItem b) {
+    final jenisCmp = a.jenis.sortOrder.compareTo(b.jenis.sortOrder);
+    if (jenisCmp != 0) return jenisCmp;
+
+    if (a.createdAt != null && b.createdAt != null) {
+      final createdCmp = a.createdAt!.compareTo(b.createdAt!);
+      if (createdCmp != 0) return createdCmp;
+    } else if (a.createdAt == null && b.createdAt != null) {
+      return -1;
+    } else if (a.createdAt != null && b.createdAt == null) {
+      return 1;
+    }
+    return a.id.compareTo(b.id);
+  }
 
   /// Dompet awal default (Rp 0) untuk pengguna baru.
   factory DompetItem.initialWallet() {

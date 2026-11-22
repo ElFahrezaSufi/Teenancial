@@ -108,10 +108,12 @@ class DompetSelectionDropdown extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final orderedDompets = List<DompetItem>.from(dompets)
+      ..sort(DompetItem.compareByTypeAndCreatedAt);
     final Map<String, String> displayMap = {};
     final Set<String> usedLabels = {};
 
-    for (final dompet in dompets) {
+    for (final dompet in orderedDompets) {
       final String baseDisplay = '${dompet.nama} (${dompet.jenis.label})';
       String display = baseDisplay;
       int suffix = 2;
