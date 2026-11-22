@@ -120,20 +120,33 @@ class _ConnectivitySyncCoordinator extends StatefulWidget {
 }
 
 class _ConnectivitySyncCoordinatorState
-    extends State<_ConnectivitySyncCoordinator> {
+    extends State<_ConnectivitySyncCoordinator> with WidgetsBindingObserver {
   late bool _wasOffline;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _wasOffline = ConnectivityService.instance.isOffline;
     ConnectivityService.instance.addListener(_onConnectivityChanged);
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     ConnectivityService.instance.removeListener(_onConnectivityChanged);
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      ConnectivityService.instance.setAppForeground(true);
+    } else if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.hidden ||
+        state == AppLifecycleState.detached) {
+      ConnectivityService.instance.setAppForeground(false);
+    }
   }
 
   void _onConnectivityChanged() {
