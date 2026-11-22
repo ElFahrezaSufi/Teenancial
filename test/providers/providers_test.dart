@@ -2,18 +2,21 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:teenancial/data/category_icons.dart';
 import 'package:teenancial/models/belajar_model.dart';
+import 'package:teenancial/models/contact_model.dart';
 import 'package:teenancial/models/dompet_model.dart';
 import 'package:teenancial/models/recurring_model.dart';
 import 'package:teenancial/models/target_model.dart';
 import 'package:teenancial/models/transaction_model.dart';
 import 'package:teenancial/providers/belajar_provider.dart';
 import 'package:teenancial/providers/category_provider.dart';
+import 'package:teenancial/providers/contact_provider.dart';
 import 'package:teenancial/providers/dompet_provider.dart';
 import 'package:teenancial/providers/recurring_provider.dart';
 import 'package:teenancial/providers/target_provider.dart';
 import 'package:teenancial/providers/transaction_provider.dart';
 import 'package:teenancial/repositories/belajar_repository.dart';
 import 'package:teenancial/repositories/category_repository.dart';
+import 'package:teenancial/repositories/contact_repository.dart';
 import 'package:teenancial/repositories/dompet_repository.dart';
 import 'package:teenancial/repositories/recurring_repository.dart';
 import 'package:teenancial/repositories/target_repository.dart';
@@ -1039,6 +1042,141 @@ void main() {
       },
     );
   });
+
+  group('ContactProvider CRUD & Case-Insensitive Lookup', () {
+    late _FakeContactRepository fakeContactRepo;
+    late ContactProvider contactProvider;
+
+    setUp(() async {
+      fakeContactRepo = _FakeContactRepository();
+      contactProvider = ContactProvider(repository: fakeContactRepo);
+      contactProvider.updateUser('user_1');
+      await Future<void>.delayed(Duration.zero);
+    });
+
+    test(
+        'addContact, findByName, updateContact, dan deleteContact menjaga urutan A-Z dan mencegah duplikat',
+        () async {
+      await contactProvider.addContact('Zaki', note: 'Teman futsal');
+      final budi = await contactProvider.addContact('Budi', note: 'Kelas 11B');
+
+      expect(contactProvider.contacts.map((c) => c.name).toList(), [
+        'Budi',
+        'Zaki',
+      ]);
+      expect(contactProvider.findByName('  budi ')?.id, budi.id);
+      expect(contactProvider.findByName('Tidak Ada'), isNull);
+
+      // Duplikat tanpa rejectDuplicate mengembalikan kontak yang sudah ada
+      final existing = await contactProvider.addContact('BUDI');
+      expect(existing.id, budi.id);
+      expect(contactProvider.contacts.length, 2);
+
+      // Duplikat dengan rejectDuplicate melempar exception
+      await expectLater(
+        () => contactProvider.addContact('budi', rejectDuplicate: true),
+        throwsException,
+      );
+
+      // Update nama & catatan
+      final updated = await contactProvider.updateContact(
+        budi.copyWith(name: 'Budi Santoso', note: 'GoPay 0812'),
+      );
+      expect(updated.name, 'Budi Santoso');
+      expect(contactProvider.getContactById(budi.id)?.note, 'GoPay 0812');
+
+      // Update ke nama kontak lain yang sudah ada ditolak
+      await expectLater(
+        () => contactProvider.updateContact(budi.copyWith(name: 'zaki')),
+        throwsException,
+      );
+
+      // Hapus kontak
+      await contactProvider.deleteContact(budi.id);
+      expect(contactProvider.contacts.map((c) => c.name).toList(), ['Zaki']);
+
+      // Logout mengosongkan daftar kontak
+      contactProvider.updateUser(null);
+      await Future<void>.delayed(Duration.zero);
+      expect(contactProvider.contacts, isEmpty);
+    });
+  });
+}
+
+class _FakeContactRepository extends ContactRepository {
+  final List<ContactModel> store = [];
+
+  @override
+  Future<List<ContactModel>> getContacts(String uid) async {
+    final copy = List<ContactModel>.from(store);
+    copy.sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+    return copy;
+  }
+
+  @override
+  Future<ContactModel> addContact(
+    String uid,
+    String name, {
+    String? note,
+    bool rejectDuplicate = false,
+  }) async {
+    final trimmed = name.trim();
+    if (trimmed.isEmpty) {
+      throw Exception('Nama kontak tidak boleh kosong');
+    }
+    final idx = store.indexWhere(
+      (c) => c.name.trim().toLowerCase() == trimmed.toLowerCase(),
+    );
+    if (idx != -1) {
+      if (rejectDuplicate) {
+        throw Exception('Kontak "$trimmed" sudah ada di daftar.');
+      }
+      return store[idx];
+    }
+    final trimmedNote = note?.trim();
+    final created = ContactModel(
+      id: 'ct_${store.length + 1}',
+      name: trimmed,
+      note: (trimmedNote != null && trimmedNote.isNotEmpty)
+          ? trimmedNote
+          : null,
+    );
+    store.add(created);
+    return created;
+  }
+
+  @override
+  Future<ContactModel> updateContact(String uid, ContactModel updated) async {
+    final trimmed = updated.name.trim();
+    if (trimmed.isEmpty) {
+      throw Exception('Nama kontak tidak boleh kosong');
+    }
+    final idx = store.indexWhere((c) => c.id == updated.id);
+    if (idx == -1) throw Exception('Kontak tidak ditemukan.');
+    final dup = store.any(
+      (c) =>
+          c.id != updated.id &&
+          c.name.trim().toLowerCase() == trimmed.toLowerCase(),
+    );
+    if (dup) {
+      throw Exception('Kontak "$trimmed" sudah ada di daftar.');
+    }
+    final trimmedNote = updated.note?.trim();
+    final normalized = ContactModel(
+      id: updated.id,
+      name: trimmed,
+      note: (trimmedNote != null && trimmedNote.isNotEmpty)
+          ? trimmedNote
+          : null,
+    );
+    store[idx] = normalized;
+    return normalized;
+  }
+
+  @override
+  Future<void> deleteContact(String uid, String contactId) async {
+    store.removeWhere((c) => c.id == contactId);
+  }
 }
 
 class _InitialBalanceDompetRepository extends DompetRepository {

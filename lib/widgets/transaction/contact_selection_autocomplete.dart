@@ -196,6 +196,7 @@ class _ContactSelectionAutocompleteState
               if (widget.onManageContacts != null)
                 GestureDetector(
                   key: const Key('contact_manage_shortcut'),
+                  behavior: HitTestBehavior.opaque,
                   onTap: widget.onManageContacts,
                   child: const Padding(
                     padding: EdgeInsets.symmetric(vertical: 2, horizontal: 4),
@@ -411,6 +412,7 @@ class _ContactSelectionAutocompleteState
                   ),
                 ContactSaveControlState.showCheckbox => GestureDetector(
                     key: const Key('contact_save_checkbox'),
+                    behavior: HitTestBehavior.opaque,
                     onTap: () => widget.onSaveToListChanged
                         ?.call(!widget.saveToListValue),
                     child: Padding(
