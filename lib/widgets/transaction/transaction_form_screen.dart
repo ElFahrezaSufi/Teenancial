@@ -217,13 +217,32 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      DompetSelectionDropdown(
-                        label: 'Sumber Uang',
-                        hint: 'Pilih Sumber Uang',
-                        dompets: dompets,
-                        selectedDompetId: _selectedDompetId,
-                        onChanged: (val) =>
-                            setState(() => _selectedDompetId = val),
+                      ValueListenableBuilder<TextEditingValue>(
+                        valueListenable: _jumlahController,
+                        builder: (context, amountValue, _) {
+                          final editing = widget.transactionToEdit;
+                          final bool isExpense =
+                              widget.type == TransactionType.expense;
+                          final double editRefundAllowance = (editing != null &&
+                                  isExpense &&
+                                  editing.dompetId == _selectedDompetId)
+                              ? editing.amount
+                              : 0.0;
+                          return DompetSelectionDropdown(
+                            label: 'Sumber Uang',
+                            hint: 'Pilih Sumber Uang',
+                            dompets: dompets,
+                            selectedDompetId: _selectedDompetId,
+                            showBalanceInfo: true,
+                            checkSufficiency: isExpense,
+                            enteredAmount: DompetSelectionDropdown.parseAmount(
+                              amountValue.text,
+                            ),
+                            editRefundAllowance: editRefundAllowance,
+                            onChanged: (val) =>
+                                setState(() => _selectedDompetId = val),
+                          );
+                        },
                       ),
                       CustomTextField(
                         label: 'Jumlah Uang',

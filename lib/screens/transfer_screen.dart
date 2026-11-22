@@ -440,17 +440,37 @@ class _TransferScreenState extends State<TransferScreen> {
     );
   }
 
+  double get _sourceEditRefundAllowance {
+    final editing = widget.transactionToEdit;
+    if (editing != null && editing.dompetId == _selectedSourceDompetId) {
+      return editing.amount;
+    }
+    return 0.0;
+  }
+
   Widget _buildNormalTransferUI(List<DompetItem> dompets) {
     return Column(
       key: const ValueKey('normal_transfer'),
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        DompetSelectionDropdown(
-          label: 'Sumber Uang',
-          hint: 'Pilih Sumber Uang',
-          dompets: dompets,
-          selectedDompetId: _selectedSourceDompetId,
-          onChanged: (val) => setState(() => _selectedSourceDompetId = val),
+        ValueListenableBuilder<TextEditingValue>(
+          valueListenable: _jumlahController,
+          builder: (context, amountValue, _) {
+            return DompetSelectionDropdown(
+              label: 'Sumber Uang',
+              hint: 'Pilih Sumber Uang',
+              dompets: dompets,
+              selectedDompetId: _selectedSourceDompetId,
+              showBalanceInfo: true,
+              checkSufficiency: true,
+              enteredAmount: DompetSelectionDropdown.parseAmount(
+                amountValue.text,
+              ),
+              editRefundAllowance: _sourceEditRefundAllowance,
+              onChanged: (val) =>
+                  setState(() => _selectedSourceDompetId = val),
+            );
+          },
         ),
       ],
     );
@@ -461,18 +481,32 @@ class _TransferScreenState extends State<TransferScreen> {
       key: const ValueKey('self_transfer'),
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        DompetSelectionDropdown(
-          label: 'Dari',
-          hint: 'Pilih Dompet Asal',
-          dompets: dompets,
-          selectedDompetId: _selectedSourceDompetId,
-          onChanged: (val) => setState(() => _selectedSourceDompetId = val),
+        ValueListenableBuilder<TextEditingValue>(
+          valueListenable: _jumlahController,
+          builder: (context, amountValue, _) {
+            return DompetSelectionDropdown(
+              label: 'Dari',
+              hint: 'Pilih Dompet Asal',
+              dompets: dompets,
+              selectedDompetId: _selectedSourceDompetId,
+              showBalanceInfo: true,
+              checkSufficiency: true,
+              enteredAmount: DompetSelectionDropdown.parseAmount(
+                amountValue.text,
+              ),
+              editRefundAllowance: _sourceEditRefundAllowance,
+              onChanged: (val) =>
+                  setState(() => _selectedSourceDompetId = val),
+            );
+          },
         ),
         DompetSelectionDropdown(
           label: 'Ke',
           hint: 'Pilih Dompet Tujuan',
           dompets: dompets,
           selectedDompetId: _selectedDestDompetId,
+          showBalanceInfo: true,
+          checkSufficiency: false,
           onChanged: (val) => setState(() => _selectedDestDompetId = val),
         ),
       ],

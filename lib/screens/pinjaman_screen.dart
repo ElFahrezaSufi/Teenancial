@@ -389,13 +389,30 @@ class _PinjamanScreenState extends State<PinjamanScreen> {
                         ),
                       ),
                       const SizedBox(height: 16),
-                      DompetSelectionDropdown(
-                        label: 'Sumber Uang',
-                        hint: 'Pilih Sumber Uang',
-                        dompets: dompets,
-                        selectedDompetId: _selectedDompetId,
-                        onChanged: (val) =>
-                            setState(() => _selectedDompetId = val),
+                      ValueListenableBuilder<TextEditingValue>(
+                        valueListenable: _jumlahController,
+                        builder: (context, amountValue, _) {
+                          final bool isReceivable = _selectedTab == 1;
+                          final double editRefundAllowance = (editing != null &&
+                                  editing.type == TransactionType.receivable &&
+                                  editing.dompetId == _selectedDompetId)
+                              ? editing.amount
+                              : 0.0;
+                          return DompetSelectionDropdown(
+                            label: 'Sumber Uang',
+                            hint: 'Pilih Sumber Uang',
+                            dompets: dompets,
+                            selectedDompetId: _selectedDompetId,
+                            showBalanceInfo: true,
+                            checkSufficiency: isReceivable,
+                            enteredAmount: DompetSelectionDropdown.parseAmount(
+                              amountValue.text,
+                            ),
+                            editRefundAllowance: editRefundAllowance,
+                            onChanged: (val) =>
+                                setState(() => _selectedDompetId = val),
+                          );
+                        },
                       ),
                       CustomTextField(
                         label: 'Jumlah Uang',

@@ -378,6 +378,10 @@ class _BuatBerulangScreenState extends State<BuatBerulangScreen> {
     final today = RecurrenceRule.dateOnly(DateTime.now());
     final bool startsTodayOrEarlier =
         !RecurrenceRule.dateOnly(_startDate).isAfter(today);
+    final bool runsImmediatelyOnSave = !_isEdit && startsTodayOrEarlier;
+    final bool checksSourceSufficiency =
+        _selectedType == TransactionType.expense ||
+            _selectedType == TransactionType.transfer;
     final String typeLabel = _typeTabLabel(_selectedType);
 
     return TransactionScaffold(
@@ -426,16 +430,27 @@ class _BuatBerulangScreenState extends State<BuatBerulangScreen> {
                           ),
                         ),
                       ],
-                      DompetSelectionDropdown(
-                        label: _selectedType == TransactionType.transfer &&
-                                _isSelfTransfer
-                            ? 'Dari Dompet'
-                            : 'Sumber Uang',
-                        hint: 'Pilih Dompet',
-                        dompets: dompets,
-                        selectedDompetId: _selectedSourceDompetId,
-                        onChanged: (val) =>
-                            setState(() => _selectedSourceDompetId = val),
+                      ValueListenableBuilder<TextEditingValue>(
+                        valueListenable: _jumlahController,
+                        builder: (context, amountValue, _) {
+                          return DompetSelectionDropdown(
+                            label: _selectedType == TransactionType.transfer &&
+                                    _isSelfTransfer
+                                ? 'Dari Dompet'
+                                : 'Sumber Uang',
+                            hint: 'Pilih Dompet',
+                            dompets: dompets,
+                            selectedDompetId: _selectedSourceDompetId,
+                            showBalanceInfo: true,
+                            checkSufficiency: checksSourceSufficiency,
+                            enteredAmount: DompetSelectionDropdown.parseAmount(
+                              amountValue.text,
+                            ),
+                            isFutureSchedule: !runsImmediatelyOnSave,
+                            onChanged: (val) =>
+                                setState(() => _selectedSourceDompetId = val),
+                          );
+                        },
                       ),
                       if (_selectedType == TransactionType.transfer &&
                           _isSelfTransfer)
@@ -444,6 +459,8 @@ class _BuatBerulangScreenState extends State<BuatBerulangScreen> {
                           hint: 'Pilih Dompet Tujuan',
                           dompets: dompets,
                           selectedDompetId: _selectedDestDompetId,
+                          showBalanceInfo: true,
+                          checkSufficiency: false,
                           onChanged: (val) =>
                               setState(() => _selectedDestDompetId = val),
                         ),
