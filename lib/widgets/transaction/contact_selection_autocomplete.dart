@@ -316,156 +316,113 @@ class _ContactSelectionAutocompleteState
                   return Align(
                     alignment:
                         isOpenUp ? Alignment.bottomLeft : Alignment.topLeft,
-                    child: Padding(
-                      padding: EdgeInsets.only(
-                        top: isOpenUp ? 0 : 6,
-                        bottom: isOpenUp ? 6 : 0,
-                      ),
-                      child: Material(
-                        key: const Key('contact_autocomplete_options'),
-                        elevation: 8.0,
-                        shadowColor: primaryGreen.withValues(alpha: 0.28),
-                        color: Colors.white,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14),
-                          side: BorderSide(
-                            color: primaryGreen.withValues(alpha: 0.75),
-                            width: 1.5,
-                          ),
+                    child: Material(
+                      key: const Key('contact_autocomplete_options'),
+                      elevation: 6.0,
+                      shadowColor: primaryGreen.withValues(alpha: 0.25),
+                      color: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        side: BorderSide(
+                          color: primaryGreen.withValues(alpha: 0.75),
+                          width: 1.5,
                         ),
-                        clipBehavior: Clip.antiAlias,
-                        child: ConstrainedBox(
-                          constraints: BoxConstraints(
-                            maxHeight: 220,
-                            maxWidth: constraints.maxWidth,
+                      ),
+                      clipBehavior: Clip.antiAlias,
+                      child: ConstrainedBox(
+                        constraints: BoxConstraints(
+                          maxHeight: 210,
+                          maxWidth: constraints.maxWidth,
+                        ),
+                        child: ListView.separated(
+                          padding: EdgeInsets.zero,
+                          shrinkWrap: true,
+                          itemCount: options.length,
+                          separatorBuilder: (_, __) => Divider(
+                            height: 1,
+                            thickness: 1,
+                            color: primaryGreen.withValues(alpha: 0.1),
                           ),
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                              Container(
+                          itemBuilder: (BuildContext context, int index) {
+                            final contact = options.elementAt(index);
+                            final hasNote = contact.note != null &&
+                                contact.note!.trim().isNotEmpty;
+                            return InkWell(
+                              onTap: () => onSelected(contact),
+                              child: Padding(
                                 padding: const EdgeInsets.symmetric(
                                   horizontal: 14,
-                                  vertical: 7,
+                                  vertical: 10,
                                 ),
-                                decoration: BoxDecoration(
-                                  color: cardBg,
-                                  border: Border(
-                                    bottom: BorderSide(
-                                      color:
-                                          primaryGreen.withValues(alpha: 0.15),
-                                    ),
-                                  ),
-                                ),
-                                child: Text(
-                                  'Saran dari Daftar Kontak',
-                                  style: TextStyle(
-                                    color: primaryGreen.withValues(alpha: 0.78),
-                                    fontSize: 11,
-                                    fontFamily: 'Inter',
-                                    fontWeight: FontWeight.w700,
-                                  ),
-                                ),
-                              ),
-                              Flexible(
-                                child: ListView.separated(
-                                  padding: EdgeInsets.zero,
-                                  shrinkWrap: true,
-                                  itemCount: options.length,
-                                  separatorBuilder: (_, __) => Divider(
-                                    height: 1,
-                                    thickness: 1,
-                                    color: primaryGreen.withValues(alpha: 0.1),
-                                  ),
-                                  itemBuilder:
-                                      (BuildContext context, int index) {
-                                    final contact = options.elementAt(index);
-                                    final hasNote = contact.note != null &&
-                                        contact.note!.trim().isNotEmpty;
-                                    return InkWell(
-                                      onTap: () => onSelected(contact),
-                                      child: Padding(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 14,
-                                          vertical: 10,
+                                child: Row(
+                                  children: [
+                                    Container(
+                                      width: 30,
+                                      height: 30,
+                                      decoration: BoxDecoration(
+                                        color: iconLightGreen,
+                                        shape: BoxShape.circle,
+                                        border: Border.all(
+                                          color: primaryGreen.withValues(
+                                            alpha: 0.4,
+                                          ),
+                                          width: 1,
                                         ),
-                                        child: Row(
-                                          children: [
-                                            Container(
-                                              width: 30,
-                                              height: 30,
-                                              decoration: BoxDecoration(
-                                                color: iconLightGreen,
-                                                shape: BoxShape.circle,
-                                                border: Border.all(
-                                                  color: primaryGreen
-                                                      .withValues(alpha: 0.4),
-                                                  width: 1,
-                                                ),
-                                              ),
-                                              child: Center(
-                                                child: Text(
-                                                  contact.initials,
-                                                  style: const TextStyle(
-                                                    color: primaryGreen,
-                                                    fontSize: 11,
-                                                    fontFamily: 'Inter',
-                                                    fontWeight: FontWeight.w800,
-                                                  ),
-                                                ),
-                                              ),
+                                      ),
+                                      child: Center(
+                                        child: Text(
+                                          contact.initials,
+                                          style: const TextStyle(
+                                            color: primaryGreen,
+                                            fontSize: 11,
+                                            fontFamily: 'Inter',
+                                            fontWeight: FontWeight.w800,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 10),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Text(
+                                            contact.name,
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                            style: const TextStyle(
+                                              color: primaryGreen,
+                                              fontWeight: FontWeight.w700,
+                                              fontSize: 14,
+                                              fontFamily: 'Inter',
                                             ),
-                                            const SizedBox(width: 10),
-                                            Expanded(
-                                              child: Column(
-                                                crossAxisAlignment:
-                                                    CrossAxisAlignment.start,
-                                                mainAxisSize: MainAxisSize.min,
-                                                children: [
-                                                  Text(
-                                                    contact.name,
-                                                    maxLines: 1,
-                                                    overflow:
-                                                        TextOverflow.ellipsis,
-                                                    style: const TextStyle(
-                                                      color: primaryGreen,
-                                                      fontWeight:
-                                                          FontWeight.w700,
-                                                      fontSize: 14,
-                                                      fontFamily: 'Inter',
-                                                    ),
-                                                  ),
-                                                  if (hasNote) ...[
-                                                    const SizedBox(height: 1),
-                                                    Text(
-                                                      contact.note!,
-                                                      maxLines: 1,
-                                                      overflow:
-                                                          TextOverflow.ellipsis,
-                                                      style: TextStyle(
-                                                        color: primaryGreen
-                                                            .withValues(
-                                                          alpha: 0.68,
-                                                        ),
-                                                        fontWeight:
-                                                            FontWeight.w500,
-                                                        fontSize: 11.5,
-                                                        fontFamily: 'Inter',
-                                                      ),
-                                                    ),
-                                                  ],
-                                                ],
+                                          ),
+                                          if (hasNote) ...[
+                                            const SizedBox(height: 1),
+                                            Text(
+                                              contact.note!,
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                              style: TextStyle(
+                                                color: primaryGreen.withValues(
+                                                  alpha: 0.68,
+                                                ),
+                                                fontWeight: FontWeight.w500,
+                                                fontSize: 11.5,
+                                                fontFamily: 'Inter',
                                               ),
                                             ),
                                           ],
-                                        ),
+                                        ],
                                       ),
-                                    );
-                                  },
+                                    ),
+                                  ],
                                 ),
                               ),
-                            ],
-                          ),
+                            );
+                          },
                         ),
                       ),
                     ),
