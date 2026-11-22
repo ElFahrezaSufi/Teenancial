@@ -4,6 +4,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:go_router/go_router.dart';
 
 import '../config/app_routes.dart';
+import '../models/contact_model.dart';
 import '../models/dompet_model.dart';
 import '../models/recurring_model.dart';
 import '../models/target_model.dart';
@@ -16,6 +17,7 @@ import 'app_transitions.dart';
 import '../screens/buat_berulang_screen.dart';
 import '../screens/buat_target_screen.dart';
 import '../screens/daftar_pinjaman_screen.dart';
+import '../screens/detail_kontak_screen.dart';
 import '../screens/dompet_screen.dart';
 import '../screens/ekspor_screen.dart';
 import '../screens/feen_wardrobe_screen.dart';
@@ -24,6 +26,7 @@ import '../screens/ganti_password_screen.dart';
 import '../screens/get_started.dart';
 import '../screens/home_screen.dart';
 import '../screens/kategori_screen.dart';
+import '../screens/kontak_screen.dart';
 import '../screens/laporan_screen.dart';
 import '../screens/login_screen.dart';
 import '../screens/main_screen.dart';
@@ -228,9 +231,14 @@ final GoRouter appRouter = GoRouter(
         final tx = state.extra is TransactionModel
             ? state.extra as TransactionModel
             : null;
+        final initialContactName =
+            state.extra is String ? state.extra as String : null;
         return AppTransitions.slideHorizontal(
           key: state.pageKey,
-          child: PinjamanScreen(loanToEdit: tx),
+          child: PinjamanScreen(
+            loanToEdit: tx,
+            initialContactName: initialContactName,
+          ),
         );
       },
     ),
@@ -249,9 +257,14 @@ final GoRouter appRouter = GoRouter(
         final tx = state.extra is TransactionModel
             ? state.extra as TransactionModel
             : null;
+        final initialRecipientName =
+            state.extra is String ? state.extra as String : null;
         return AppTransitions.slideHorizontal(
           key: state.pageKey,
-          child: TransferScreen(transactionToEdit: tx),
+          child: TransferScreen(
+            transactionToEdit: tx,
+            initialRecipientName: initialRecipientName,
+          ),
         );
       },
     ),
@@ -425,6 +438,33 @@ final GoRouter appRouter = GoRouter(
         return AppTransitions.slideHorizontal(
           key: state.pageKey,
           child: EksporScreen(initialFilter: filter),
+        );
+      },
+    ),
+    GoRoute(
+      parentNavigatorKey: rootNavigatorKey,
+      path: AppRoutes.kontak,
+      pageBuilder: (context, state) => AppTransitions.slideHorizontal(
+        key: state.pageKey,
+        child: const KontakScreen(),
+      ),
+    ),
+    GoRoute(
+      parentNavigatorKey: rootNavigatorKey,
+      path: AppRoutes.detailKontak,
+      pageBuilder: (context, state) {
+        final extra = state.extra;
+        final ContactModel? initialContact =
+            extra is ContactModel ? extra : null;
+        final String contactId = extra is String
+            ? extra
+            : (initialContact?.id ?? '');
+        return AppTransitions.slideHorizontal(
+          key: state.pageKey,
+          child: DetailKontakScreen(
+            contactId: contactId,
+            initialContact: initialContact,
+          ),
         );
       },
     ),

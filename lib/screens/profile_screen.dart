@@ -7,6 +7,7 @@ import 'package:provider/provider.dart';
 import '../config/app_routes.dart';
 import '../models/user_model.dart';
 import '../providers/auth_provider.dart';
+import '../providers/contact_provider.dart';
 import '../providers/mission_provider.dart';
 import '../providers/user_provider.dart';
 import '../routes/app_router.dart';
@@ -1089,6 +1090,56 @@ class _ProfileScreenState extends State<ProfileScreen>
           padding: const EdgeInsets.symmetric(vertical: 4),
           child: Column(
             children: [
+              Builder(
+                builder: (context) {
+                  final contactProvider = Provider.of<ContactProvider?>(context);
+                  final contactCount = contactProvider?.contacts.length ?? 0;
+                  return _AccountMenuTile(
+                    icon: Icons.contacts_outlined,
+                    title: 'Daftar Kontak',
+                    subtitle: 'Kelola teman untuk transfer & pinjaman',
+                    trailing: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (contactCount > 0) ...[
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 3,
+                            ),
+                            decoration: BoxDecoration(
+                              color: primaryGreen.withValues(alpha: 0.14),
+                              borderRadius: BorderRadius.circular(100),
+                            ),
+                            child: Text(
+                              '$contactCount',
+                              style: const TextStyle(
+                                color: primaryGreen,
+                                fontSize: 11,
+                                fontFamily: 'Inter',
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                        ],
+                        Icon(
+                          Icons.chevron_right_rounded,
+                          color: primaryGreen.withValues(alpha: 0.7),
+                          size: 22,
+                        ),
+                      ],
+                    ),
+                    onTap: () => context.push(AppRoutes.kontak),
+                  );
+                },
+              ),
+              Divider(
+                height: 1,
+                indent: 60,
+                endIndent: 16,
+                color: primaryGreen.withValues(alpha: 0.15),
+              ),
               _AccountMenuTile(
                 icon: Icons.notifications_none_rounded,
                 title: 'Pengingat Harian',

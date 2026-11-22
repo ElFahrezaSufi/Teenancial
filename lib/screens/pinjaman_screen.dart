@@ -24,10 +24,12 @@ import '../widgets/transaction/transaction_scaffold.dart';
 
 class PinjamanScreen extends StatefulWidget {
   final TransactionModel? loanToEdit;
+  final String? initialContactName;
 
   const PinjamanScreen({
     super.key,
     this.loanToEdit,
+    this.initialContactName,
   });
 
   @override
@@ -74,6 +76,9 @@ class _PinjamanScreenState extends State<PinjamanScreen> {
       _selectedTransactionDate = editing.date;
       _selectedDateObj = editing.dueDate;
       _temanController.text = LoanHelper.counterpartyName(editing);
+    } else if (widget.initialContactName != null &&
+        widget.initialContactName!.trim().isNotEmpty) {
+      _temanController.text = widget.initialContactName!.trim();
     }
 
     WidgetsBinding.instance.addPostFrameCallback((_) async {

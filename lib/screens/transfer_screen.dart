@@ -23,10 +23,12 @@ import '../widgets/transaction/transaction_scaffold.dart';
 
 class TransferScreen extends StatefulWidget {
   final TransactionModel? transactionToEdit;
+  final String? initialRecipientName;
 
   const TransferScreen({
     super.key,
     this.transactionToEdit,
+    this.initialRecipientName,
   });
 
   @override
@@ -91,6 +93,10 @@ class _TransferScreenState extends State<TransferScreen> {
               editing.title.substring('Transfer ke '.length).trim();
         }
       }
+    } else if (widget.initialRecipientName != null &&
+        widget.initialRecipientName!.trim().isNotEmpty) {
+      _isSelfTransfer = false;
+      _untukController.text = widget.initialRecipientName!.trim();
     }
 
     WidgetsBinding.instance.addPostFrameCallback((_) async {
