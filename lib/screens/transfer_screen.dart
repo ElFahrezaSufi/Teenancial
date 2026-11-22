@@ -414,6 +414,8 @@ class _TransferScreenState extends State<TransferScreen> {
                                 contacts: contacts,
                                 showSaveToListOption: true,
                                 saveToListValue: _simpanKeDaftar,
+                                optionsViewOpenDirection:
+                                    OptionsViewOpenDirection.up,
                                 onSaveToListChanged: (val) =>
                                     setState(() => _simpanKeDaftar = val),
                                 onManageContacts: () =>

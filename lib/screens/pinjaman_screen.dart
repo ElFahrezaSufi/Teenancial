@@ -519,6 +519,7 @@ class _PinjamanScreenState extends State<PinjamanScreen> {
                         contacts: contacts,
                         showSaveToListOption: true,
                         saveToListValue: _simpanKeDaftar,
+                        optionsViewOpenDirection: OptionsViewOpenDirection.up,
                         onSaveToListChanged: (val) =>
                             setState(() => _simpanKeDaftar = val),
                         onManageContacts: () =>

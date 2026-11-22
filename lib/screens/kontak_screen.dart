@@ -245,21 +245,6 @@ class _KontakScreenState extends State<KontakScreen> {
           ),
         ),
       ),
-      floatingActionButton: allContacts.isNotEmpty
-          ? FloatingActionButton.extended(
-              onPressed: () => _handleAddOrEdit(),
-              backgroundColor: primaryGreen,
-              foregroundColor: Colors.white,
-              icon: const Icon(Icons.person_add_alt_1_rounded, size: 20),
-              label: const Text(
-                'Tambah Kontak',
-                style: TextStyle(
-                  fontFamily: 'Inter',
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            )
-          : null,
       body: Stack(
         fit: StackFit.expand,
         children: [
@@ -403,7 +388,7 @@ class _KontakScreenState extends State<KontakScreen> {
                                             20,
                                             4,
                                             20,
-                                            96,
+                                            24,
                                           ),
                                           itemCount: filteredContacts.length,
                                           separatorBuilder: (_, __) =>

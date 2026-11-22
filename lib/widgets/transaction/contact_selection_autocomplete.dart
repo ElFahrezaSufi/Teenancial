@@ -25,6 +25,7 @@ class ContactSelectionAutocomplete extends StatefulWidget {
   final bool saveToListValue;
   final ValueChanged<bool>? onSaveToListChanged;
   final VoidCallback? onManageContacts;
+  final OptionsViewOpenDirection optionsViewOpenDirection;
 
   const ContactSelectionAutocomplete({
     super.key,
@@ -37,6 +38,7 @@ class ContactSelectionAutocomplete extends StatefulWidget {
     this.saveToListValue = false,
     this.onSaveToListChanged,
     this.onManageContacts,
+    this.optionsViewOpenDirection = OptionsViewOpenDirection.down,
   });
 
   /// Mencari kontak yang namanya cocok persis (trimmed & case-insensitive).
@@ -178,6 +180,7 @@ class _ContactSelectionAutocompleteState
         bottom: widget.showSaveToListOption ? 20.0 : 16.0,
       ),
       child: Column(
+        mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
@@ -229,14 +232,12 @@ class _ContactSelectionAutocompleteState
             builder: (context, constraints) {
               return Autocomplete<ContactModel>(
                 initialValue: widget.controller.value,
+                optionsViewOpenDirection: widget.optionsViewOpenDirection,
                 displayStringForOption: (contact) => contact.name,
                 optionsBuilder: (TextEditingValue textEditingValue) {
-                  if (widget.contacts.isEmpty) {
-                    return const Iterable<ContactModel>.empty();
-                  }
                   final query = textEditingValue.text.trim().toLowerCase();
-                  if (query.isEmpty) {
-                    return widget.contacts;
+                  if (widget.contacts.isEmpty || query.isEmpty) {
+                    return const Iterable<ContactModel>.empty();
                   }
                   return widget.contacts.where((c) {
                     final matchName = c.name.toLowerCase().contains(query);
@@ -310,66 +311,84 @@ class _ContactSelectionAutocompleteState
                   );
                 },
                 optionsViewBuilder: (context, onSelected, options) {
+                  final bool isOpenUp = widget.optionsViewOpenDirection ==
+                      OptionsViewOpenDirection.up;
                   return Align(
-                    alignment: Alignment.topLeft,
-                    child: Material(
-                      elevation: 4.0,
-                      borderRadius: BorderRadius.circular(12),
-                      color: inputBg,
-                      child: ConstrainedBox(
-                        constraints: BoxConstraints(
-                          maxHeight: 220,
-                          maxWidth: constraints.maxWidth,
+                    alignment:
+                        isOpenUp ? Alignment.bottomLeft : Alignment.topLeft,
+                    child: Padding(
+                      padding: EdgeInsets.only(
+                        top: isOpenUp ? 0 : 6,
+                        bottom: isOpenUp ? 6 : 0,
+                      ),
+                      child: Material(
+                        key: const Key('contact_autocomplete_options'),
+                        elevation: 4.0,
+                        color: inputBg,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          side: BorderSide(
+                            color: primaryGreen.withValues(alpha: 0.35),
+                            width: 1,
+                          ),
                         ),
-                        child: ListView.builder(
-                          padding: EdgeInsets.zero,
-                          shrinkWrap: true,
-                          itemCount: options.length,
-                          itemBuilder: (BuildContext context, int index) {
-                            final contact = options.elementAt(index);
-                            final hasNote = contact.note != null &&
-                                contact.note!.trim().isNotEmpty;
-                            return InkWell(
-                              onTap: () => onSelected(contact),
-                              child: Padding(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 16,
-                                  vertical: 12,
-                                ),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Text(
-                                      contact.name,
-                                      style: const TextStyle(
-                                        color: primaryGreen,
-                                        fontWeight: FontWeight.w600,
-                                        fontSize: 14,
-                                        fontFamily: 'Inter',
-                                      ),
-                                    ),
-                                    if (hasNote) ...[
-                                      const SizedBox(height: 2),
+                        clipBehavior: Clip.antiAlias,
+                        child: ConstrainedBox(
+                          constraints: BoxConstraints(
+                            maxHeight: 200,
+                            maxWidth: constraints.maxWidth,
+                          ),
+                          child: ListView.builder(
+                            padding: EdgeInsets.zero,
+                            shrinkWrap: true,
+                            itemCount: options.length,
+                            itemBuilder: (BuildContext context, int index) {
+                              final contact = options.elementAt(index);
+                              final hasNote = contact.note != null &&
+                                  contact.note!.trim().isNotEmpty;
+                              return InkWell(
+                                onTap: () => onSelected(contact),
+                                child: Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 16,
+                                    vertical: 12,
+                                  ),
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
                                       Text(
-                                        contact.note!,
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                        style: TextStyle(
-                                          color: primaryGreen.withValues(
-                                            alpha: 0.68,
-                                          ),
-                                          fontWeight: FontWeight.w500,
-                                          fontSize: 11.5,
+                                        contact.name,
+                                        style: const TextStyle(
+                                          color: primaryGreen,
+                                          fontWeight: FontWeight.w600,
+                                          fontSize: 14,
                                           fontFamily: 'Inter',
                                         ),
                                       ),
+                                      if (hasNote) ...[
+                                        const SizedBox(height: 2),
+                                        Text(
+                                          contact.note!,
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: TextStyle(
+                                            color: primaryGreen.withValues(
+                                              alpha: 0.68,
+                                            ),
+                                            fontWeight: FontWeight.w500,
+                                            fontSize: 11.5,
+                                            fontFamily: 'Inter',
+                                          ),
+                                        ),
+                                      ],
                                     ],
-                                  ],
+                                  ),
                                 ),
-                              ),
-                            );
-                          },
+                              );
+                            },
+                          ),
                         ),
                       ),
                     ),

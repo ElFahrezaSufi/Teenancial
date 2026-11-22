@@ -167,6 +167,59 @@ void main() {
         controller.dispose();
       },
     );
+
+    testWidgets(
+      'saran kontak tidak muncul saat field kosong, baru muncul saat mengetik, dan membuka ke atas saat optionsViewOpenDirection.up',
+      (WidgetTester tester) async {
+        final controller = TextEditingController();
+
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: Align(
+                alignment: Alignment.bottomCenter,
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+                  child: ContactSelectionAutocomplete(
+                    label: 'Untuk',
+                    hint: 'Nama teman',
+                    controller: controller,
+                    contacts: sampleContacts,
+                    optionsViewOpenDirection: OptionsViewOpenDirection.up,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+
+        // Fokus saat kosong -> tidak memunculkan dropdown saran
+        await tester.tap(find.byType(TextFormField));
+        await tester.pumpAndSettle();
+        expect(
+          find.byKey(const Key('contact_autocomplete_options')),
+          findsNothing,
+        );
+
+        // Mulai mengetik 'bu' -> dropdown muncul di atas TextFormField
+        await tester.enterText(find.byType(TextFormField), 'bu');
+        await tester.pumpAndSettle();
+        expect(
+          find.byKey(const Key('contact_autocomplete_options')),
+          findsOneWidget,
+        );
+        expect(find.text('Budi'), findsOneWidget);
+        expect(find.text('Siti'), findsNothing);
+
+        final optionsRect = tester.getRect(
+          find.byKey(const Key('contact_autocomplete_options')),
+        );
+        final fieldRect = tester.getRect(find.byType(TextFormField));
+        expect(optionsRect.bottom, lessThanOrEqualTo(fieldRect.top));
+
+        controller.dispose();
+      },
+    );
   });
 
   group('DompetSelectionDropdown (Info Saldo & Peringatan Live)', () {
@@ -460,6 +513,8 @@ void main() {
         await tester.pumpAndSettle();
 
         expect(find.text('Daftar Kontak'), findsOneWidget);
+        expect(find.byTooltip('Tambah Kontak'), findsOneWidget);
+        expect(find.byType(FloatingActionButton), findsNothing);
         expect(find.text('Budi'), findsOneWidget);
         expect(find.text('Rina'), findsOneWidget);
         expect(find.text('2 transaksi'), findsOneWidget);
