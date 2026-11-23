@@ -2,7 +2,7 @@ import '../models/mission_model.dart';
 
 class MissionCatalog {
   static const List<MissionItem> all = [
-    // Harian
+    //harian
     MissionItem(
       id: 'daily_tx_1',
       title: 'Catat Keuangan Hari Ini',
@@ -13,6 +13,15 @@ class MissionCatalog {
       xpReward: 20,
     ),
     MissionItem(
+      id: 'daily_tx_3',
+      title: 'Disiplin Arus Kas',
+      description: 'Catat 3 transaksi pemasukan atau pengeluaran hari ini.',
+      period: MissionPeriod.daily,
+      trigger: MissionTrigger.addIncomeExpense,
+      targetCount: 3,
+      xpReward: 40,
+    ),
+    MissionItem(
       id: 'daily_save_1',
       title: 'Sisihkan Tabungan',
       description: 'Alokasikan dana ke salah satu target menabung hari ini.',
@@ -21,26 +30,8 @@ class MissionCatalog {
       targetCount: 1,
       xpReward: 25,
     ),
-    MissionItem(
-      id: 'daily_module_1',
-      title: 'Baca Materi Finansial',
-      description: 'Selesaikan 1 modul materi di Ruang Belajar hari ini.',
-      period: MissionPeriod.daily,
-      trigger: MissionTrigger.completeModule,
-      targetCount: 1,
-      xpReward: 50,
-    ),
-    MissionItem(
-      id: 'daily_quiz_1',
-      title: 'Asah Otak Finansial',
-      description: 'Lulus 1 kuis di Ruang Belajar hari ini.',
-      period: MissionPeriod.daily,
-      trigger: MissionTrigger.passQuiz,
-      targetCount: 1,
-      xpReward: 75,
-    ),
 
-    // Mingguan
+    //mingguan
     MissionItem(
       id: 'weekly_tx_5',
       title: 'Rajin Mencatat',
@@ -51,6 +42,15 @@ class MissionCatalog {
       xpReward: 80,
     ),
     MissionItem(
+      id: 'weekly_tx_12',
+      title: 'Akuntan Muda',
+      description: 'Catat 12 transaksi selama minggu ini.',
+      period: MissionPeriod.weekly,
+      trigger: MissionTrigger.addTransaction,
+      targetCount: 12,
+      xpReward: 130,
+    ),
+    MissionItem(
       id: 'weekly_save_3',
       title: 'Penabung Konsisten',
       description: 'Isi saldo target menabung sebanyak 3 kali minggu ini.',
@@ -59,17 +59,8 @@ class MissionCatalog {
       targetCount: 3,
       xpReward: 100,
     ),
-    MissionItem(
-      id: 'weekly_module_2',
-      title: 'Belajar Rutin',
-      description: 'Selesaikan 2 modul materi di Ruang Belajar minggu ini.',
-      period: MissionPeriod.weekly,
-      trigger: MissionTrigger.completeModule,
-      targetCount: 2,
-      xpReward: 120,
-    ),
 
-    // Bulanan
+    //bulanan
     MissionItem(
       id: 'monthly_tx_20',
       title: 'Master Arus Kas',
@@ -89,16 +80,25 @@ class MissionCatalog {
       xpReward: 250,
     ),
     MissionItem(
-      id: 'monthly_quiz_3',
-      title: 'Cerdas Finansial',
-      description: 'Lulus 3 kuis literasi keuangan bulan ini.',
+      id: 'monthly_create_target_1',
+      title: 'Perencana Masa Depan',
+      description: 'Buat minimal 1 target menabung baru bulan ini.',
       period: MissionPeriod.monthly,
-      trigger: MissionTrigger.passQuiz,
-      targetCount: 3,
-      xpReward: 300,
+      trigger: MissionTrigger.createTarget,
+      targetCount: 1,
+      xpReward: 180,
     ),
 
-    // Misi Sekali
+    //misi sekali aja
+    MissionItem(
+      id: 'onetime_create_target_1',
+      title: 'Mimpi Pertama',
+      description: 'Buat target menabung pertamamu di aplikasi.',
+      period: MissionPeriod.oneTime,
+      trigger: MissionTrigger.createTarget,
+      targetCount: 1,
+      xpReward: 75,
+    ),
     MissionItem(
       id: 'onetime_module_1',
       title: 'Langkah Pertama Belajar',
@@ -134,6 +134,51 @@ class MissionCatalog {
       trigger: MissionTrigger.passQuiz,
       targetCount: 3,
       xpReward: 350,
+    ),
+    MissionItem(
+      id: 'onetime_module_5',
+      title: 'Kutu Buku Finansial',
+      description: 'Selesaikan total 5 modul materi di Ruang Belajar.',
+      period: MissionPeriod.oneTime,
+      trigger: MissionTrigger.completeModule,
+      targetCount: 5,
+      xpReward: 400,
+    ),
+    MissionItem(
+      id: 'onetime_quiz_5',
+      title: 'Master Literasi Keuangan',
+      description: 'Lulus total 5 kuis di Ruang Belajar.',
+      period: MissionPeriod.oneTime,
+      trigger: MissionTrigger.passQuiz,
+      targetCount: 5,
+      xpReward: 500,
+    ),
+    MissionItem(
+      id: 'onetime_streak_3',
+      title: 'Konsisten 3 Hari',
+      description: 'Selesaikan minimal 1 misi harian selama 3 hari beruntun.',
+      period: MissionPeriod.oneTime,
+      trigger: MissionTrigger.dailyStreak,
+      targetCount: 3,
+      xpReward: 50,
+    ),
+    MissionItem(
+      id: 'onetime_streak_7',
+      title: 'Seminggu Penuh',
+      description: 'Pertahankan streak misi harian selama 7 hari beruntun.',
+      period: MissionPeriod.oneTime,
+      trigger: MissionTrigger.dailyStreak,
+      targetCount: 7,
+      xpReward: 120,
+    ),
+    MissionItem(
+      id: 'onetime_streak_14',
+      title: 'Dua Minggu Tanpa Putus',
+      description: 'Pertahankan streak misi harian selama 14 hari beruntun.',
+      period: MissionPeriod.oneTime,
+      trigger: MissionTrigger.dailyStreak,
+      targetCount: 14,
+      xpReward: 250,
     ),
   ];
 

@@ -34,8 +34,39 @@ class MissionProvider extends ChangeNotifier {
   int? _verifiedModulesCount;
   int? _verifiedQuizzesCount;
 
+  int _streakCount = 0;
+  DateTime? _lastStreakDate;
+  int? _brokenStreakCount;
+
   bool get isLoading => _isLoading;
   String? get claimingId => _claimingId;
+  int get streakCount => _streakCount;
+  int? get brokenStreakCount => _brokenStreakCount;
+
+  void dismissBrokenStreakNotice() {
+    _brokenStreakCount = null;
+    notifyListeners();
+  }
+
+  bool get isStreakActiveToday {
+    if (_lastStreakDate == null || _streakCount <= 0) return false;
+    return _todayMidnight().difference(_todayMidnight(_lastStreakDate)).inDays ==
+        0;
+  }
+
+  int get streakBonusPercent {
+    if (_streakCount >= 100) return 50;
+    if (_streakCount >= 20) return 30;
+    if (_streakCount >= 10) return 20;
+    if (_streakCount >= 5) return 10;
+    return 0;
+  }
+
+  int effectiveXpReward(MissionItem mission) {
+    final bonus = streakBonusPercent;
+    if (bonus <= 0) return mission.xpReward;
+    return (mission.xpReward * (100 + bonus) / 100).round();
+  }
 
   bool get hasCompletedAnyDailyToday {
     final dailyMissions = MissionCatalog.byPeriod(MissionPeriod.daily);
@@ -55,6 +86,9 @@ class MissionProvider extends ChangeNotifier {
       _monthlyAnchor = null;
       _verifiedModulesCount = null;
       _verifiedQuizzesCount = null;
+      _streakCount = 0;
+      _lastStreakDate = null;
+      _brokenStreakCount = null;
 
       if (newUid == null) {
         _isLoading = false;
@@ -91,6 +125,43 @@ class MissionProvider extends ChangeNotifier {
 
   String _formatDate(DateTime d) =>
       '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
+  bool _refreshStreakState() {
+    final today = _todayMidnight();
+    bool changed = false;
+
+    if (_lastStreakDate != null) {
+      final last = _todayMidnight(_lastStreakDate);
+      final diffDays = today.difference(last).inDays;
+      if (diffDays > 1 && _streakCount > 0) {
+        _brokenStreakCount = _streakCount;
+        _streakCount = 0;
+        changed = true;
+      }
+    }
+
+    if (hasCompletedAnyDailyToday) {
+      if (_lastStreakDate == null) {
+        _streakCount = 1;
+        _lastStreakDate = today;
+        changed = true;
+      } else {
+        final last = _todayMidnight(_lastStreakDate);
+        final diffDays = today.difference(last).inDays;
+        if (diffDays == 1) {
+          _streakCount += 1;
+          _lastStreakDate = today;
+          changed = true;
+        } else if (diffDays > 1 || _streakCount == 0) {
+          _streakCount = 1;
+          _lastStreakDate = today;
+          changed = true;
+        }
+      }
+    }
+
+    return changed;
+  }
+
   bool _ensureValidAnchors() {
     final today = _todayMidnight();
     bool changed = false;
@@ -296,6 +367,11 @@ class MissionProvider extends ChangeNotifier {
       .where((m) => statusOf(m) == MissionClaimStatus.claimable)
       .length;
 
+  int get claimableTotalXp => MissionCatalog.all
+      .where((m) => statusOf(m) == MissionClaimStatus.claimable)
+      .fold(0, (total, m) => total + effectiveXpReward(m));
+
+
   Future<void> loadMissions() async {
     final targetUid = _uid;
     if (targetUid == null) return;
@@ -337,13 +413,20 @@ class MissionProvider extends ChangeNotifier {
       final rawCounters = data['counters'] is Map
           ? Map<String, dynamic>.from(data['counters'] as Map)
           : <String, dynamic>{};
+      _streakCount = (data['streakCount'] as num?)?.toInt() ?? 0;
+      final rawLastStreak = data['lastStreakDate'] as String?;
+      _lastStreakDate = rawLastStreak != null
+          ? _todayMidnight(DateTime.tryParse(rawLastStreak))
+          : null;
+
       _counters = rawCounters.map((k, v) => MapEntry(k, (v as num).toInt()));
       _claimedKeys = Set<String>.from(data['claimedKeys'] ?? const []);
 
       final anchorUpdated = _ensureValidAnchors();
       final keysPruned = _pruneExpiredKeys();
       final profileSynced = _syncOneTimeFromProfile();
-      if (anchorUpdated || keysPruned || profileSynced) {
+      final streakUpdated = _refreshStreakState();
+      if (anchorUpdated || keysPruned || profileSynced || streakUpdated) {
         await _persist();
       }
       unawaited(
@@ -369,6 +452,9 @@ class MissionProvider extends ChangeNotifier {
       final payload = <String, dynamic>{
         'weeklyAnchor': _formatDate(_weeklyAnchor!),
         'monthlyAnchor': _formatDate(_monthlyAnchor!),
+        'streakCount': _streakCount,
+        'lastStreakDate':
+            _lastStreakDate != null ? _formatDate(_lastStreakDate!) : null,
         'counters': Map<String, int>.from(_counters),
         'claimedKeys': _claimedKeys.toList(),
       };
@@ -406,6 +492,7 @@ class MissionProvider extends ChangeNotifier {
       final key = _counterKey(period, trigger);
       _counters[key] = (_counters[key] ?? 0) + amount;
     }
+    _refreshStreakState();
     notifyListeners();
     unawaited(
       NotificationService.instance.syncDailyMissionReminder(
@@ -420,9 +507,9 @@ class MissionProvider extends ChangeNotifier {
     await _userProvider!.addXp(xp);
   }
 
-  Future<bool> claimMission(MissionItem mission) async {
-    if (_uid == null || _claimingId != null) return false;
-    if (statusOf(mission) != MissionClaimStatus.claimable) return false;
+  Future<int> claimMission(MissionItem mission) async {
+    if (_uid == null || _claimingId != null) return 0;
+    if (statusOf(mission) != MissionClaimStatus.claimable) return 0;
 
     if (_saveDocOverride == null && _firestore == null) {
       FirestoreService.instance.ensureOnline(
@@ -433,11 +520,12 @@ class MissionProvider extends ChangeNotifier {
     _claimingId = mission.id;
     notifyListeners();
 
+    final rewardXp = effectiveXpReward(mission);
     try {
       _claimedKeys.add(_claimKey(mission));
       await _persist(rethrowOnError: true);
       if (_userProvider != null) {
-        final gained = await _userProvider!.addXp(mission.xpReward);
+        final gained = await _userProvider!.addXp(rewardXp);
         if (gained == null) {
           throw const OfflineException(
             'Gagal mengklaim hadiah XP. Periksa koneksi internetmu lalu coba lagi.',
@@ -449,7 +537,7 @@ class MissionProvider extends ChangeNotifier {
           hasCompletedAnyDailyToday: hasCompletedAnyDailyToday,
         ),
       );
-      return true;
+      return rewardXp;
     } catch (e) {
       _claimedKeys.remove(_claimKey(mission));
       rethrow;
@@ -458,4 +546,57 @@ class MissionProvider extends ChangeNotifier {
       notifyListeners();
     }
   }
+
+  Future<int> claimAllMissions() async {
+    if (_uid == null || _claimingId != null) return 0;
+    final claimables = MissionCatalog.all
+        .where((m) => statusOf(m) == MissionClaimStatus.claimable)
+        .toList();
+    if (claimables.isEmpty) return 0;
+
+    if (_saveDocOverride == null && _firestore == null) {
+      FirestoreService.instance.ensureOnline(
+        actionLabel: 'mengklaim semua hadiah XP',
+      );
+    }
+
+    _claimingId = 'ALL';
+    notifyListeners();
+
+    final addedKeys = <String>[];
+    int totalXp = 0;
+    for (final m in claimables) {
+      final k = _claimKey(m);
+      _claimedKeys.add(k);
+      addedKeys.add(k);
+      totalXp += effectiveXpReward(m);
+    }
+
+    try {
+      await _persist(rethrowOnError: true);
+      if (_userProvider != null) {
+        final gained = await _userProvider!.addXp(totalXp);
+        if (gained == null) {
+          throw const OfflineException(
+            'Gagal mengklaim hadiah XP. Periksa koneksi internetmu lalu coba lagi.',
+          );
+        }
+      }
+      unawaited(
+        NotificationService.instance.syncDailyMissionReminder(
+          hasCompletedAnyDailyToday: hasCompletedAnyDailyToday,
+        ),
+      );
+      return totalXp;
+    } catch (e) {
+      for (final k in addedKeys) {
+        _claimedKeys.remove(k);
+      }
+      rethrow;
+    } finally {
+      _claimingId = null;
+      notifyListeners();
+    }
+  }
+
 }

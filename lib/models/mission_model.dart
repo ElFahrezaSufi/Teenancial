@@ -15,6 +15,7 @@ enum MissionTrigger {
   completeModule,
   passQuiz,
   createTarget,
+  dailyStreak,
 }
 
 class MissionItem {
