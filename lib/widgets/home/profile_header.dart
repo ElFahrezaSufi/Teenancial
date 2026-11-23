@@ -1,12 +1,13 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:material_ui/material_ui.dart';
-import '../../theme/app_colors.dart';
 import '../../theme/app_text_styles.dart';
+import '../common/user_avatar_with_frame.dart';
 
 class ProfileHeader extends StatelessWidget {
   final String displayName;
   final int level;
   final String? imageUrl;
+  final String? frameId;
   final VoidCallback onProfileTap;
 
   const ProfileHeader({
@@ -14,6 +15,7 @@ class ProfileHeader extends StatelessWidget {
     required this.displayName,
     required this.level,
     this.imageUrl,
+    this.frameId,
     required this.onProfileTap,
   });
 
@@ -45,23 +47,11 @@ class ProfileHeader extends StatelessWidget {
           padding: const EdgeInsets.only(right: 24),
           child: GestureDetector(
             onTap: onProfileTap,
-            child: Container(
-              width: 50,
-              height: 50,
-              decoration: BoxDecoration(
-                color: inputBg,
-                shape: BoxShape.circle,
-                border: Border.all(color: primaryGreen, width: 2),
-                image: activeProvider != null
-                    ? DecorationImage(
-                        image: activeProvider,
-                        fit: BoxFit.cover,
-                      )
-                    : null,
-              ),
-              child: activeProvider == null
-                  ? const Icon(Icons.person, color: primaryGreen, size: 30)
-                  : null,
+            child: UserAvatarWithFrame(
+              avatarImage: activeProvider,
+              frameId: frameId,
+              size: 50,
+              placeholderIconSize: 30,
             ),
           ),
         ),

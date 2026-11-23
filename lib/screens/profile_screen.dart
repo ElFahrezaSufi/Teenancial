@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import '../config/app_routes.dart';
+import '../data/feen_catalog.dart';
 import '../models/user_model.dart';
 import '../providers/auth_provider.dart';
 import '../providers/contact_provider.dart';
@@ -17,6 +18,7 @@ import '../theme/app_colors.dart';
 import '../utils/error_mapper.dart';
 import '../widgets/common/custom_app_bar.dart';
 import '../widgets/common/custom_card.dart';
+import '../widgets/common/user_avatar_with_frame.dart';
 import '../widgets/feen/feen_avatar.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -841,27 +843,11 @@ class _ProfileScreenState extends State<ProfileScreen>
             children: [
               Row(
                 children: [
-                  Container(
-                    width: 68,
-                    height: 68,
-                    decoration: BoxDecoration(
-                      color: inputBg,
-                      shape: BoxShape.circle,
-                      border: Border.all(color: primaryGreen, width: 2),
-                      image: avatarImage != null
-                          ? DecorationImage(
-                              image: avatarImage,
-                              fit: BoxFit.cover,
-                            )
-                          : null,
-                    ),
-                    child: avatarImage == null
-                        ? const Icon(
-                            Icons.person,
-                            color: primaryGreen,
-                            size: 38,
-                          )
-                        : null,
+                  UserAvatarWithFrame(
+                    avatarImage: avatarImage,
+                    frameId: userProvider.feenEquipped[FeenSlot.frame.name],
+                    size: 74,
+                    placeholderIconSize: 38,
                   ),
                   const SizedBox(width: 14),
                   Expanded(
@@ -979,7 +965,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                       ),
                       SizedBox(height: 2),
                       Text(
-                        'Ganti aksesoris & tampilan maskotmu',
+                        'Ganti aksesoris Feen & bingkai profil',
                         style: TextStyle(
                           color: primaryGreen,
                           fontSize: 12,
@@ -1092,7 +1078,8 @@ class _ProfileScreenState extends State<ProfileScreen>
             children: [
               Builder(
                 builder: (context) {
-                  final contactProvider = Provider.of<ContactProvider?>(context);
+                  final contactProvider =
+                      Provider.of<ContactProvider?>(context);
                   final contactCount = contactProvider?.contacts.length ?? 0;
                   return _AccountMenuTile(
                     icon: Icons.contacts_outlined,
