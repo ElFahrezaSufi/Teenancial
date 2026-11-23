@@ -43,6 +43,7 @@ class FeenAvatar extends StatelessWidget {
       ),
     ];
     for (final slot in FeenSlot.values) {
+      if (slot == FeenSlot.frame) continue;
       final accessory = feenById(equipped[slot.name]);
       if (accessory != null && accessory.slot == slot) {
         layers.add(_layer(context, accessory.asset));

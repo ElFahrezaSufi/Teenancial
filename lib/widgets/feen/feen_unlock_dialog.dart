@@ -12,6 +12,11 @@ Future<void> showFeenUnlockDialog(
   required int level,
   required List<FeenAccessory> unlocked,
 }) {
+  final hasFrame = unlocked.any((a) => a.slot == FeenSlot.frame);
+  final headerLabel = unlocked.length == 1
+      ? (hasFrame ? 'Bingkai profil baru terbuka:' : 'Aksesoris baru terbuka:')
+      : '${unlocked.length} hadiah baru terbuka:';
+
   return showDialog<void>(
     context: context,
     builder: (ctx) => Dialog(
@@ -34,9 +39,7 @@ Future<void> showFeenUnlockDialog(
             FeenAvatar(level: level, pose: FeenPose.levelup, size: 150),
             const SizedBox(height: 4),
             Text(
-              unlocked.length == 1
-                  ? 'Aksesoris baru terbuka:'
-                  : '${unlocked.length} aksesoris baru terbuka:',
+              headerLabel,
               style: AppTextStyles.captionGreen,
             ),
             const SizedBox(height: 8),
