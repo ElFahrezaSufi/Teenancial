@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
 import '../data/feen_catalog.dart';
@@ -7,6 +8,7 @@ import '../theme/app_text_styles.dart';
 import '../utils/error_mapper.dart';
 import '../widgets/common/custom_app_bar.dart';
 import '../widgets/common/custom_card.dart';
+import '../widgets/common/user_avatar_with_frame.dart';
 import '../widgets/feen/feen_avatar.dart';
 
 class FeenWardrobeScreen extends StatelessWidget {
@@ -23,6 +25,11 @@ class FeenWardrobeScreen extends StatelessWidget {
     final level = user.level;
     final equipped = user.feenEquipped;
     final tier = tierForLevel(level);
+    final remoteImageUrl = user.profileImageUrl;
+    final ImageProvider? avatarImage =
+        (remoteImageUrl != null && remoteImageUrl.isNotEmpty)
+            ? CachedNetworkImageProvider(remoteImageUrl)
+            : null;
 
     return Scaffold(
       backgroundColor: scaffoldBg,
@@ -115,7 +122,7 @@ class FeenWardrobeScreen extends StatelessWidget {
                       physics: const NeverScrollableScrollPhysics(),
                       mainAxisSpacing: 12,
                       crossAxisSpacing: 12,
-                      childAspectRatio: 0.82,
+                      childAspectRatio: 0.78,
                       children: [
                         for (final accessory in feenBySlot(slot))
                           _AccessoryTile(
@@ -134,6 +141,32 @@ class FeenWardrobeScreen extends StatelessWidget {
                     ),
                     const SizedBox(height: 20),
                   ],
+                  Text(FeenSlot.frame.label, style: AppTextStyles.sectionTitle),
+                  const SizedBox(height: 10),
+                  GridView.count(
+                    crossAxisCount: 3,
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    mainAxisSpacing: 12,
+                    crossAxisSpacing: 12,
+                    childAspectRatio: 0.78,
+                    children: [
+                      for (final frame in feenBySlot(FeenSlot.frame))
+                        _FrameTile(
+                          frame: frame,
+                          avatarImage: avatarImage,
+                          selected: equipped[FeenSlot.frame.name] == frame.id,
+                          locked: level < frame.unlockLevel,
+                          onTap: () => _onTapAccessory(
+                            context,
+                            accessory: frame,
+                            level: level,
+                            selected: equipped[FeenSlot.frame.name] == frame.id,
+                          ),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
                 ],
               ),
             ),
@@ -283,9 +316,8 @@ class _FeenEvolutionStagesRow extends StatelessWidget {
                                       : primaryGreen.withValues(alpha: 0.55)),
                               fontSize: 10.5,
                               fontFamily: 'Inter',
-                              fontWeight: isCurrent
-                                  ? FontWeight.w800
-                                  : FontWeight.w700,
+                              fontWeight:
+                                  isCurrent ? FontWeight.w800 : FontWeight.w700,
                             ),
                           ),
                         ],
@@ -345,7 +377,7 @@ class _AccessoryTile extends StatelessWidget {
     Widget preview = FeenAvatar(
       level: level,
       equipped: {accessory.slot.name: accessory.id},
-      size: 80,
+      size: 74,
     );
     if (locked) {
       preview = ColorFiltered(
@@ -388,19 +420,119 @@ class _AccessoryTile extends StatelessWidget {
               const SizedBox(height: 4),
               Text(
                 accessory.name,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
+                maxLines: 2,
                 textAlign: TextAlign.center,
                 style: const TextStyle(
                   color: primaryGreen,
-                  fontSize: 11,
+                  fontSize: 10.5,
+                  height: 1.15,
                   fontFamily: 'Inter',
                   fontWeight: FontWeight.w700,
                 ),
               ),
+              const SizedBox(height: 2),
               Text(
                 locked
                     ? 'Level ${accessory.unlockLevel}'
+                    : (selected ? 'Dipakai' : 'Pakai'),
+                style: TextStyle(
+                  color: locked
+                      ? Colors.grey
+                      : (selected ? orangeText : primaryGreen),
+                  fontSize: 10,
+                  fontFamily: 'Inter',
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _FrameTile extends StatelessWidget {
+  final FeenAccessory frame;
+  final ImageProvider? avatarImage;
+  final bool selected;
+  final bool locked;
+  final VoidCallback onTap;
+
+  const _FrameTile({
+    required this.frame,
+    required this.avatarImage,
+    required this.selected,
+    required this.locked,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    Widget preview = UserAvatarWithFrame(
+      avatarImage: avatarImage,
+      frameId: frame.id,
+      size: 70,
+      placeholderIconSize: 32,
+    );
+    if (locked) {
+      preview = ColorFiltered(
+        colorFilter: _AccessoryTile._grayscale,
+        child: Opacity(opacity: 0.45, child: preview),
+      );
+    }
+
+    return Semantics(
+      button: true,
+      selected: selected,
+      label: locked
+          ? '${frame.name}, terkunci, terbuka di level ${frame.unlockLevel}'
+          : '${frame.name}${selected ? ', sedang dipakai' : ''}',
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          decoration: BoxDecoration(
+            color: cardBg,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: selected ? orangeText : primaryGreen,
+              width: selected ? 3 : 1.5,
+            ),
+          ),
+          padding: const EdgeInsets.fromLTRB(6, 8, 6, 8),
+          child: Column(
+            children: [
+              Expanded(
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    preview,
+                    if (locked)
+                      const Icon(
+                        Icons.lock_rounded,
+                        color: primaryGreen,
+                        size: 22,
+                      ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                frame.name,
+                maxLines: 2,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  color: primaryGreen,
+                  fontSize: 10.5,
+                  height: 1.15,
+                  fontFamily: 'Inter',
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                locked
+                    ? 'Level ${frame.unlockLevel}'
                     : (selected ? 'Dipakai' : 'Pakai'),
                 style: TextStyle(
                   color: locked
