@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../config/app_constants.dart';
 import '../config/app_routes.dart';
+import '../data/feen_catalog.dart';
 import '../data/mission_catalog.dart';
 import '../models/mission_model.dart';
 import '../models/target_model.dart';
@@ -407,6 +408,8 @@ class _HomeScreenState extends State<HomeScreen> {
                                 displayName: userProvider.displayName,
                                 level: level,
                                 imageUrl: userProvider.profileImageUrl,
+                                frameId: userProvider
+                                    .feenEquipped[FeenSlot.frame.name],
                                 onProfileTap: () =>
                                     context.go(AppRoutes.profile),
                               ),
