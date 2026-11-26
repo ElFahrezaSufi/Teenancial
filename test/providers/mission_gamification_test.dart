@@ -20,10 +20,12 @@ import 'package:teenancial/repositories/user_repository.dart';
 import 'package:teenancial/screens/riwayat_screen.dart';
 import 'package:teenancial/services/notification_service.dart';
 import 'package:teenancial/utils/error_mapper.dart';
+import 'package:teenancial/utils/xp_helper.dart';
 
 class _FakeUserRepository extends UserRepository {
   UserModel profile;
   int xpAdded = 0;
+  bool failIncrementXp = false;
 
   _FakeUserRepository(this.profile);
 
@@ -32,8 +34,21 @@ class _FakeUserRepository extends UserRepository {
 
   @override
   Future<void> incrementXp(String uid, int amount) async {
+    if (failIncrementXp) {
+      throw Exception('Simulasi gagal jaringan saat menambah XP');
+    }
     xpAdded += amount;
     profile = profile.copyWith(xp: profile.xp + amount);
+  }
+
+  @override
+  Future<void> saveFeenEquipped(
+    String uid,
+    Map<String, String> equipped,
+  ) async {
+    profile = profile.copyWith(
+      feenEquipped: Map<String, String>.from(equipped),
+    );
   }
 }
 
@@ -131,14 +146,52 @@ void main() {
       expect(BelajarProgressModel.isLegacyKey('mod_1'), isFalse);
     });
 
-    test('tierForLevel memetakan Rookie (1-5), Saver (6-10), dan Pro (11+)', () {
+    test('tierForLevel memetakan Rookie (1-14), Saver (15-29), dan Pro (30+)', () {
       expect(tierForLevel(1), FeenTier.rookie);
-      expect(tierForLevel(5), FeenTier.rookie);
-      expect(tierForLevel(6), FeenTier.saver);
-      expect(tierForLevel(10), FeenTier.saver);
-      expect(tierForLevel(11), FeenTier.pro);
-      expect(tierForLevel(20), FeenTier.pro);
+      expect(tierForLevel(14), FeenTier.rookie);
+      expect(tierForLevel(15), FeenTier.saver);
+      expect(tierForLevel(29), FeenTier.saver);
+      expect(tierForLevel(30), FeenTier.pro);
+      expect(tierForLevel(40), FeenTier.pro);
+
+      expect(tierUnlockedAt(1), FeenTier.rookie);
+      expect(tierUnlockedAt(15), FeenTier.saver);
+      expect(tierUnlockedAt(30), FeenTier.pro);
+      expect(tierUnlockedAt(5), isNull);
     });
+
+    test(
+      'unequipAllFeen mempertahankan bingkai profil secara default dan melepas aksesoris maskot',
+      () async {
+        final userRepo = _FakeUserRepository(
+          UserModel(
+            uid: 'u1',
+            email: 'teen@example.com',
+            name: 'Rani',
+            xp: XpHelper.totalXpForLevel(15),
+          ),
+        );
+        final userProvider = UserProvider(repository: userRepo);
+        userProvider.updateUser('u1');
+        await Future<void>.delayed(Duration.zero);
+        expect(userProvider.profile, isNotNull);
+
+        await userProvider.equipFeen(FeenSlot.head, 'beanie');
+        await userProvider.equipFeen(FeenSlot.face, 'glasses');
+        await userProvider.equipFeen(FeenSlot.frame, 'frame_matcha');
+        expect(userProvider.feenEquipped, {
+          'head': 'beanie',
+          'face': 'glasses',
+          'frame': 'frame_matcha',
+        });
+
+        await userProvider.unequipAllFeen();
+        expect(userProvider.feenEquipped, {'frame': 'frame_matcha'});
+
+        await userProvider.unequipAllFeen(includeFrame: true);
+        expect(userProvider.feenEquipped, isEmpty);
+      },
+    );
   });
 
   group('MissionProvider One-Time Sync & Rollback', () {
@@ -210,6 +263,288 @@ void main() {
         );
         expect(missionProvider.currentProgress(mod3), 3);
         expect(missionProvider.statusOf(mod3), MissionClaimStatus.claimable);
+      },
+    );
+  });
+
+  group('MissionProvider Streak, Bonus XP, Claim All & Target Sync', () {
+    test(
+      'misi streak one-time terisi dari streak harian, tidak turun saat putus, dan tidak dapat diklaim ulang',
+      () async {
+        var fakeNow = DateTime(2026, 11, 1, 10, 0);
+        final userRepo = _FakeUserRepository(
+          const UserModel(
+            uid: 'u1',
+            email: 'teen@example.com',
+            name: 'Rani',
+          ),
+        );
+        final userProvider = UserProvider(repository: userRepo);
+        userProvider.updateUser('u1');
+        await userProvider.loadProfile();
+
+        Map<String, dynamic>? storedDoc = {};
+        final missionProvider = MissionProvider(
+          clock: () => fakeNow,
+          onLoad: (_) async => storedDoc,
+          onSave: (_, payload) async {
+            storedDoc = Map<String, dynamic>.from(payload);
+          },
+        );
+        missionProvider.bindDependencies('u1', userProvider);
+        await missionProvider.loadMissions();
+
+        final streak3 = MissionCatalog.all
+            .firstWhere((m) => m.id == 'onetime_streak_3');
+
+        // Hari 1
+        await missionProvider.recordTrigger(MissionTrigger.addIncomeExpense);
+        expect(missionProvider.streakCount, 1);
+        expect(missionProvider.isStreakActiveToday, isTrue);
+        expect(missionProvider.currentProgress(streak3), 1);
+
+        // Hari 2
+        fakeNow = DateTime(2026, 11, 2, 11, 0);
+        await missionProvider.recordTrigger(MissionTrigger.addIncomeExpense);
+        expect(missionProvider.streakCount, 2);
+        expect(missionProvider.currentProgress(streak3), 2);
+
+        // Hari 3
+        fakeNow = DateTime(2026, 11, 3, 9, 0);
+        await missionProvider.recordTrigger(MissionTrigger.addIncomeExpense);
+        expect(missionProvider.streakCount, 3);
+        expect(missionProvider.currentProgress(streak3), 3);
+        expect(missionProvider.statusOf(streak3), MissionClaimStatus.claimable);
+
+        final xpGained = await missionProvider.claimMission(streak3);
+        expect(xpGained, 50);
+        expect(userProvider.xp, 50);
+        expect(missionProvider.statusOf(streak3), MissionClaimStatus.claimed);
+
+        // Lompat ke Hari 5 (melewati Hari 4 -> streak terputus)
+        fakeNow = DateTime(2026, 11, 5, 8, 0);
+        await missionProvider.refreshPeriodicState();
+        expect(missionProvider.streakCount, 0);
+        expect(missionProvider.brokenStreakCount, 3);
+        expect(missionProvider.isStreakActiveToday, isFalse);
+        expect(missionProvider.currentProgress(streak3), 3);
+        expect(missionProvider.statusOf(streak3), MissionClaimStatus.claimed);
+
+        // Sinkronisasi progres belajar tidak boleh mencabut klaim misi streak
+        await missionProvider.syncOneTimeLearningProgress(
+          completedModulesCount: 0,
+          completedQuizzesCount: 0,
+        );
+        expect(missionProvider.statusOf(streak3), MissionClaimStatus.claimed);
+
+        // Mulai streak baru di Hari 5
+        await missionProvider.recordTrigger(MissionTrigger.addIncomeExpense);
+        expect(missionProvider.streakCount, 1);
+        expect(missionProvider.isStreakActiveToday, isTrue);
+      },
+    );
+
+    test(
+      'bonus streak XP hanya berlaku untuk misi rutin (harian/mingguan/bulanan) dan bukan sekali saja',
+      () async {
+        final fakeNow = DateTime(2026, 11, 10, 12, 0);
+        final userRepo = _FakeUserRepository(
+          const UserModel(
+            uid: 'u1',
+            email: 'teen@example.com',
+            name: 'Rani',
+          ),
+        );
+        final userProvider = UserProvider(repository: userRepo);
+        userProvider.updateUser('u1');
+        await userProvider.loadProfile();
+
+        Map<String, dynamic>? storedDoc = {
+          'streakCount': 5,
+          'lastStreakDate': '2026-11-10',
+          'counters': <String, int>{},
+          'claimedKeys': <String>[],
+        };
+        final missionProvider = MissionProvider(
+          clock: () => fakeNow,
+          onLoad: (_) async => storedDoc,
+          onSave: (_, payload) async {
+            storedDoc = Map<String, dynamic>.from(payload);
+          },
+        );
+        missionProvider.bindDependencies('u1', userProvider);
+        await missionProvider.loadMissions();
+
+        expect(missionProvider.streakBonusPercent, 10);
+
+        final daily = MissionCatalog.all
+            .firstWhere((m) => m.id == 'daily_tx_1');
+        final weekly = MissionCatalog.all
+            .firstWhere((m) => m.id == 'weekly_tx_5');
+        final monthly = MissionCatalog.all
+            .firstWhere((m) => m.id == 'monthly_tx_20');
+        final oneTimeModule = MissionCatalog.all
+            .firstWhere((m) => m.id == 'onetime_module_1');
+        final oneTimeStreak = MissionCatalog.all
+            .firstWhere((m) => m.id == 'onetime_streak_3');
+
+        expect(missionProvider.effectiveXpReward(daily), 22);
+        expect(missionProvider.effectiveXpReward(weekly), 88);
+        expect(missionProvider.effectiveXpReward(monthly), 220);
+        expect(missionProvider.effectiveXpReward(oneTimeModule), 100);
+        expect(missionProvider.effectiveXpReward(oneTimeStreak), 50);
+      },
+    );
+
+    test(
+      'claimAllMissions mengklaim seluruh misi siap klaim sekaligus dan rollback saat gagal menambah XP',
+      () async {
+        final fakeNow = DateTime(2026, 11, 10, 14, 0);
+        final userRepo = _FakeUserRepository(
+          const UserModel(
+            uid: 'u1',
+            email: 'teen@example.com',
+            name: 'Rani',
+          ),
+        );
+        final userProvider = UserProvider(repository: userRepo);
+        userProvider.updateUser('u1');
+        await userProvider.loadProfile();
+
+        Map<String, dynamic>? storedDoc = {};
+        final missionProvider = MissionProvider(
+          clock: () => fakeNow,
+          onLoad: (_) async => storedDoc,
+          onSave: (_, payload) async {
+            storedDoc = Map<String, dynamic>.from(payload);
+          },
+        );
+        missionProvider.bindDependencies('u1', userProvider);
+        await missionProvider.loadMissions();
+
+        await missionProvider.recordTrigger(MissionTrigger.addIncomeExpense);
+        await missionProvider.recordTrigger(MissionTrigger.saveTarget);
+
+        final dailyTx = MissionCatalog.all
+            .firstWhere((m) => m.id == 'daily_tx_1');
+        final dailySave = MissionCatalog.all
+            .firstWhere((m) => m.id == 'daily_save_1');
+        expect(missionProvider.claimableCount, 2);
+        expect(missionProvider.claimableTotalXp, 45);
+
+        // Simulasikan kegagalan penulisan XP -> harus rollback di memori & penyimpanan
+        userRepo.failIncrementXp = true;
+        await expectLater(
+          missionProvider.claimAllMissions(),
+          throwsException,
+        );
+        expect(userProvider.xp, 0);
+        expect(missionProvider.statusOf(dailyTx), MissionClaimStatus.claimable);
+        expect(
+          missionProvider.statusOf(dailySave),
+          MissionClaimStatus.claimable,
+        );
+        expect(storedDoc?['claimedKeys'], isEmpty);
+
+        // Coba ulang saat jaringan pulih -> klaim berhasil
+        userRepo.failIncrementXp = false;
+        final totalXp = await missionProvider.claimAllMissions();
+        expect(totalXp, 45);
+        expect(userProvider.xp, 45);
+        expect(missionProvider.statusOf(dailyTx), MissionClaimStatus.claimed);
+        expect(missionProvider.statusOf(dailySave), MissionClaimStatus.claimed);
+        expect(missionProvider.claimableCount, 0);
+      },
+    );
+
+    test(
+      'syncOneTimeTargetsCount memberi kredit onetime_create_target_1 dan tetap bertahan saat target dihapus',
+      () async {
+        final fakeNow = DateTime(2026, 11, 10, 14, 0);
+        final userRepo = _FakeUserRepository(
+          const UserModel(
+            uid: 'u1',
+            email: 'teen@example.com',
+            name: 'Rani',
+          ),
+        );
+        final userProvider = UserProvider(repository: userRepo);
+        userProvider.updateUser('u1');
+        await userProvider.loadProfile();
+
+        Map<String, dynamic>? storedDoc = {};
+        final missionProvider = MissionProvider(
+          clock: () => fakeNow,
+          onLoad: (_) async => storedDoc,
+          onSave: (_, payload) async {
+            storedDoc = Map<String, dynamic>.from(payload);
+          },
+        );
+        missionProvider.bindDependencies('u1', userProvider);
+        await missionProvider.loadMissions();
+
+        final targetOneTime = MissionCatalog.all
+            .firstWhere((m) => m.id == 'onetime_create_target_1');
+        expect(missionProvider.currentProgress(targetOneTime), 0);
+
+        await missionProvider.syncOneTimeTargetsCount(2);
+        expect(missionProvider.currentProgress(targetOneTime), 1);
+        expect(
+          missionProvider.statusOf(targetOneTime),
+          MissionClaimStatus.claimable,
+        );
+
+        await missionProvider.syncOneTimeTargetsCount(0);
+        expect(missionProvider.currentProgress(targetOneTime), 1);
+        expect(
+          missionProvider.statusOf(targetOneTime),
+          MissionClaimStatus.claimable,
+        );
+      },
+    );
+
+    test(
+      'refreshPeriodicState mereset counter harian saat jam perangkat melewati tengah malam',
+      () async {
+        var fakeNow = DateTime(2026, 11, 10, 23, 55);
+        final userRepo = _FakeUserRepository(
+          const UserModel(
+            uid: 'u1',
+            email: 'teen@example.com',
+            name: 'Rani',
+          ),
+        );
+        final userProvider = UserProvider(repository: userRepo);
+        userProvider.updateUser('u1');
+        await userProvider.loadProfile();
+
+        Map<String, dynamic>? storedDoc = {};
+        final missionProvider = MissionProvider(
+          clock: () => fakeNow,
+          onLoad: (_) async => storedDoc,
+          onSave: (_, payload) async {
+            storedDoc = Map<String, dynamic>.from(payload);
+          },
+        );
+        missionProvider.bindDependencies('u1', userProvider);
+        await missionProvider.loadMissions();
+
+        final dailyTx = MissionCatalog.all
+            .firstWhere((m) => m.id == 'daily_tx_1');
+        await missionProvider.recordTrigger(MissionTrigger.addIncomeExpense);
+        expect(missionProvider.currentProgress(dailyTx), 1);
+        expect(missionProvider.streakCount, 1);
+
+        // Lewati tengah malam -> progres harian tereset, streak kemarin tetap terjaga
+        fakeNow = DateTime(2026, 11, 11, 0, 1);
+        await missionProvider.refreshPeriodicState();
+        expect(missionProvider.currentProgress(dailyTx), 0);
+        expect(
+          missionProvider.statusOf(dailyTx),
+          MissionClaimStatus.inProgress,
+        );
+        expect(missionProvider.streakCount, 1);
+        expect(missionProvider.isStreakActiveToday, isFalse);
       },
     );
   });
