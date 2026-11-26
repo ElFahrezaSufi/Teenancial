@@ -352,9 +352,17 @@ class _DaftarPinjamanScreenState extends State<DaftarPinjamanScreen> {
                     ? const Center(
                         child: CircularProgressIndicator(color: primaryGreen),
                       )
-                    : loans.isEmpty
-                        ? _buildEmpty()
-                        : ListView.separated(
+                    : txProvider.errorMessage != null &&
+                            txProvider.transactions.isEmpty
+                        ? ErrorStateView(
+                            errorMessage: txProvider.errorMessage!,
+                            onRetry: () => context
+                                .read<TransactionProvider>()
+                                .loadTransactions(),
+                          )
+                        : loans.isEmpty
+                            ? _buildEmpty()
+                            : ListView.separated(
                             padding: const EdgeInsets.only(bottom: 32),
                             itemCount: loans.length,
                             separatorBuilder: (_, __) =>

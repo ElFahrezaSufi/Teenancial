@@ -8,6 +8,7 @@ import '../providers/mission_provider.dart';
 import '../providers/user_provider.dart';
 import '../theme/app_colors.dart';
 import '../utils/error_mapper.dart';
+import '../widgets/common/async_state_view.dart';
 import '../widgets/common/custom_app_bar.dart';
 import '../widgets/common/custom_card.dart';
 import '../widgets/feen/feen_avatar.dart';
@@ -578,37 +579,56 @@ class _MisiScreenState extends State<MisiScreen> {
                 ),
                 const SizedBox(height: 12),
                 Expanded(
-                  child: missionProvider.isLoading
+                  child: missionProvider.isLoading &&
+                          !missionProvider.hasLoadedOnce
                       ? const Center(
                           child: CircularProgressIndicator(color: primaryGreen),
                         )
-                      : ListView.separated(
-                          padding: const EdgeInsets.fromLTRB(20, 0, 20, 40),
-                          itemCount: missions.length,
-                          separatorBuilder: (_, __) =>
-                              const SizedBox(height: 12),
-                          itemBuilder: (context, index) {
-                            final item = missions[index];
-                            final progress =
-                                missionProvider.currentProgress(item);
-                            final status = missionProvider.statusOf(item);
-                            final isClaiming =
-                                missionProvider.claimingId == item.id;
-                            final isBusy = missionProvider.claimingId != null;
-                            final displayXp =
-                                missionProvider.effectiveXpReward(item);
+                      : missionProvider.errorMessage != null &&
+                              !missionProvider.hasLoadedOnce
+                          ? ErrorStateView(
+                              errorMessage: missionProvider.errorMessage!,
+                              onRetry: () => context
+                                  .read<MissionProvider>()
+                                  .loadMissions(),
+                            )
+                          : RefreshIndicator(
+                              color: primaryGreen,
+                              backgroundColor: scaffoldBg,
+                              onRefresh: () => context
+                                  .read<MissionProvider>()
+                                  .loadMissions(),
+                              child: ListView.separated(
+                                physics: const AlwaysScrollableScrollPhysics(),
+                                padding:
+                                    const EdgeInsets.fromLTRB(20, 0, 20, 40),
+                                itemCount: missions.length,
+                                separatorBuilder: (_, __) =>
+                                    const SizedBox(height: 12),
+                                itemBuilder: (context, index) {
+                                  final item = missions[index];
+                                  final progress =
+                                      missionProvider.currentProgress(item);
+                                  final status = missionProvider.statusOf(item);
+                                  final isClaiming =
+                                      missionProvider.claimingId == item.id;
+                                  final isBusy =
+                                      missionProvider.claimingId != null;
+                                  final displayXp =
+                                      missionProvider.effectiveXpReward(item);
 
-                            return _MissionCard(
-                              item: item,
-                              displayXp: displayXp,
-                              progress: progress,
-                              status: status,
-                              isClaiming: isClaiming,
-                              isBusy: isBusy,
-                              onClaim: () => _handleClaim(item),
-                            );
-                          },
-                        ),
+                                  return _MissionCard(
+                                    item: item,
+                                    displayXp: displayXp,
+                                    progress: progress,
+                                    status: status,
+                                    isClaiming: isClaiming,
+                                    isBusy: isBusy,
+                                    onClaim: () => _handleClaim(item),
+                                  );
+                                },
+                              ),
+                            ),
                 ),
               ],
             ),

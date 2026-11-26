@@ -834,6 +834,61 @@ class _ProfileScreenState extends State<ProfileScreen>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
+        if (profile == null && userProvider.errorMessage != null) ...[
+          Container(
+            margin: const EdgeInsets.only(bottom: 14),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            decoration: BoxDecoration(
+              color: const Color(0xFFFFF1EC),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: const Color(0xFFE07A5F), width: 1.5),
+            ),
+            child: Row(
+              children: [
+                const Icon(
+                  Icons.error_outline_rounded,
+                  color: Color(0xFFD9534F),
+                  size: 20,
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    userProvider.errorMessage!,
+                    style: const TextStyle(
+                      color: darkGreen,
+                      fontSize: 12,
+                      fontFamily: 'Inter',
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                TextButton(
+                  onPressed: userProvider.isLoading
+                      ? null
+                      : () => context.read<UserProvider>().loadProfile(),
+                  style: TextButton.styleFrom(
+                    foregroundColor: primaryGreen,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 6,
+                    ),
+                    minimumSize: Size.zero,
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
+                  child: const Text(
+                    'Coba Lagi',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontFamily: 'Inter',
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
         // 1. Kotak Profil Utama
         CustomCard(
           backgroundColor: cardBg,
@@ -1243,27 +1298,11 @@ class _ProfileScreenState extends State<ProfileScreen>
           child: Stack(
             alignment: Alignment.bottomRight,
             children: [
-              Container(
-                width: 100,
-                height: 100,
-                decoration: BoxDecoration(
-                  color: inputBg,
-                  shape: BoxShape.circle,
-                  border: Border.all(color: primaryGreen, width: 2),
-                  image: avatarImage != null
-                      ? DecorationImage(
-                          image: avatarImage,
-                          fit: BoxFit.cover,
-                        )
-                      : null,
-                ),
-                child: avatarImage == null
-                    ? const Icon(
-                        Icons.person,
-                        color: primaryGreen,
-                        size: 60,
-                      )
-                    : null,
+              UserAvatarWithFrame(
+                avatarImage: avatarImage,
+                frameId: null,
+                size: 100,
+                placeholderIconSize: 60,
               ),
               GestureDetector(
                 onTap: hasDisplayedPhoto

@@ -17,6 +17,7 @@ import '../utils/currency_formatter.dart';
 import '../utils/error_mapper.dart';
 import '../utils/loan_helper.dart';
 import '../utils/saving_planner.dart';
+import '../widgets/common/async_state_view.dart';
 import '../widgets/common/custom_app_bar.dart';
 import '../widgets/common/custom_card.dart';
 import '../widgets/common/target_image.dart';
@@ -104,6 +105,13 @@ class TargetMenabungScreen extends StatelessWidget {
           if (targetProvider.isLoading && items.isEmpty)
             const Center(
               child: CircularProgressIndicator(color: primaryGreen),
+            )
+          else if (targetProvider.errorMessage != null && items.isEmpty)
+            SafeArea(
+              child: ErrorStateView(
+                errorMessage: targetProvider.errorMessage!,
+                onRetry: () => context.read<TargetProvider>().loadTargets(),
+              ),
             )
           else
             SafeArea(

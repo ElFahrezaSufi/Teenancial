@@ -7,6 +7,7 @@ import '../models/mission_model.dart';
 import '../services/connectivity_service.dart';
 import '../services/firestore_service.dart';
 import '../services/notification_service.dart';
+import '../utils/error_mapper.dart';
 import 'user_provider.dart';
 
 class MissionProvider extends ChangeNotifier {
@@ -29,6 +30,8 @@ class MissionProvider extends ChangeNotifier {
   String? _uid;
   UserProvider? _userProvider;
   bool _isLoading = false;
+  bool _hasLoadedOnce = false;
+  String? _errorMessage;
   String? _claimingId;
 
   Map<String, int> _counters = {};
@@ -44,6 +47,8 @@ class MissionProvider extends ChangeNotifier {
   int? _brokenStreakCount;
 
   bool get isLoading => _isLoading;
+  bool get hasLoadedOnce => _hasLoadedOnce;
+  String? get errorMessage => _errorMessage;
   String? get claimingId => _claimingId;
   int get streakCount => _streakCount;
   int? get brokenStreakCount => _brokenStreakCount;
@@ -89,6 +94,8 @@ class MissionProvider extends ChangeNotifier {
 
     if (_uid != newUid) {
       _uid = newUid;
+      _hasLoadedOnce = false;
+      _errorMessage = null;
       _counters = {};
       _claimedKeys = {};
       _weeklyAnchor = null;
@@ -443,6 +450,7 @@ class MissionProvider extends ChangeNotifier {
     if (targetUid == null) return;
 
     _isLoading = true;
+    _errorMessage = null;
     notifyListeners();
 
     try {
@@ -457,8 +465,10 @@ class MissionProvider extends ChangeNotifier {
           final snap = await FirestoreService.instance
               .getDocumentSnapshot(_docRef(targetUid));
           rawData = snap.data();
-        } on OfflineException {
-          rawData = null;
+        } on OfflineException catch (e) {
+          if (_hasLoadedOnce) return;
+          _errorMessage = e.message;
+          return;
         }
       }
       if (_uid != targetUid) return;
@@ -501,6 +511,8 @@ class MissionProvider extends ChangeNotifier {
           streakUpdated) {
         await _persist();
       }
+      _hasLoadedOnce = true;
+      _errorMessage = null;
       unawaited(
         NotificationService.instance.syncDailyMissionReminder(
           hasCompletedAnyDailyToday: hasCompletedAnyDailyToday,
@@ -508,6 +520,12 @@ class MissionProvider extends ChangeNotifier {
       );
     } catch (e) {
       debugPrint('Gagal memuat misi: $e');
+      if (_uid == targetUid) {
+        _errorMessage = ErrorMapper.message(
+          e,
+          fallback: 'Gagal memuat daftar misi. Coba lagi beberapa saat.',
+        );
+      }
     } finally {
       if (_uid == targetUid) {
         _isLoading = false;

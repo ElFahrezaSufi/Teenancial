@@ -67,6 +67,14 @@ class UserAvatarWithFrame extends StatelessWidget {
         ? (placeholderIconSize * (avatarSize / size)).clamp(14.0, avatarSize * 0.65)
         : placeholderIconSize;
 
+    final Widget placeholderIcon = Center(
+      child: Icon(
+        Icons.person,
+        color: primaryGreen,
+        size: resolvedIconSize,
+      ),
+    );
+
     return SizedBox(
       width: boxSize,
       height: boxSize,
@@ -81,20 +89,23 @@ class UserAvatarWithFrame extends StatelessWidget {
               shape: BoxShape.circle,
               border:
                   hasFrame ? null : Border.all(color: primaryGreen, width: 2),
-              image: avatarImage != null
-                  ? DecorationImage(
-                      image: avatarImage!,
-                      fit: BoxFit.cover,
-                    )
-                  : null,
             ),
-            child: avatarImage == null
-                ? Icon(
-                    Icons.person,
-                    color: primaryGreen,
-                    size: resolvedIconSize,
-                  )
-                : null,
+            child: ClipOval(
+              child: avatarImage != null
+                  ? Image(
+                      image: avatarImage!,
+                      width: avatarSize,
+                      height: avatarSize,
+                      fit: BoxFit.cover,
+                      gaplessPlayback: true,
+                      frameBuilder: (context, child, frame, wasSync) {
+                        if (wasSync || frame != null) return child;
+                        return placeholderIcon;
+                      },
+                      errorBuilder: (_, __, ___) => placeholderIcon,
+                    )
+                  : placeholderIcon,
+            ),
           ),
           if (hasFrame)
             Positioned(

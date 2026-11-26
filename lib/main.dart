@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:ui';
 import 'package:cupertino_ui/cupertino_ui.dart'
     show GlobalCupertinoLocalizations;
 import 'package:firebase_core/firebase_core.dart';
@@ -26,24 +27,85 @@ import 'services/connectivity_service.dart';
 import 'services/local_storage_service.dart';
 import 'services/notification_service.dart';
 import 'theme/app_colors.dart';
+import 'utils/error_mapper.dart';
+import 'widgets/common/app_fallback_views.dart';
 import 'widgets/common/offline_banner.dart';
 import 'widgets/common/responsive_app_shell.dart';
 
-void main() async {
+bool _dateFormattingReady = false;
+bool _localStorageReady = false;
+bool _notificationReady = false;
+bool _connectivityReady = false;
+
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Global error boundary: menangkap error widget & error async tak tertangkap
+  // agar aplikasi tidak menampilkan layar abu-abu/merah mentah.
+  FlutterError.onError = (FlutterErrorDetails details) {
+    FlutterError.presentError(details);
+    debugPrint('FlutterError: ${details.exceptionAsString()}');
+  };
+  PlatformDispatcher.instance.onError = (Object error, StackTrace stack) {
+    debugPrint('Uncaught platform error: $error\n$stack');
+    return true;
+  };
+  ErrorWidget.builder = (FlutterErrorDetails details) =>
+      RenderErrorFallbackView(details: details);
+
   await SystemChrome.setPreferredOrientations(const [
     DeviceOrientation.portraitUp,
   ]);
-  await initializeDateFormatting('id_ID', null);
-  await LocalStorageService.instance.init();
-  await NotificationService.instance.init();
-  await ConnectivityService.instance.init();
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
 
-  runApp(
-    MultiProvider(
+  await _bootstrapAndRunApp();
+}
+
+Future<void> _bootstrapAndRunApp() async {
+  try {
+    if (!_dateFormattingReady) {
+      await initializeDateFormatting('id_ID', null);
+      _dateFormattingReady = true;
+    }
+    if (!_localStorageReady) {
+      await LocalStorageService.instance.init();
+      _localStorageReady = true;
+    }
+    if (!_notificationReady) {
+      try {
+        await NotificationService.instance.init();
+      } catch (e) {
+        debugPrint('Inisialisasi notifikasi dilewati: $e');
+      }
+      _notificationReady = true;
+    }
+    if (!_connectivityReady) {
+      await ConnectivityService.instance.init();
+      _connectivityReady = true;
+    }
+    if (Firebase.apps.isEmpty) {
+      await Firebase.initializeApp(
+        options: DefaultFirebaseOptions.currentPlatform,
+      );
+    }
+
+    runApp(_buildRootApp());
+  } catch (e, stack) {
+    debugPrint('Gagal memulai aplikasi: $e\n$stack');
+    runApp(
+      StartupErrorApp(
+        errorMessage: ErrorMapper.message(
+          e,
+          fallback:
+              'Terjadi gangguan saat menyiapkan layanan aplikasi. Pastikan koneksi & perangkat siap lalu coba lagi.',
+        ),
+        onRetry: _bootstrapAndRunApp,
+      ),
+    );
+  }
+}
+
+Widget _buildRootApp() {
+  return MultiProvider(
       providers: [
         ChangeNotifierProvider.value(value: ConnectivityService.instance),
         ChangeNotifierProvider(create: (_) => AuthProvider(), lazy: false),
@@ -108,7 +170,6 @@ void main() async {
         ),
       ],
       child: const _ConnectivitySyncCoordinator(child: MyApp()),
-    ),
   );
 }
 

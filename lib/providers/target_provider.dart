@@ -106,16 +106,22 @@ class TargetProvider extends ChangeNotifier {
           fetched.any((item) => item.isPinned && !item.isSettled);
       if (firstActiveIndex != -1 && !hasActivePinned) {
         final firstActiveId = fetched[firstActiveIndex].id;
-        await _repository.togglePinTarget(
-          uid: targetUid,
-          targetId: firstActiveId,
-          shouldPin: true,
-        );
-        if (_uid != targetUid) return;
-        fetched = [
-          for (final item in fetched)
-            item.copyWith(isPinned: item.id == firstActiveId),
-        ];
+        try {
+          await _repository.togglePinTarget(
+            uid: targetUid,
+            targetId: firstActiveId,
+            shouldPin: true,
+          );
+          if (_uid != targetUid) return;
+          fetched = [
+            for (final item in fetched)
+              item.copyWith(isPinned: item.id == firstActiveId),
+          ];
+        } catch (e) {
+          // Auto-pin bersifat best-effort: kegagalan penulisan (mis. saat offline)
+          // tidak boleh menggagalkan pembacaan daftar target pengguna.
+          debugPrint('Gagal menyematkan target otomatis: $e');
+        }
       }
       _items = fetched;
       _errorMessage = null;

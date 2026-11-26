@@ -13,6 +13,7 @@ import '../theme/app_colors.dart';
 import '../utils/currency_formatter.dart';
 import '../utils/date_helper.dart';
 import '../utils/error_mapper.dart';
+import '../widgets/common/async_state_view.dart';
 import '../widgets/common/custom_app_bar.dart';
 import '../widgets/common/custom_card.dart';
 import '../widgets/common/primary_button.dart';
@@ -290,7 +291,13 @@ class _TransaksiBerulangScreenState extends State<TransaksiBerulangScreen> {
                       ? const Center(
                           child: CircularProgressIndicator(color: primaryGreen),
                         )
-                      : RefreshIndicator(
+                      : recProvider.errorMessage != null &&
+                              recProvider.items.isEmpty
+                          ? ErrorStateView(
+                              errorMessage: recProvider.errorMessage!,
+                              onRetry: () => recProvider.loadRecurring(),
+                            )
+                          : RefreshIndicator(
                           color: primaryGreen,
                           backgroundColor: scaffoldBg,
                           onRefresh: () => recProvider.loadRecurring(),

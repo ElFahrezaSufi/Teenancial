@@ -46,6 +46,7 @@ import '../screens/target_menabung_screen.dart';
 import '../screens/transaksi_berulang_screen.dart';
 import '../screens/transfer_screen.dart';
 import '../screens/verify_email_screen.dart';
+import '../widgets/common/app_fallback_views.dart';
 
 final GlobalKey<NavigatorState> rootNavigatorKey =
     GlobalKey<NavigatorState>(debugLabel: 'root');
@@ -56,6 +57,9 @@ final GlobalKey<ScaffoldMessengerState> rootScaffoldMessengerKey =
 final GoRouter appRouter = GoRouter(
   navigatorKey: rootNavigatorKey,
   initialLocation: AppRoutes.splash,
+  errorBuilder: (context, state) => NotFoundScreen(
+    location: state.uri.toString(),
+  ),
   refreshListenable: Listenable.merge([
     GoRouterRefreshStream(FirebaseAuth.instance.authStateChanges()),
     AuthProvider.bootstrapListenable,
