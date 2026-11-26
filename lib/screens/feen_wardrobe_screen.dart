@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
@@ -119,55 +120,73 @@ class FeenWardrobeScreen extends StatelessWidget {
                   for (final slot in _slotOrder) ...[
                     Text(slot.label, style: AppTextStyles.sectionTitle),
                     const SizedBox(height: 10),
-                    GridView.count(
-                      crossAxisCount: 3,
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      mainAxisSpacing: 12,
-                      crossAxisSpacing: 12,
-                      childAspectRatio: 0.78,
-                      children: [
-                        for (final accessory in feenBySlot(slot))
-                          _AccessoryTile(
-                            accessory: accessory,
-                            level: level,
-                            selected: equipped[slot.name] == accessory.id,
-                            locked: level < accessory.unlockLevel,
-                            onTap: () => _onTapAccessory(
-                              context,
-                              accessory: accessory,
-                              level: level,
-                              selected: equipped[slot.name] == accessory.id,
-                            ),
-                          ),
-                      ],
+                    LayoutBuilder(
+                      builder: (context, gridConstraints) {
+                        final int columns =
+                            gridConstraints.maxWidth >= 460 ? 4 : 3;
+                        final double aspectRatio =
+                            gridConstraints.maxWidth < 300 ? 0.68 : 0.78;
+                        return GridView.count(
+                          crossAxisCount: columns,
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          mainAxisSpacing: 12,
+                          crossAxisSpacing: 12,
+                          childAspectRatio: aspectRatio,
+                          children: [
+                            for (final accessory in feenBySlot(slot))
+                              _AccessoryTile(
+                                accessory: accessory,
+                                level: level,
+                                selected: equipped[slot.name] == accessory.id,
+                                locked: level < accessory.unlockLevel,
+                                onTap: () => _onTapAccessory(
+                                  context,
+                                  accessory: accessory,
+                                  level: level,
+                                  selected: equipped[slot.name] == accessory.id,
+                                ),
+                              ),
+                          ],
+                        );
+                      },
                     ),
                     const SizedBox(height: 20),
                   ],
                   Text(FeenSlot.frame.label, style: AppTextStyles.sectionTitle),
                   const SizedBox(height: 10),
-                  GridView.count(
-                    crossAxisCount: 3,
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    mainAxisSpacing: 12,
-                    crossAxisSpacing: 12,
-                    childAspectRatio: 0.78,
-                    children: [
-                      for (final frame in feenBySlot(FeenSlot.frame))
-                        _FrameTile(
-                          frame: frame,
-                          avatarImage: avatarImage,
-                          selected: equipped[FeenSlot.frame.name] == frame.id,
-                          locked: level < frame.unlockLevel,
-                          onTap: () => _onTapAccessory(
-                            context,
-                            accessory: frame,
-                            level: level,
-                            selected: equipped[FeenSlot.frame.name] == frame.id,
-                          ),
-                        ),
-                    ],
+                  LayoutBuilder(
+                    builder: (context, gridConstraints) {
+                      final int columns =
+                          gridConstraints.maxWidth >= 460 ? 4 : 3;
+                      final double aspectRatio =
+                          gridConstraints.maxWidth < 300 ? 0.68 : 0.78;
+                      return GridView.count(
+                        crossAxisCount: columns,
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        mainAxisSpacing: 12,
+                        crossAxisSpacing: 12,
+                        childAspectRatio: aspectRatio,
+                        children: [
+                          for (final frame in feenBySlot(FeenSlot.frame))
+                            _FrameTile(
+                              frame: frame,
+                              avatarImage: avatarImage,
+                              selected:
+                                  equipped[FeenSlot.frame.name] == frame.id,
+                              locked: level < frame.unlockLevel,
+                              onTap: () => _onTapAccessory(
+                                context,
+                                accessory: frame,
+                                level: level,
+                                selected:
+                                    equipped[FeenSlot.frame.name] == frame.id,
+                              ),
+                            ),
+                        ],
+                      );
+                    },
                   ),
                   const SizedBox(height: 20),
                 ],
@@ -349,18 +368,6 @@ class _AccessoryTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    Widget preview = FeenAvatar(
-      level: level,
-      equipped: {accessory.slot.name: accessory.id},
-      size: 74,
-    );
-    if (locked) {
-      preview = ColorFiltered(
-        colorFilter: feenLockedGrayscaleFilter,
-        child: Opacity(opacity: 0.45, child: preview),
-      );
-    }
-
     return Semantics(
       button: true,
       selected: selected,
@@ -382,20 +389,41 @@ class _AccessoryTile extends StatelessWidget {
           child: Column(
             children: [
               Expanded(
-                child: Stack(
-                  alignment: Alignment.center,
-                  children: [
-                    preview,
-                    if (locked)
-                      const Icon(Icons.lock_rounded,
-                          color: primaryGreen, size: 22),
-                  ],
+                child: LayoutBuilder(
+                  builder: (context, box) {
+                    final double previewSize =
+                        math.min(box.maxWidth, box.maxHeight).clamp(40.0, 74.0);
+                    Widget preview = FeenAvatar(
+                      level: level,
+                      equipped: {accessory.slot.name: accessory.id},
+                      size: previewSize,
+                    );
+                    if (locked) {
+                      preview = ColorFiltered(
+                        colorFilter: feenLockedGrayscaleFilter,
+                        child: Opacity(opacity: 0.45, child: preview),
+                      );
+                    }
+                    return Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        preview,
+                        if (locked)
+                          const Icon(
+                            Icons.lock_rounded,
+                            color: primaryGreen,
+                            size: 22,
+                          ),
+                      ],
+                    );
+                  },
                 ),
               ),
               const SizedBox(height: 4),
               Text(
                 accessory.name,
                 maxLines: 2,
+                overflow: TextOverflow.ellipsis,
                 textAlign: TextAlign.center,
                 style: const TextStyle(
                   color: primaryGreen,
@@ -410,6 +438,8 @@ class _AccessoryTile extends StatelessWidget {
                 locked
                     ? 'Level ${accessory.unlockLevel}'
                     : (selected ? 'Dipakai' : 'Pakai'),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
                 style: TextStyle(
                   color: locked
                       ? Colors.grey
@@ -444,19 +474,6 @@ class _FrameTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    Widget preview = UserAvatarWithFrame(
-      avatarImage: avatarImage,
-      frameId: frame.id,
-      size: 76,
-      placeholderIconSize: 30,
-    );
-    if (locked) {
-      preview = ColorFiltered(
-        colorFilter: feenLockedGrayscaleFilter,
-        child: Opacity(opacity: 0.45, child: preview),
-      );
-    }
-
     return Semantics(
       button: true,
       selected: selected,
@@ -478,23 +495,43 @@ class _FrameTile extends StatelessWidget {
           child: Column(
             children: [
               Expanded(
-                child: Stack(
-                  alignment: Alignment.center,
-                  children: [
-                    preview,
-                    if (locked)
-                      const Icon(
-                        Icons.lock_rounded,
-                        color: primaryGreen,
-                        size: 22,
-                      ),
-                  ],
+                child: LayoutBuilder(
+                  builder: (context, box) {
+                    final double previewSize =
+                        math.min(box.maxWidth, box.maxHeight).clamp(42.0, 76.0);
+                    Widget preview = UserAvatarWithFrame(
+                      avatarImage: avatarImage,
+                      frameId: frame.id,
+                      size: previewSize,
+                      placeholderIconSize:
+                          (previewSize * 0.4).clamp(18.0, 30.0),
+                    );
+                    if (locked) {
+                      preview = ColorFiltered(
+                        colorFilter: feenLockedGrayscaleFilter,
+                        child: Opacity(opacity: 0.45, child: preview),
+                      );
+                    }
+                    return Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        preview,
+                        if (locked)
+                          const Icon(
+                            Icons.lock_rounded,
+                            color: primaryGreen,
+                            size: 22,
+                          ),
+                      ],
+                    );
+                  },
                 ),
               ),
               const SizedBox(height: 4),
               Text(
                 frame.name,
                 maxLines: 2,
+                overflow: TextOverflow.ellipsis,
                 textAlign: TextAlign.center,
                 style: const TextStyle(
                   color: primaryGreen,
@@ -509,6 +546,8 @@ class _FrameTile extends StatelessWidget {
                 locked
                     ? 'Level ${frame.unlockLevel}'
                     : (selected ? 'Dipakai' : 'Pakai'),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
                 style: TextStyle(
                   color: locked
                       ? Colors.grey

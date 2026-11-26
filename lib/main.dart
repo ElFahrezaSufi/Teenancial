@@ -3,6 +3,7 @@ import 'package:cupertino_ui/cupertino_ui.dart'
     show GlobalCupertinoLocalizations;
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/scheduler.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart'
     show GlobalWidgetsLocalizations;
 import 'package:intl/date_symbol_data_local.dart';
@@ -26,9 +27,13 @@ import 'services/local_storage_service.dart';
 import 'services/notification_service.dart';
 import 'theme/app_colors.dart';
 import 'widgets/common/offline_banner.dart';
+import 'widgets/common/responsive_app_shell.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await SystemChrome.setPreferredOrientations(const [
+    DeviceOrientation.portraitUp,
+  ]);
   await initializeDateFormatting('id_ID', null);
   await LocalStorageService.instance.init();
   await NotificationService.instance.init();
@@ -219,7 +224,9 @@ class MyApp extends StatelessWidget {
       routerConfig: appRouter,
       builder: (context, child) {
         if (child == null) return const SizedBox.shrink();
-        return _GlobalOfflineBannerShell(child: child);
+        return ResponsiveAppShell(
+          child: _GlobalOfflineBannerShell(child: child),
+        );
       },
     );
   }

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
@@ -65,50 +66,72 @@ class _SplashScreenState extends State<SplashScreen> {
         fit: StackFit.expand,
         children: [
           SvgPicture.asset('assets/images/bg_curve.svg', fit: BoxFit.cover),
-          Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              AnimatedOpacity(
-                opacity: _showIcon ? 1.0 : 0.0,
-                duration: const Duration(milliseconds: 500),
-                curve: Curves.easeOut,
-                child: Image.asset(
-                  'assets/images/logo_teenancial.png',
-                  width: 200,
-                ),
-              ),
-              const SizedBox(height: 16),
-              AnimatedOpacity(
-                opacity: _showText ? 1.0 : 0.0,
-                duration: const Duration(milliseconds: 600),
-                curve: Curves.easeIn,
-                child: const Text.rich(
-                  TextSpan(
-                    children: [
-                      TextSpan(
-                        text: 'teen',
-                        style: TextStyle(
-                          color: Color(0xFF366030),
-                          fontSize: 36,
-                          fontFamily: 'Inter',
-                          fontWeight: FontWeight.w700,
+          SafeArea(
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final double logoWidth = math.min(
+                  200.0,
+                  math.min(
+                    constraints.maxWidth * 0.55,
+                    constraints.maxHeight * 0.42,
+                  ).clamp(110.0, 200.0),
+                );
+                return Center(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 24),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        AnimatedOpacity(
+                          opacity: _showIcon ? 1.0 : 0.0,
+                          duration: const Duration(milliseconds: 500),
+                          curve: Curves.easeOut,
+                          child: Image.asset(
+                            'assets/images/logo_teenancial.png',
+                            width: logoWidth,
+                          ),
                         ),
-                      ),
-                      TextSpan(
-                        text: 'ancial',
-                        style: TextStyle(
-                          color: Color(0xFFDAB62C),
-                          fontSize: 36,
-                          fontFamily: 'Inter',
-                          fontWeight: FontWeight.w700,
+                        const SizedBox(height: 16),
+                        AnimatedOpacity(
+                          opacity: _showText ? 1.0 : 0.0,
+                          duration: const Duration(milliseconds: 600),
+                          curve: Curves.easeIn,
+                          child: const FittedBox(
+                            fit: BoxFit.scaleDown,
+                            child: Text.rich(
+                              TextSpan(
+                                children: [
+                                  TextSpan(
+                                    text: 'teen',
+                                    style: TextStyle(
+                                      color: Color(0xFF366030),
+                                      fontSize: 36,
+                                      fontFamily: 'Inter',
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                  TextSpan(
+                                    text: 'ancial',
+                                    style: TextStyle(
+                                      color: Color(0xFFDAB62C),
+                                      fontSize: 36,
+                                      fontFamily: 'Inter',
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
-                  textAlign: TextAlign.center,
-                ),
-              ),
-            ],
+                );
+              },
+            ),
           ),
         ],
       ),

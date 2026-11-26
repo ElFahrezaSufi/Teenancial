@@ -591,20 +591,22 @@ class _LaporanScreenState extends State<LaporanScreen> {
                           ),
                         ),
                         const SizedBox(height: 2),
-                        Text(
-                          Formatters.rupiah(
-                            activeSlice != null
-                                ? activeSlice.amount
-                                : breakdown.totalAmount,
-                          ),
-                          textAlign: TextAlign.center,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            color: primaryGreen,
-                            fontSize: 12,
-                            fontFamily: 'Inter',
-                            fontWeight: FontWeight.w800,
+                        FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Text(
+                            Formatters.rupiah(
+                              activeSlice != null
+                                  ? activeSlice.amount
+                                  : breakdown.totalAmount,
+                            ),
+                            textAlign: TextAlign.center,
+                            maxLines: 1,
+                            style: const TextStyle(
+                              color: primaryGreen,
+                              fontSize: 12,
+                              fontFamily: 'Inter',
+                              fontWeight: FontWeight.w800,
+                            ),
                           ),
                         ),
                         if (activeSlice != null)

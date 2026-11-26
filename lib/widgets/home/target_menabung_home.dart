@@ -90,13 +90,20 @@ class TargetMenabungHome extends StatelessWidget {
                       ),
                     )
                   else
-                    Text(
-                      '${formatRupiah(currentTarget!.savedAmount)} / ${formatRupiah(currentTarget!.targetAmount)}',
-                      style: const TextStyle(
-                        color: primaryGreen,
-                        fontSize: 12,
-                        fontFamily: 'Inter',
-                        fontWeight: FontWeight.w600,
+                    Flexible(
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: Alignment.centerRight,
+                        child: Text(
+                          '${formatRupiah(currentTarget!.savedAmount)} / ${formatRupiah(currentTarget!.targetAmount)}',
+                          maxLines: 1,
+                          style: const TextStyle(
+                            color: primaryGreen,
+                            fontSize: 12,
+                            fontFamily: 'Inter',
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
                       ),
                     ),
                 ],
@@ -150,13 +157,20 @@ class TargetMenabungHome extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(width: 8),
-                    Text(
-                      plan.shortSuggestionText ?? plan.badgeText,
-                      style: TextStyle(
-                        color: planColor,
-                        fontSize: 11,
-                        fontFamily: 'Inter',
-                        fontWeight: FontWeight.w700,
+                    Flexible(
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: Alignment.centerRight,
+                        child: Text(
+                          plan.shortSuggestionText ?? plan.badgeText,
+                          maxLines: 1,
+                          style: TextStyle(
+                            color: planColor,
+                            fontSize: 11,
+                            fontFamily: 'Inter',
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
                       ),
                     ),
                   ],

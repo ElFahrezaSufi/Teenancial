@@ -126,31 +126,44 @@ class LoanCard extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 8),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Text(
-                    formatCurrency(
-                      hasPartialPayment ? remainingAmount : item.amount,
-                    ),
-                    style: const TextStyle(
-                      color: primaryGreen,
-                      fontSize: 14,
-                      fontFamily: 'Inter',
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                  if (hasPartialPayment)
-                    Text(
-                      'dari ${formatCurrency(item.amount)}',
-                      style: TextStyle(
-                        color: primaryGreen.withValues(alpha: 0.7),
-                        fontSize: 11,
-                        fontFamily: 'Inter',
-                        fontWeight: FontWeight.w600,
+              ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 140),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.centerRight,
+                      child: Text(
+                        formatCurrency(
+                          hasPartialPayment ? remainingAmount : item.amount,
+                        ),
+                        maxLines: 1,
+                        style: const TextStyle(
+                          color: primaryGreen,
+                          fontSize: 14,
+                          fontFamily: 'Inter',
+                          fontWeight: FontWeight.w800,
+                        ),
                       ),
                     ),
-                ],
+                    if (hasPartialPayment)
+                      FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: Alignment.centerRight,
+                        child: Text(
+                          'dari ${formatCurrency(item.amount)}',
+                          maxLines: 1,
+                          style: TextStyle(
+                            color: primaryGreen.withValues(alpha: 0.7),
+                            fontSize: 11,
+                            fontFamily: 'Inter',
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
               ),
               if (canShowMenu) ...[
                 const SizedBox(width: 2),

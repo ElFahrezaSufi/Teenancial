@@ -393,7 +393,10 @@ class _HomeScreenState extends State<HomeScreen> {
                         Image.asset(
                           'assets/images/stenga_lingkaran.png',
                           width: double.infinity,
-                          fit: BoxFit.fitWidth,
+                          height: constraints.maxWidth > 500 ? 280 : null,
+                          fit: constraints.maxWidth > 500
+                              ? BoxFit.fill
+                              : BoxFit.fitWidth,
                         ),
                         Padding(
                           padding: const EdgeInsets.symmetric(
@@ -429,37 +432,69 @@ class _HomeScreenState extends State<HomeScreen> {
                               const SizedBox(height: 32),
 
                               // Menu Action
-                              Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceBetween,
-                                children: [
-                                  ActionMenu(
-                                    assetPath: 'assets/images/pemasukan.svg',
-                                    label: 'Pemasukan',
-                                    onTap: () =>
-                                        context.push(AppRoutes.pemasukan),
-                                  ),
-                                  ActionMenu(
-                                    assetPath: 'assets/images/pengeluaran.svg',
-                                    label: 'Pengeluaran',
-                                    onTap: () =>
-                                        context.push(AppRoutes.pengeluaran),
-                                  ),
-                                  ActionMenu(
-                                    assetPath: 'assets/images/pinjaman.svg',
-                                    label: 'Pinjaman',
-                                    onTap: () =>
-                                        context.push(AppRoutes.pinjaman),
-                                  ),
-                                  ActionMenu(
-                                    assetPath: 'assets/images/transfer.png',
-                                    label: 'Transfer',
-                                    iconPadding:
-                                        const EdgeInsets.only(left: 4.0),
-                                    onTap: () =>
-                                        context.push(AppRoutes.transfer),
-                                  ),
-                                ],
+                              LayoutBuilder(
+                                builder: (context, menuConstraints) {
+                                  final double circleSize =
+                                      ((menuConstraints.maxWidth - 24) / 4)
+                                          .clamp(54.0, 72.0);
+                                  final double iconSize =
+                                      (circleSize * 0.5).clamp(27.0, 36.0);
+                                  return Row(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Expanded(
+                                        child: ActionMenu(
+                                          assetPath:
+                                              'assets/images/pemasukan.svg',
+                                          label: 'Pemasukan',
+                                          circleSize: circleSize,
+                                          iconSize: iconSize,
+                                          onTap: () => context
+                                              .push(AppRoutes.pemasukan),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 6),
+                                      Expanded(
+                                        child: ActionMenu(
+                                          assetPath:
+                                              'assets/images/pengeluaran.svg',
+                                          label: 'Pengeluaran',
+                                          circleSize: circleSize,
+                                          iconSize: iconSize,
+                                          onTap: () => context
+                                              .push(AppRoutes.pengeluaran),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 6),
+                                      Expanded(
+                                        child: ActionMenu(
+                                          assetPath:
+                                              'assets/images/pinjaman.svg',
+                                          label: 'Pinjaman',
+                                          circleSize: circleSize,
+                                          iconSize: iconSize,
+                                          onTap: () =>
+                                              context.push(AppRoutes.pinjaman),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 6),
+                                      Expanded(
+                                        child: ActionMenu(
+                                          assetPath:
+                                              'assets/images/transfer.png',
+                                          label: 'Transfer',
+                                          circleSize: circleSize,
+                                          iconSize: iconSize,
+                                          iconPadding:
+                                              const EdgeInsets.only(left: 4.0),
+                                          onTap: () =>
+                                              context.push(AppRoutes.transfer),
+                                        ),
+                                      ),
+                                    ],
+                                  );
+                                },
                               ),
                               const SizedBox(height: 24),
 

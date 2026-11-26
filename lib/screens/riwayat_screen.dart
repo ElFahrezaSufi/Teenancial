@@ -256,15 +256,20 @@ class _RiwayatScreenState extends State<RiwayatScreen> {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          const Text(
-                            'Tren Saldo',
-                            style: TextStyle(
-                              color: primaryGreen,
-                              fontSize: 14,
-                              fontFamily: 'Inter',
-                              fontWeight: FontWeight.w700,
+                          const Expanded(
+                            child: Text(
+                              'Tren Saldo',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                color: primaryGreen,
+                                fontSize: 14,
+                                fontFamily: 'Inter',
+                                fontWeight: FontWeight.w700,
+                              ),
                             ),
                           ),
+                          const SizedBox(width: 8),
                           GestureDetector(
                             onTap: () => context.push(AppRoutes.laporan),
                             child: const Row(
@@ -320,24 +325,42 @@ class _RiwayatScreenState extends State<RiwayatScreen> {
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                Text(
-                                  'Saldo: ${Formatters.rupiah(currentTotalSaldo)}',
-                                  style: const TextStyle(
-                                    color: primaryGreen,
-                                    fontSize: 12,
-                                    fontFamily: 'Inter',
-                                    fontWeight: FontWeight.w700,
+                                Expanded(
+                                  child: Align(
+                                    alignment: Alignment.centerLeft,
+                                    child: FittedBox(
+                                      fit: BoxFit.scaleDown,
+                                      alignment: Alignment.centerLeft,
+                                      child: Text(
+                                        'Saldo: ${Formatters.rupiah(currentTotalSaldo)}',
+                                        maxLines: 1,
+                                        style: const TextStyle(
+                                          color: primaryGreen,
+                                          fontSize: 12,
+                                          fontFamily: 'Inter',
+                                          fontWeight: FontWeight.w700,
+                                        ),
+                                      ),
+                                    ),
                                   ),
                                 ),
-                                Text(
-                                  netDeltaLabel,
-                                  style: TextStyle(
-                                    color: isNetPositive
-                                        ? primaryGreen
-                                        : Colors.redAccent,
-                                    fontSize: 12,
-                                    fontFamily: 'Inter',
-                                    fontWeight: FontWeight.w600,
+                                const SizedBox(width: 8),
+                                Flexible(
+                                  child: FittedBox(
+                                    fit: BoxFit.scaleDown,
+                                    alignment: Alignment.centerRight,
+                                    child: Text(
+                                      netDeltaLabel,
+                                      maxLines: 1,
+                                      style: TextStyle(
+                                        color: isNetPositive
+                                            ? primaryGreen
+                                            : Colors.redAccent,
+                                        fontSize: 12,
+                                        fontFamily: 'Inter',
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
                                   ),
                                 ),
                               ],

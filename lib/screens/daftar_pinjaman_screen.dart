@@ -233,6 +233,8 @@ class _DaftarPinjamanScreenState extends State<DaftarPinjamanScreen> {
           Expanded(
             child: Text(
               isDebt ? 'Total sisa hutang' : 'Total sisa piutang',
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
               style: const TextStyle(
                 color: primaryGreen,
                 fontSize: 12,
@@ -241,13 +243,21 @@ class _DaftarPinjamanScreenState extends State<DaftarPinjamanScreen> {
               ),
             ),
           ),
-          Text(
-            Formatters.rupiah(outstanding),
-            style: const TextStyle(
-              color: primaryGreen,
-              fontSize: 16,
-              fontFamily: 'Inter',
-              fontWeight: FontWeight.w800,
+          const SizedBox(width: 8),
+          Flexible(
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerRight,
+              child: Text(
+                Formatters.rupiah(outstanding),
+                maxLines: 1,
+                style: const TextStyle(
+                  color: primaryGreen,
+                  fontSize: 16,
+                  fontFamily: 'Inter',
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
             ),
           ),
         ],
