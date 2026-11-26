@@ -119,6 +119,11 @@ class TargetProvider extends ChangeNotifier {
       }
       _items = fetched;
       _errorMessage = null;
+      if (_missionProvider != null && fetched.isNotEmpty) {
+        unawaited(
+          _missionProvider!.syncOneTimeTargetsCount(fetched.length),
+        );
+      }
     } catch (e) {
       if (_uid != targetUid) return;
       _errorMessage = ErrorMapper.message(e);

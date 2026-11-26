@@ -29,28 +29,36 @@ class ProfileHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final activeProvider = _getAvatarProvider();
+    final hasFrame = frameId != null && frameId!.isNotEmpty;
 
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Padding(
-          padding: const EdgeInsets.only(left: 24),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('Halo $displayName !', style: AppTextStyles.headerName),
-              Text('level $level', style: AppTextStyles.headerLevel),
-            ],
+        Expanded(
+          child: Padding(
+            padding: const EdgeInsets.only(left: 24, right: 12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Halo $displayName !',
+                  style: AppTextStyles.headerName,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                Text('level $level', style: AppTextStyles.headerLevel),
+              ],
+            ),
           ),
         ),
         Padding(
-          padding: const EdgeInsets.only(right: 24),
+          padding: EdgeInsets.only(right: hasFrame ? 14 : 24),
           child: GestureDetector(
             onTap: onProfileTap,
             child: UserAvatarWithFrame(
               avatarImage: activeProvider,
               frameId: frameId,
-              size: 50,
+              size: hasFrame ? 68 : 50,
               placeholderIconSize: 30,
             ),
           ),

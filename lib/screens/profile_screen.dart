@@ -846,8 +846,10 @@ class _ProfileScreenState extends State<ProfileScreen>
                   UserAvatarWithFrame(
                     avatarImage: avatarImage,
                     frameId: userProvider.feenEquipped[FeenSlot.frame.name],
-                    size: 74,
-                    placeholderIconSize: 38,
+                    size: userProvider.feenEquipped[FeenSlot.frame.name] != null
+                        ? 86
+                        : 70,
+                    placeholderIconSize: 36,
                   ),
                   const SizedBox(width: 14),
                   Expanded(

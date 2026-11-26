@@ -11,20 +11,28 @@ enum FeenSlot {
 }
 
 enum FeenTier {
-  rookie('Rookie'),
-  saver('Saver'),
-  pro('Pro');
+  rookie('Rookie', 1),
+  saver('Saver', 15),
+  pro('Pro', 30);
 
   final String label;
-  const FeenTier(this.label);
+  final int minLevel;
+  const FeenTier(this.label, this.minLevel);
 }
 
 enum FeenPose { normal, saving, learning, levelup, alert }
 
 FeenTier tierForLevel(int level) {
-  if (level >= 30) return FeenTier.pro;
-  if (level >= 15) return FeenTier.saver;
+  if (level >= FeenTier.pro.minLevel) return FeenTier.pro;
+  if (level >= FeenTier.saver.minLevel) return FeenTier.saver;
   return FeenTier.rookie;
+}
+
+FeenTier? tierUnlockedAt(int level) {
+  for (final tier in FeenTier.values) {
+    if (tier.minLevel == level) return tier;
+  }
+  return null;
 }
 
 class FeenAccessory {

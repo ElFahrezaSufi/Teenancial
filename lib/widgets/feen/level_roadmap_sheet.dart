@@ -8,111 +8,28 @@ import '../common/user_avatar_with_frame.dart';
 import 'feen_avatar.dart';
 
 Future<void> showLevelRoadmapSheet(BuildContext context) {
-  final user = context.read<UserProvider>();
-  final currentLevel = user.level;
-  final currentXp = user.xpIntoLevel;
-  final nextXp = user.xpNeededForNext;
-  final profileImageUrl = user.profileImageUrl;
+  final user = Provider.of<UserProvider?>(context, listen: false);
+  final currentLevel = user?.level ?? 1;
+  final currentXp = user?.xpIntoLevel ?? 0;
+  final nextXp = user?.xpNeededForNext ?? 500;
+  final profileImageUrl = user?.profileImageUrl;
 
-  return Navigator.of(context).push<void>(
-    PageRouteBuilder<void>(
-      opaque: false,
-      barrierDismissible: true,
-      barrierColor: Colors.black54,
-      transitionDuration: const Duration(milliseconds: 260),
-      reverseTransitionDuration: const Duration(milliseconds: 220),
-      pageBuilder: (routeContext, animation, secondaryAnimation) {
-        return Localizations.override(
-          context: routeContext,
-          delegates: const [
-            DefaultMaterialLocalizations.delegate,
-            DefaultWidgetsLocalizations.delegate,
-          ],
-          child: Material(
-            type: MaterialType.transparency,
-            child: _LevelRoadmapModalWrapper(
-              currentLevel: currentLevel,
-              currentXp: currentXp,
-              nextXp: nextXp,
-              profileImageUrl: profileImageUrl,
-            ),
-          ),
-        );
-      },
-      transitionsBuilder: (context, animation, secondaryAnimation, child) {
-        final curved = CurvedAnimation(
-          parent: animation,
-          curve: Curves.easeOutCubic,
-          reverseCurve: Curves.easeInCubic,
-        );
-        return SlideTransition(
-          position: Tween<Offset>(
-            begin: const Offset(0, 1),
-            end: Offset.zero,
-          ).animate(curved),
-          child: child,
-        );
-      },
-    ),
+  return showModalBottomSheet<void>(
+    context: context,
+    isScrollControlled: true,
+    useRootNavigator: true,
+    backgroundColor: Colors.transparent,
+    barrierColor: Colors.black54,
+    builder: (sheetContext) {
+      return LevelRoadmapSheet(
+        currentLevel: currentLevel,
+        currentXp: currentXp,
+        nextXp: nextXp,
+        profileImageUrl: profileImageUrl,
+        onClose: () => Navigator.of(sheetContext).maybePop(),
+      );
+    },
   );
-}
-
-class _LevelRoadmapModalWrapper extends StatefulWidget {
-  final int currentLevel;
-  final int currentXp;
-  final int nextXp;
-  final String? profileImageUrl;
-
-  const _LevelRoadmapModalWrapper({
-    required this.currentLevel,
-    required this.currentXp,
-    required this.nextXp,
-    this.profileImageUrl,
-  });
-
-  @override
-  State<_LevelRoadmapModalWrapper> createState() =>
-      _LevelRoadmapModalWrapperState();
-}
-
-class _LevelRoadmapModalWrapperState extends State<_LevelRoadmapModalWrapper> {
-  bool _isClosing = false;
-
-  void _close() {
-    if (_isClosing || !mounted) return;
-    _isClosing = true;
-    Navigator.of(context).maybePop();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Stack(
-      children: [
-        Positioned.fill(
-          child: GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTap: _close,
-            child: const SizedBox.expand(),
-          ),
-        ),
-        NotificationListener<DraggableScrollableNotification>(
-          onNotification: (notification) {
-            if (notification.extent <= 0.32) {
-              _close();
-            }
-            return false;
-          },
-          child: LevelRoadmapSheet(
-            currentLevel: widget.currentLevel,
-            currentXp: widget.currentXp,
-            nextXp: widget.nextXp,
-            profileImageUrl: widget.profileImageUrl,
-            onClose: _close,
-          ),
-        ),
-      ],
-    );
-  }
 }
 
 class LevelRoadmapSheet extends StatelessWidget {
@@ -131,65 +48,51 @@ class LevelRoadmapSheet extends StatelessWidget {
     this.onClose,
   });
 
-  static const ColorFilter _grayscale = ColorFilter.matrix(<double>[
-    0.2126,
-    0.7152,
-    0.0722,
-    0,
-    0,
-    0.2126,
-    0.7152,
-    0.0722,
-    0,
-    0,
-    0.2126,
-    0.7152,
-    0.0722,
-    0,
-    0,
-    0,
-    0,
-    0,
-    1,
-    0,
-  ]);
-
   List<FeenAccessory> get _allItems => [
         for (final slot in FeenSlot.values) ...feenBySlot(slot),
       ];
 
-  List<int> _buildMilestoneLevels(List<FeenAccessory> items) {
-    final levels = <int>{1, 15, 30, currentLevel};
+  List<int> _buildMilestoneLevels(
+    List<FeenAccessory> items,
+    int effectiveLevel,
+  ) {
+    final levels = <int>{
+      for (final tier in FeenTier.values) tier.minLevel,
+      effectiveLevel,
+    };
     for (final item in items) {
       levels.add(item.unlockLevel);
     }
     return levels.toList()..sort();
   }
 
-  FeenTier? _tierUnlockedAt(int level) {
-    if (level == 1) return FeenTier.rookie;
-    if (level == 15) return FeenTier.saver;
-    if (level == 30) return FeenTier.pro;
-    return null;
-  }
-
   @override
   Widget build(BuildContext context) {
-    final xpProgress = nextXp > 0 ? (currentXp / nextXp).clamp(0.0, 1.0) : 0.0;
+    // Jika UserProvider tersedia di tree, ikuti pembaruan level/XP secara live.
+    final liveUser = Provider.of<UserProvider?>(context);
+    final int effectiveLevel = liveUser?.level ?? currentLevel;
+    final int effectiveXp = liveUser?.xpIntoLevel ?? currentXp;
+    final int effectiveNextXp = liveUser?.xpNeededForNext ?? nextXp;
+    final String? effectiveImageUrl =
+        liveUser?.profileImageUrl ?? profileImageUrl;
+
+    final xpProgress = effectiveNextXp > 0
+        ? (effectiveXp / effectiveNextXp).clamp(0.0, 1.0)
+        : 0.0;
 
     final ImageProvider? avatarImage =
-        (profileImageUrl != null && profileImageUrl!.isNotEmpty)
-            ? CachedNetworkImageProvider(profileImageUrl!)
+        (effectiveImageUrl != null && effectiveImageUrl.isNotEmpty)
+            ? CachedNetworkImageProvider(effectiveImageUrl)
             : null;
 
     final allItems = _allItems;
-    final milestones = _buildMilestoneLevels(allItems);
+    final milestones = _buildMilestoneLevels(allItems, effectiveLevel);
 
     return DraggableScrollableSheet(
       initialChildSize: 0.78,
-      minChildSize: 0.3,
+      minChildSize: 0.45,
       maxChildSize: 0.92,
-      expand: true,
+      expand: false,
       builder: (context, scrollController) {
         return Container(
           decoration: const BoxDecoration(
@@ -238,7 +141,7 @@ class LevelRoadmapSheet extends StatelessWidget {
                             borderRadius: BorderRadius.circular(100),
                           ),
                           child: Text(
-                            'Level $currentLevel',
+                            'Level $effectiveLevel',
                             style: const TextStyle(
                               color: Colors.white,
                               fontSize: 12,
@@ -289,7 +192,7 @@ class LevelRoadmapSheet extends StatelessWidget {
                         ),
                         const SizedBox(width: 10),
                         Text(
-                          '$currentXp / $nextXp XP',
+                          '$effectiveXp / $effectiveNextXp XP',
                           style: const TextStyle(
                             color: primaryGreen,
                             fontSize: 11.5,
@@ -315,12 +218,12 @@ class LevelRoadmapSheet extends StatelessWidget {
                   itemBuilder: (context, index) {
                     final lvl = milestones[index];
                     final isLast = index == milestones.length - 1;
-                    final isUnlocked = currentLevel >= lvl;
-                    final isCurrent = currentLevel == lvl;
+                    final isUnlocked = effectiveLevel >= lvl;
+                    final isCurrent = effectiveLevel == lvl;
 
                     final rewards =
                         allItems.where((a) => a.unlockLevel == lvl).toList();
-                    final evolvedTier = _tierUnlockedAt(lvl);
+                    final evolvedTier = tierUnlockedAt(lvl);
 
                     return Stack(
                       children: [
@@ -415,7 +318,6 @@ class LevelRoadmapSheet extends StatelessWidget {
                                         tier: evolvedTier,
                                         unlockLevel: lvl,
                                         isUnlocked: isUnlocked,
-                                        grayscale: _grayscale,
                                       ),
                                     ],
                                     for (final item in rewards) ...[
@@ -424,7 +326,6 @@ class LevelRoadmapSheet extends StatelessWidget {
                                         item: item,
                                         isUnlocked: isUnlocked,
                                         avatarImage: avatarImage,
-                                        grayscale: _grayscale,
                                       ),
                                     ],
                                     if (evolvedTier == null &&
@@ -538,13 +439,11 @@ class _EvolutionRewardRow extends StatelessWidget {
   final FeenTier tier;
   final int unlockLevel;
   final bool isUnlocked;
-  final ColorFilter grayscale;
 
   const _EvolutionRewardRow({
     required this.tier,
     required this.unlockLevel,
     required this.isUnlocked,
-    required this.grayscale,
   });
 
   @override
@@ -556,7 +455,7 @@ class _EvolutionRewardRow extends StatelessWidget {
     );
     if (!isUnlocked) {
       preview = ColorFiltered(
-        colorFilter: grayscale,
+        colorFilter: feenLockedGrayscaleFilter,
         child: Opacity(opacity: 0.5, child: preview),
       );
     }
@@ -610,13 +509,11 @@ class _ItemRewardRow extends StatelessWidget {
   final FeenAccessory item;
   final bool isUnlocked;
   final ImageProvider? avatarImage;
-  final ColorFilter grayscale;
 
   const _ItemRewardRow({
     required this.item,
     required this.isUnlocked,
     required this.avatarImage,
-    required this.grayscale,
   });
 
   @override
@@ -625,7 +522,7 @@ class _ItemRewardRow extends StatelessWidget {
         ? UserAvatarWithFrame(
             avatarImage: avatarImage,
             frameId: item.id,
-            size: 44,
+            size: 48,
             placeholderIconSize: 22,
           )
         : FeenAvatar(
@@ -636,7 +533,7 @@ class _ItemRewardRow extends StatelessWidget {
 
     if (!isUnlocked) {
       preview = ColorFiltered(
-        colorFilter: grayscale,
+        colorFilter: feenLockedGrayscaleFilter,
         child: Opacity(opacity: 0.5, child: preview),
       );
     }

@@ -36,7 +36,9 @@ class _MisiScreenState extends State<MisiScreen> {
   void initState() {
     super.initState();
     _clockTimer = Timer.periodic(const Duration(minutes: 1), (_) {
-      if (mounted) setState(() {});
+      if (!mounted) return;
+      unawaited(context.read<MissionProvider>().refreshPeriodicState());
+      setState(() {});
     });
   }
 
@@ -73,7 +75,7 @@ class _MisiScreenState extends State<MisiScreen> {
   String _headerSubtitleText(MissionProvider missionProvider) {
     final bonus = missionProvider.streakBonusPercent;
     if (bonus > 0) {
-      return 'Bonus streak +$bonus% XP aktif untuk setiap klaim!';
+      return 'Bonus streak +$bonus% XP aktif untuk misi rutin!';
     }
     if (missionProvider.claimableCount > 0) {
       return 'Ada ${missionProvider.claimableCount} hadiah XP siap diklaim!';
@@ -230,7 +232,9 @@ class _MisiScreenState extends State<MisiScreen> {
                               const SizedBox(width: 10),
                               Expanded(
                                 child: Text(
-                                  'Streak $brokenStreak harimu terputus. Selesaikan 1 misi harian hari ini untuk mulai membangun lagi.',
+                                  missionProvider.isStreakActiveToday
+                                      ? 'Streak $brokenStreak harimu sempat terputus. Bagus, kamu sudah mulai streak baru hari ini!'
+                                      : 'Streak $brokenStreak harimu terputus. Selesaikan 1 misi harian hari ini untuk mulai membangun lagi.',
                                   style: const TextStyle(
                                     color: darkGreen,
                                     fontSize: 11.5,
@@ -590,6 +594,7 @@ class _MisiScreenState extends State<MisiScreen> {
                             final status = missionProvider.statusOf(item);
                             final isClaiming =
                                 missionProvider.claimingId == item.id;
+                            final isBusy = missionProvider.claimingId != null;
                             final displayXp =
                                 missionProvider.effectiveXpReward(item);
 
@@ -599,6 +604,7 @@ class _MisiScreenState extends State<MisiScreen> {
                               progress: progress,
                               status: status,
                               isClaiming: isClaiming,
+                              isBusy: isBusy,
                               onClaim: () => _handleClaim(item),
                             );
                           },
@@ -694,6 +700,7 @@ class _MissionCard extends StatelessWidget {
   final int progress;
   final MissionClaimStatus status;
   final bool isClaiming;
+  final bool isBusy;
   final VoidCallback onClaim;
 
   const _MissionCard({
@@ -702,6 +709,7 @@ class _MissionCard extends StatelessWidget {
     required this.progress,
     required this.status,
     required this.isClaiming,
+    required this.isBusy,
     required this.onClaim,
   });
 
@@ -832,7 +840,7 @@ class _MissionCard extends StatelessWidget {
         );
       case MissionClaimStatus.claimable:
         return ElevatedButton(
-          onPressed: isClaiming ? null : onClaim,
+          onPressed: isBusy ? null : onClaim,
           style: ElevatedButton.styleFrom(
             backgroundColor: const Color(0xFFE5A93B),
             foregroundColor: darkGreen,

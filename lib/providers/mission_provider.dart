@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import '../data/mission_catalog.dart';
@@ -13,14 +14,17 @@ class MissionProvider extends ChangeNotifier {
   final Future<Map<String, dynamic>?> Function(String uid)? _loadDocOverride;
   final Future<void> Function(String uid, Map<String, dynamic> data)?
       _saveDocOverride;
+  final DateTime Function() _now;
 
   MissionProvider({
     FirebaseFirestore? firestore,
     Future<Map<String, dynamic>?> Function(String uid)? onLoad,
     Future<void> Function(String uid, Map<String, dynamic> data)? onSave,
+    DateTime Function()? clock,
   })  : _firestore = firestore,
         _loadDocOverride = onLoad,
-        _saveDocOverride = onSave;
+        _saveDocOverride = onSave,
+        _now = clock ?? DateTime.now;
 
   String? _uid;
   UserProvider? _userProvider;
@@ -33,6 +37,7 @@ class MissionProvider extends ChangeNotifier {
   DateTime? _monthlyAnchor;
   int? _verifiedModulesCount;
   int? _verifiedQuizzesCount;
+  int? _verifiedTargetsCount;
 
   int _streakCount = 0;
   DateTime? _lastStreakDate;
@@ -62,7 +67,11 @@ class MissionProvider extends ChangeNotifier {
     return 0;
   }
 
+  /// Menghitung XP efektif suatu misi. Bonus streak hanya berlaku untuk misi
+  /// periodik rutin (`Harian`, `Mingguan`, `Bulanan`), bukan misi `Sekali Saja`,
+  /// agar tidak memicu penimbunan klaim milestone.
   int effectiveXpReward(MissionItem mission) {
+    if (mission.period == MissionPeriod.oneTime) return mission.xpReward;
     final bonus = streakBonusPercent;
     if (bonus <= 0) return mission.xpReward;
     return (mission.xpReward * (100 + bonus) / 100).round();
@@ -86,6 +95,7 @@ class MissionProvider extends ChangeNotifier {
       _monthlyAnchor = null;
       _verifiedModulesCount = null;
       _verifiedQuizzesCount = null;
+      _verifiedTargetsCount = null;
       _streakCount = 0;
       _lastStreakDate = null;
       _brokenStreakCount = null;
@@ -119,12 +129,13 @@ class MissionProvider extends ChangeNotifier {
   }
 
   DateTime _todayMidnight([DateTime? ref]) {
-    final d = ref ?? DateTime.now();
+    final d = ref ?? _now();
     return DateTime(d.year, d.month, d.day);
   }
 
   String _formatDate(DateTime d) =>
       '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
+
   bool _refreshStreakState() {
     final today = _todayMidnight();
     bool changed = false;
@@ -157,6 +168,20 @@ class MissionProvider extends ChangeNotifier {
           changed = true;
         }
       }
+    }
+
+    // Simpan rekor streak tertinggi pada counter `oneTime:dailyStreak` agar
+    // misi `onetime_streak_3/7/14` terisi akurat dan tidak pernah turun saat
+    // streak harian terputus.
+    final streakKey = _counterKey(
+      MissionPeriod.oneTime,
+      MissionTrigger.dailyStreak,
+    );
+    final existingBest = _counters[streakKey] ?? 0;
+    final nextBest = math.max(existingBest, _streakCount);
+    if (nextBest != existingBest) {
+      _counters[streakKey] = nextBest;
+      changed = true;
     }
 
     return changed;
@@ -195,7 +220,7 @@ class MissionProvider extends ChangeNotifier {
 
   DateTime? nextResetAt(MissionPeriod period) {
     _ensureValidAnchors();
-    final now = DateTime.now();
+    final now = _now();
 
     switch (period) {
       case MissionPeriod.daily:
@@ -212,7 +237,7 @@ class MissionProvider extends ChangeNotifier {
 
   String _periodKey(MissionPeriod period) {
     _ensureValidAnchors();
-    final now = DateTime.now();
+    final now = _now();
 
     switch (period) {
       case MissionPeriod.daily:
@@ -302,14 +327,15 @@ class MissionProvider extends ChangeNotifier {
     }
 
     for (final mission in MissionCatalog.byPeriod(MissionPeriod.oneTime)) {
-      late final int validProgress;
+      final int validProgress;
       if (mission.trigger == MissionTrigger.completeModule) {
         validProgress = modulesCount;
       } else if (mission.trigger == MissionTrigger.passQuiz) {
         validProgress = quizzesCount;
       } else {
-        validProgress =
-            _counters[_counterKey(mission.period, mission.trigger)] ?? 0;
+        // Hanya verifikasi ulang misi belajar; jangan pernah mencabut klaim
+        // misi one-time lain (seperti streak atau pembuatan target).
+        continue;
       }
 
       if (validProgress < mission.targetCount &&
@@ -319,6 +345,19 @@ class MissionProvider extends ChangeNotifier {
     }
 
     return changed;
+  }
+
+  bool _applyOneTimeTargetsCount(int existingTargetsCount) {
+    if (existingTargetsCount <= 0) return false;
+    final targetKey = _counterKey(
+      MissionPeriod.oneTime,
+      MissionTrigger.createTarget,
+    );
+    final current = _counters[targetKey] ?? 0;
+    final next = math.max(current, existingTargetsCount);
+    if (next == current) return false;
+    _counters[targetKey] = next;
+    return true;
   }
 
   Future<void> syncOneTimeLearningProgress({
@@ -337,6 +376,30 @@ class MissionProvider extends ChangeNotifier {
     }
   }
 
+  /// Menyinkronkan jumlah target menabung yang sudah dimiliki pengguna agar
+  /// pengguna lama langsung memperoleh progres misi `onetime_create_target_1`.
+  Future<void> syncOneTimeTargetsCount(int existingTargetsCount) async {
+    _verifiedTargetsCount = existingTargetsCount;
+    if (_uid == null || _isLoading) return;
+    if (_applyOneTimeTargetsCount(existingTargetsCount)) {
+      notifyListeners();
+      await _persist();
+    }
+  }
+
+  /// Menyegarkan status reset harian/mingguan/bulanan serta streak saat jam
+  /// perangkat melewati tengah malam ketika halaman misi sedang terbuka.
+  Future<void> refreshPeriodicState() async {
+    if (_uid == null || _isLoading) return;
+    final anchorUpdated = _ensureValidAnchors();
+    final keysPruned = _pruneExpiredKeys();
+    final streakUpdated = _refreshStreakState();
+    if (anchorUpdated || keysPruned || streakUpdated) {
+      notifyListeners();
+      await _persist();
+    }
+  }
+
   int currentProgress(MissionItem mission) {
     int raw = _counters[_counterKey(mission.period, mission.trigger)] ?? 0;
     if (mission.period == MissionPeriod.oneTime) {
@@ -346,6 +409,10 @@ class MissionProvider extends ChangeNotifier {
       } else if (mission.trigger == MissionTrigger.passQuiz) {
         final effective = _effectiveCompletedQuizzesCount();
         if (effective != null) raw = effective;
+      } else if (mission.trigger == MissionTrigger.dailyStreak) {
+        raw = math.max(raw, _streakCount);
+      } else if (mission.trigger == MissionTrigger.createTarget) {
+        raw = math.max(raw, _verifiedTargetsCount ?? 0);
       }
     }
     return raw > mission.targetCount ? mission.targetCount : raw;
@@ -370,7 +437,6 @@ class MissionProvider extends ChangeNotifier {
   int get claimableTotalXp => MissionCatalog.all
       .where((m) => statusOf(m) == MissionClaimStatus.claimable)
       .fold(0, (total, m) => total + effectiveXpReward(m));
-
 
   Future<void> loadMissions() async {
     final targetUid = _uid;
@@ -425,8 +491,14 @@ class MissionProvider extends ChangeNotifier {
       final anchorUpdated = _ensureValidAnchors();
       final keysPruned = _pruneExpiredKeys();
       final profileSynced = _syncOneTimeFromProfile();
+      final targetsSynced = _verifiedTargetsCount != null &&
+          _applyOneTimeTargetsCount(_verifiedTargetsCount!);
       final streakUpdated = _refreshStreakState();
-      if (anchorUpdated || keysPruned || profileSynced || streakUpdated) {
+      if (anchorUpdated ||
+          keysPruned ||
+          profileSynced ||
+          targetsSynced ||
+          streakUpdated) {
         await _persist();
       }
       unawaited(
@@ -444,20 +516,24 @@ class MissionProvider extends ChangeNotifier {
     }
   }
 
+  Map<String, dynamic> _buildPayload() {
+    _ensureValidAnchors();
+    return <String, dynamic>{
+      'weeklyAnchor': _formatDate(_weeklyAnchor!),
+      'monthlyAnchor': _formatDate(_monthlyAnchor!),
+      'streakCount': _streakCount,
+      'lastStreakDate':
+          _lastStreakDate != null ? _formatDate(_lastStreakDate!) : null,
+      'counters': Map<String, int>.from(_counters),
+      'claimedKeys': _claimedKeys.toList(),
+    };
+  }
+
   Future<void> _persist({bool rethrowOnError = false}) async {
     final targetUid = _uid;
     if (targetUid == null) return;
-    _ensureValidAnchors();
     try {
-      final payload = <String, dynamic>{
-        'weeklyAnchor': _formatDate(_weeklyAnchor!),
-        'monthlyAnchor': _formatDate(_monthlyAnchor!),
-        'streakCount': _streakCount,
-        'lastStreakDate':
-            _lastStreakDate != null ? _formatDate(_lastStreakDate!) : null,
-        'counters': Map<String, int>.from(_counters),
-        'claimedKeys': _claimedKeys.toList(),
-      };
+      final payload = _buildPayload();
       if (_saveDocOverride != null) {
         await _saveDocOverride(targetUid, payload);
       } else {
@@ -472,6 +548,55 @@ class MissionProvider extends ChangeNotifier {
     } catch (e) {
       if (rethrowOnError) rethrow;
       debugPrint('Gagal menyimpan progres misi: $e');
+    }
+  }
+
+  /// Menyimpan `claimedKeys` sekaligus menambahkan XP ke `users/{uid}` secara
+  /// atomik menggunakan `WriteBatch` pada Firestore produksi agar tidak pernah
+  /// terjadi kondisi misi terklaim namun XP gagal bertambah.
+  Future<void> _commitClaimAtomically({
+    required String targetUid,
+    required List<String> addedClaimKeys,
+    required int totalXp,
+    required String actionLabel,
+  }) async {
+    if (_saveDocOverride == null) {
+      if (_firestore == null) {
+        FirestoreService.instance.ensureOnline(actionLabel: actionLabel);
+      }
+      final db = _firestore ?? FirebaseFirestore.instance;
+      final payload = _buildPayload()
+        ..['updatedAt'] = FieldValue.serverTimestamp();
+
+      final batch = db.batch();
+      batch.set(_docRef(targetUid), payload);
+      if (_userProvider != null && totalXp > 0) {
+        batch.set(
+          db.collection('users').doc(targetUid),
+          {'xp': FieldValue.increment(totalXp)},
+          SetOptions(merge: true),
+        );
+      }
+      await batch.commit();
+      if (totalXp > 0) {
+        _userProvider?.applyLocalXpGain(totalXp);
+      }
+      return;
+    }
+
+    // Jalur unit test (menggunakan `_saveDocOverride` + `_FakeUserRepository`)
+    await _persist(rethrowOnError: true);
+    if (_userProvider != null && totalXp > 0) {
+      final gained = await _userProvider!.addXp(totalXp);
+      if (gained == null) {
+        for (final k in addedClaimKeys) {
+          _claimedKeys.remove(k);
+        }
+        await _persist();
+        throw const OfflineException(
+          'Gagal mengklaim hadiah XP. Periksa koneksi internetmu lalu coba lagi.',
+        );
+      }
     }
   }
 
@@ -508,7 +633,8 @@ class MissionProvider extends ChangeNotifier {
   }
 
   Future<int> claimMission(MissionItem mission) async {
-    if (_uid == null || _claimingId != null) return 0;
+    final targetUid = _uid;
+    if (targetUid == null || _claimingId != null) return 0;
     if (statusOf(mission) != MissionClaimStatus.claimable) return 0;
 
     if (_saveDocOverride == null && _firestore == null) {
@@ -521,17 +647,15 @@ class MissionProvider extends ChangeNotifier {
     notifyListeners();
 
     final rewardXp = effectiveXpReward(mission);
+    final claimKey = _claimKey(mission);
     try {
-      _claimedKeys.add(_claimKey(mission));
-      await _persist(rethrowOnError: true);
-      if (_userProvider != null) {
-        final gained = await _userProvider!.addXp(rewardXp);
-        if (gained == null) {
-          throw const OfflineException(
-            'Gagal mengklaim hadiah XP. Periksa koneksi internetmu lalu coba lagi.',
-          );
-        }
-      }
+      _claimedKeys.add(claimKey);
+      await _commitClaimAtomically(
+        targetUid: targetUid,
+        addedClaimKeys: [claimKey],
+        totalXp: rewardXp,
+        actionLabel: 'mengklaim hadiah XP',
+      );
       unawaited(
         NotificationService.instance.syncDailyMissionReminder(
           hasCompletedAnyDailyToday: hasCompletedAnyDailyToday,
@@ -539,7 +663,7 @@ class MissionProvider extends ChangeNotifier {
       );
       return rewardXp;
     } catch (e) {
-      _claimedKeys.remove(_claimKey(mission));
+      _claimedKeys.remove(claimKey);
       rethrow;
     } finally {
       _claimingId = null;
@@ -548,7 +672,8 @@ class MissionProvider extends ChangeNotifier {
   }
 
   Future<int> claimAllMissions() async {
-    if (_uid == null || _claimingId != null) return 0;
+    final targetUid = _uid;
+    if (targetUid == null || _claimingId != null) return 0;
     final claimables = MissionCatalog.all
         .where((m) => statusOf(m) == MissionClaimStatus.claimable)
         .toList();
@@ -573,15 +698,12 @@ class MissionProvider extends ChangeNotifier {
     }
 
     try {
-      await _persist(rethrowOnError: true);
-      if (_userProvider != null) {
-        final gained = await _userProvider!.addXp(totalXp);
-        if (gained == null) {
-          throw const OfflineException(
-            'Gagal mengklaim hadiah XP. Periksa koneksi internetmu lalu coba lagi.',
-          );
-        }
-      }
+      await _commitClaimAtomically(
+        targetUid: targetUid,
+        addedClaimKeys: addedKeys,
+        totalXp: totalXp,
+        actionLabel: 'mengklaim semua hadiah XP',
+      );
       unawaited(
         NotificationService.instance.syncDailyMissionReminder(
           hasCompletedAnyDailyToday: hasCompletedAnyDailyToday,
@@ -598,5 +720,4 @@ class MissionProvider extends ChangeNotifier {
       notifyListeners();
     }
   }
-
 }

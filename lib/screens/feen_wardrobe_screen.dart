@@ -24,6 +24,8 @@ class FeenWardrobeScreen extends StatelessWidget {
     final user = context.watch<UserProvider>();
     final level = user.level;
     final equipped = user.feenEquipped;
+    final bool hasEquippedAccessories =
+        equipped.keys.any((key) => key != FeenSlot.frame.name);
     final tier = tierForLevel(level);
     final remoteImageUrl = user.profileImageUrl;
     final ImageProvider? avatarImage =
@@ -95,14 +97,15 @@ class FeenWardrobeScreen extends StatelessWidget {
                         ),
                         const SizedBox(height: 6),
                         TextButton(
-                          onPressed: equipped.isEmpty
+                          onPressed: !hasEquippedAccessories
                               ? null
                               : () => _handleUnequipAll(context),
                           child: Text(
                             'Lepas semua aksesoris',
                             style: TextStyle(
-                              color:
-                                  equipped.isEmpty ? Colors.grey : orangeText,
+                              color: !hasEquippedAccessories
+                                  ? Colors.grey
+                                  : orangeText,
                               fontFamily: 'Inter',
                               fontWeight: FontWeight.w700,
                               fontSize: 13,
@@ -240,17 +243,12 @@ class _FeenEvolutionStagesRow extends StatelessWidget {
     required this.currentTier,
   });
 
-  static const List<({FeenTier tier, int minLevel})> _stages = [
-    (tier: FeenTier.rookie, minLevel: 1),
-    (tier: FeenTier.saver, minLevel: 6),
-    (tier: FeenTier.pro, minLevel: 11),
-  ];
-
   @override
   Widget build(BuildContext context) {
+    const stages = FeenTier.values;
     return Row(
       children: [
-        for (int i = 0; i < _stages.length; i++) ...[
+        for (int i = 0; i < stages.length; i++) ...[
           if (i > 0)
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 4),
@@ -263,8 +261,8 @@ class _FeenEvolutionStagesRow extends StatelessWidget {
           Expanded(
             child: Builder(
               builder: (context) {
-                final stage = _stages[i];
-                final isCurrent = currentTier == stage.tier;
+                final stage = stages[i];
+                final isCurrent = currentTier == stage;
                 final isUnlocked = currentLevel >= stage.minLevel;
 
                 return Container(
@@ -307,7 +305,7 @@ class _FeenEvolutionStagesRow extends StatelessWidget {
                           ),
                           const SizedBox(width: 4),
                           Text(
-                            '${stage.tier.label} (Lv.${stage.minLevel})',
+                            '${stage.label} (Lv.${stage.minLevel})',
                             style: TextStyle(
                               color: isCurrent
                                   ? Colors.white
@@ -349,29 +347,6 @@ class _AccessoryTile extends StatelessWidget {
     required this.onTap,
   });
 
-  static const ColorFilter _grayscale = ColorFilter.matrix(<double>[
-    0.2126,
-    0.7152,
-    0.0722,
-    0,
-    0,
-    0.2126,
-    0.7152,
-    0.0722,
-    0,
-    0,
-    0.2126,
-    0.7152,
-    0.0722,
-    0,
-    0,
-    0,
-    0,
-    0,
-    1,
-    0,
-  ]);
-
   @override
   Widget build(BuildContext context) {
     Widget preview = FeenAvatar(
@@ -381,7 +356,7 @@ class _AccessoryTile extends StatelessWidget {
     );
     if (locked) {
       preview = ColorFiltered(
-        colorFilter: _grayscale,
+        colorFilter: feenLockedGrayscaleFilter,
         child: Opacity(opacity: 0.45, child: preview),
       );
     }
@@ -472,12 +447,12 @@ class _FrameTile extends StatelessWidget {
     Widget preview = UserAvatarWithFrame(
       avatarImage: avatarImage,
       frameId: frame.id,
-      size: 70,
-      placeholderIconSize: 32,
+      size: 76,
+      placeholderIconSize: 30,
     );
     if (locked) {
       preview = ColorFiltered(
-        colorFilter: _AccessoryTile._grayscale,
+        colorFilter: feenLockedGrayscaleFilter,
         child: Opacity(opacity: 0.45, child: preview),
       );
     }

@@ -38,6 +38,18 @@ class UserProvider extends ChangeNotifier {
   int get xpIntoLevel => XpHelper.xpIntoLevel(xp);
   int get xpNeededForNext => XpHelper.xpNeededForNext(level);
   Map<String, String> get feenEquipped => _profile?.feenEquipped ?? const {};
+  /// Memperbarui XP profil di memori lokal setelah transaksi atomik
+  /// (mis. klaim misi via WriteBatch) berhasil ditulis ke Firestore.
+  XpGainResult? applyLocalXpGain(int amount) {
+    final current = _profile;
+    if (current == null || amount <= 0) return null;
+    final oldLevel = XpHelper.levelFromXp(current.xp);
+    final newLevel = XpHelper.levelFromXp(current.xp + amount);
+    _profile = current.copyWith(xp: current.xp + amount);
+    notifyListeners();
+    return XpGainResult(oldLevel: oldLevel, newLevel: newLevel);
+  }
+
   Future<XpGainResult?> addXp(int amount) async {
     final uid = _uid;
     final current = _profile;
@@ -84,11 +96,22 @@ class UserProvider extends ChangeNotifier {
     await _saveEquipped(uid, current, next);
   }
 
-  Future<void> unequipAllFeen() async {
+  /// Melepas semua aksesoris maskot Feen (kepala, wajah, leher).
+  /// Secara default [includeFrame] bernilai `false` agar bingkai profil tetap
+  /// terpasang dan tidak ikut terlepas tanpa disengaja.
+  Future<void> unequipAllFeen({bool includeFrame = false}) async {
     final uid = _uid;
     final current = _profile;
     if (uid == null || current == null || current.feenEquipped.isEmpty) return;
-    await _saveEquipped(uid, current, const {});
+
+    final next = includeFrame
+        ? const <String, String>{}
+        : <String, String>{
+            if (current.feenEquipped.containsKey(FeenSlot.frame.name))
+              FeenSlot.frame.name: current.feenEquipped[FeenSlot.frame.name]!,
+          };
+    if (mapEquals(current.feenEquipped, next)) return;
+    await _saveEquipped(uid, current, next);
   }
 
   Future<void> _saveEquipped(
