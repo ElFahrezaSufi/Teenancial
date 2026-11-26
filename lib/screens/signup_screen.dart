@@ -3,14 +3,12 @@ import 'package:material_ui/material_ui.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../config/app_routes.dart';
-import '../models/user_model.dart';
 import '../providers/auth_provider.dart';
 import '../routes/app_router.dart';
 import '../services/local_storage_service.dart';
 import '../theme/app_colors.dart';
 import '../utils/error_mapper.dart';
 import '../widgets/common/auth_scaffold.dart';
-import '../widgets/common/custom_dropdown_field.dart';
 import '../widgets/common/custom_text_field.dart';
 
 class SignUpScreen extends StatefulWidget {
@@ -23,13 +21,10 @@ class SignUpScreen extends StatefulWidget {
 class _SignUpScreenState extends State<SignUpScreen> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
-  final _ageController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
 
-  String? _selectedGender;
-  DateTime? _selectedBirthDate;
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
   bool _isLoading = false;
@@ -51,39 +46,10 @@ class _SignUpScreenState extends State<SignUpScreen> {
   @override
   void dispose() {
     _nameController.dispose();
-    _ageController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
     super.dispose();
-  }
-
-  Future<void> _pickBirthDate() async {
-    final now = DateTime.now();
-    final defaultDate = DateTime(now.year - 17, now.month, now.day);
-    final firstDate = DateTime(now.year - 100, 1, 1);
-    final lastDate = DateTime(now.year - 10, now.month, now.day);
-
-    final initialDate = _selectedBirthDate != null &&
-            !_selectedBirthDate!.isBefore(firstDate) &&
-            !_selectedBirthDate!.isAfter(lastDate)
-        ? _selectedBirthDate!
-        : defaultDate;
-
-    final picked = await showDatePicker(
-      context: context,
-      initialDate: initialDate,
-      firstDate: firstDate,
-      lastDate: lastDate,
-      helpText: 'Pilih Tanggal Lahir',
-    );
-    if (picked == null || !mounted) return;
-
-    final calculatedAge = UserModel.calculateAge(picked);
-    setState(() {
-      _selectedBirthDate = picked;
-      _ageController.text = calculatedAge.toString();
-    });
   }
 
   Future<void> _handleSignUp() async {
@@ -91,20 +57,10 @@ class _SignUpScreenState extends State<SignUpScreen> {
       setState(() => _isLoading = true);
 
       try {
-        final trimmedAge = _ageController.text.trim();
-        final effectiveBirthDate = (_selectedBirthDate != null &&
-                UserModel.calculateAge(_selectedBirthDate!).toString() ==
-                    trimmedAge)
-            ? _selectedBirthDate
-            : null;
-
         await context.read<AuthProvider>().register(
               email: _emailController.text.trim(),
               password: _passwordController.text,
               name: _nameController.text.trim(),
-              age: trimmedAge,
-              birthDate: effectiveBirthDate,
-              gender: _selectedGender ?? '',
             );
         await LocalStorageService.instance.setHasSeenGetStarted(true);
 
@@ -183,58 +139,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
           controller: _nameController,
           validator: (value) =>
               value == null || value.trim().isEmpty ? 'Nama wajib diisi' : null,
-        ),
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(
-              flex: 1,
-              child: CustomTextField(
-                label: 'Umur',
-                hint: '15',
-                prefixIcon: IconButton(
-                  tooltip: 'Pilih Tanggal Lahir',
-                  onPressed: _pickBirthDate,
-                  icon: const Icon(
-                    Icons.cake_outlined,
-                    color: primaryGreen,
-                  ),
-                ),
-                keyboardType: TextInputType.number,
-                controller: _ageController,
-                validator: (value) {
-                  if (value == null || value.trim().isEmpty) {
-                    return 'Isi umur';
-                  }
-                  final age = int.tryParse(value.trim());
-                  if (age == null) {
-                    return 'Harus angka';
-                  }
-                  if (age < 10 || age > 100) {
-                    return '10 - 100 thn';
-                  }
-                  return null;
-                },
-              ),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              flex: 2,
-              child: CustomDropdownField(
-                label: 'Jenis Kelamin',
-                hint: 'Pilih Gender',
-                value: _selectedGender,
-                items: const ['Laki-Laki', 'Perempuan'],
-                onChanged: (value) {
-                  setState(() {
-                    _selectedGender = value;
-                  });
-                },
-                validator: (value) =>
-                    value == null || value.isEmpty ? 'Pilih kelamin' : null,
-              ),
-            ),
-          ],
         ),
         CustomTextField(
           label: 'Email',

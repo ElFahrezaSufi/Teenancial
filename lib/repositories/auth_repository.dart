@@ -86,9 +86,9 @@ class AuthRepository {
     required String email,
     required String password,
     required String name,
-    required String age,
+    String age = '',
     DateTime? birthDate,
-    required String gender,
+    String gender = '',
   }) async {
     final credential = await _auth.createUserWithEmailAndPassword(
       email: email.trim(),

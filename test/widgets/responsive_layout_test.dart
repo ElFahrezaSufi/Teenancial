@@ -8,6 +8,7 @@ import 'package:teenancial/providers/user_provider.dart';
 import 'package:teenancial/repositories/user_repository.dart';
 import 'package:teenancial/screens/feen_wardrobe_screen.dart';
 import 'package:teenancial/screens/get_started.dart';
+import 'package:teenancial/screens/signup_screen.dart';
 import 'package:teenancial/utils/currency_formatter.dart';
 import 'package:teenancial/utils/xp_helper.dart';
 import 'package:teenancial/widgets/common/custom_bottom_navbar.dart';
@@ -361,6 +362,34 @@ void main() {
         final tabletDelegate =
             tabletGrid.gridDelegate as SliverGridDelegateWithFixedCrossAxisCount;
         expect(tabletDelegate.crossAxisCount, 4);
+      },
+    );
+
+    testWidgets(
+      'SignUpScreen hanya menampilkan Nama, Email, dan Password tanpa Umur/Jenis Kelamin serta bebas overflow di 320x640 font 1.25x',
+      (WidgetTester tester) async {
+        _setViewport(tester, const Size(320, 640));
+
+        await tester.pumpWidget(
+          const MaterialApp(
+            home: MediaQuery(
+              data: MediaQueryData(
+                size: Size(320, 640),
+                textScaler: TextScaler.linear(1.25),
+              ),
+              child: SignUpScreen(),
+            ),
+          ),
+        );
+        await tester.pump();
+
+        expect(tester.takeException(), isNull);
+        expect(find.text('Nama Lengkap'), findsOneWidget);
+        expect(find.text('Email'), findsOneWidget);
+        expect(find.text('Password'), findsOneWidget);
+        expect(find.text('Konfirmasi Password'), findsOneWidget);
+        expect(find.text('Umur'), findsNothing);
+        expect(find.text('Jenis Kelamin'), findsNothing);
       },
     );
   });
