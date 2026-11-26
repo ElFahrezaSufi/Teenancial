@@ -24,6 +24,7 @@ import '../services/local_storage_service.dart';
 import '../theme/app_colors.dart';
 import '../utils/currency_formatter.dart';
 import '../widgets/common/custom_card.dart';
+import '../widgets/common/skeleton.dart';
 import '../widgets/feen/feen_fab.dart';
 import '../widgets/home/action_menu.dart';
 import '../widgets/home/belajar_card.dart';
@@ -358,6 +359,10 @@ class _HomeScreenState extends State<HomeScreen> {
         totalSaldoReal + (totalSaldoReal * 0.02);
 
     final TargetItem? currentTarget = targetProvider.pinnedItem;
+    final bool isProfileInitialLoading =
+        userProvider.isLoading && userProvider.profile == null;
+    final bool isSaldoInitialLoading =
+        dompetProvider.isLoading && dompetProvider.items.isEmpty;
 
     return Scaffold(
       backgroundColor: Colors.transparent,
@@ -407,28 +412,82 @@ class _HomeScreenState extends State<HomeScreen> {
                             crossAxisAlignment: CrossAxisAlignment.stretch,
                             children: [
                               SizedBox(height: topPadding + 20),
-                              ProfileHeader(
-                                displayName: userProvider.displayName,
-                                level: level,
-                                imageUrl: userProvider.profileImageUrl,
-                                frameId: userProvider
-                                    .feenEquipped[FeenSlot.frame.name],
-                                onProfileTap: () =>
-                                    context.go(AppRoutes.profile),
-                              ),
+                              if (isProfileInitialLoading)
+                                const Padding(
+                                  padding: EdgeInsets.symmetric(vertical: 6),
+                                  child: Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Skeleton(width: 140, height: 18),
+                                          SizedBox(height: 8),
+                                          Skeleton(width: 90, height: 13),
+                                        ],
+                                      ),
+                                      Skeleton(
+                                        width: 50,
+                                        height: 50,
+                                        radius: 100,
+                                      ),
+                                    ],
+                                  ),
+                                )
+                              else
+                                ProfileHeader(
+                                  displayName: userProvider.displayName,
+                                  level: level,
+                                  imageUrl: userProvider.profileImageUrl,
+                                  frameId: userProvider
+                                      .feenEquipped[FeenSlot.frame.name],
+                                  onProfileTap: () =>
+                                      context.go(AppRoutes.profile),
+                                ),
                               const SizedBox(height: 16),
 
                               // Total Saldo Card
-                              TotalSaldoCard(
-                                totalSaldoReal: totalSaldoReal,
-                                perkiraanMingguanReal: perkiraanMingguanReal,
-                                xpProgress: xpProgress,
-                                currentXP: currentXP,
-                                maxXP: maxXP,
-                                level: level,
-                                formatRupiah: Formatters.rupiah,
-                                onTap: () {},
-                              ),
+                              if (isSaldoInitialLoading)
+                                const CustomCard(
+                                  backgroundColor: cardBg,
+                                  borderRadius: 24,
+                                  padding: EdgeInsets.all(20),
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Skeleton(width: 96, height: 14),
+                                      SizedBox(height: 10),
+                                      Skeleton(width: 190, height: 32),
+                                      SizedBox(height: 18),
+                                      Skeleton(
+                                        width: double.infinity,
+                                        height: 8,
+                                      ),
+                                      SizedBox(height: 10),
+                                      Skeleton(width: 150, height: 12),
+                                      SizedBox(height: 16),
+                                      Skeleton(
+                                        width: double.infinity,
+                                        height: 36,
+                                        radius: 12,
+                                      ),
+                                    ],
+                                  ),
+                                )
+                              else
+                                TotalSaldoCard(
+                                  totalSaldoReal: totalSaldoReal,
+                                  perkiraanMingguanReal: perkiraanMingguanReal,
+                                  xpProgress: xpProgress,
+                                  currentXP: currentXP,
+                                  maxXP: maxXP,
+                                  level: level,
+                                  formatRupiah: Formatters.rupiah,
+                                  onTap: () {},
+                                ),
                               const SizedBox(height: 32),
 
                               // Menu Action

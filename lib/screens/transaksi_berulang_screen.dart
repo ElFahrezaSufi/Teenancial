@@ -16,6 +16,7 @@ import '../utils/error_mapper.dart';
 import '../widgets/common/async_state_view.dart';
 import '../widgets/common/custom_app_bar.dart';
 import '../widgets/common/custom_card.dart';
+import '../widgets/common/loading_overlay.dart';
 import '../widgets/common/primary_button.dart';
 import 'buat_berulang_screen.dart';
 
@@ -34,6 +35,8 @@ class TransaksiBerulangScreen extends StatefulWidget {
 
 class _TransaksiBerulangScreenState extends State<TransaksiBerulangScreen> {
   TransactionType? _selectedFilterType;
+  bool _isProcessing = false;
+  String _processingLabel = 'Memproses...';
 
   bool get _isLockedToType => widget.initialType != null;
 
@@ -138,8 +141,12 @@ class _TransaksiBerulangScreenState extends State<TransaksiBerulangScreen> {
       ),
     );
 
-    if (confirmed != true || !mounted) return;
+    if (confirmed != true || !mounted || _isProcessing) return;
 
+    setState(() {
+      _isProcessing = true;
+      _processingLabel = 'Menghapus jadwal...';
+    });
     try {
       await context.read<RecurringProvider>().deleteRecurring(item.id);
       if (mounted) {
@@ -159,10 +166,19 @@ class _TransaksiBerulangScreenState extends State<TransaksiBerulangScreen> {
           ),
         );
       }
+    } finally {
+      if (mounted) setState(() => _isProcessing = false);
     }
   }
 
   Future<void> _toggleActive(RecurringModel item) async {
+    if (_isProcessing) return;
+    setState(() {
+      _isProcessing = true;
+      _processingLabel = !item.isActive
+          ? 'Mengaktifkan jadwal...'
+          : 'Menjeda jadwal...';
+    });
     try {
       await context
           .read<RecurringProvider>()
@@ -188,6 +204,8 @@ class _TransaksiBerulangScreenState extends State<TransaksiBerulangScreen> {
           ),
         );
       }
+    } finally {
+      if (mounted) setState(() => _isProcessing = false);
     }
   }
 
@@ -242,8 +260,11 @@ class _TransaksiBerulangScreenState extends State<TransaksiBerulangScreen> {
         ? '${_typeLabel(widget.initialType!)} Berulang'
         : 'Transaksi Berulang';
 
-    return Scaffold(
-      backgroundColor: scaffoldBg,
+    return LoadingOverlay(
+      isLoading: _isProcessing,
+      message: _processingLabel,
+      child: Scaffold(
+        backgroundColor: scaffoldBg,
       appBar: CustomAppBar(
         title: appBarTitle,
         backIcon: Icons.arrow_back_ios_new,
@@ -411,6 +432,7 @@ class _TransaksiBerulangScreenState extends State<TransaksiBerulangScreen> {
             ),
           ),
         ],
+      ),
       ),
     );
   }

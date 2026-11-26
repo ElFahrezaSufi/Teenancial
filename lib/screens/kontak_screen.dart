@@ -15,6 +15,7 @@ import '../utils/loan_helper.dart';
 import '../widgets/common/async_state_view.dart';
 import '../widgets/common/custom_app_bar.dart';
 import '../widgets/common/custom_card.dart';
+import '../widgets/common/loading_overlay.dart';
 import '../widgets/common/custom_text_field.dart';
 import '../widgets/common/primary_button.dart';
 import '../widgets/common/skeleton.dart';
@@ -89,13 +90,19 @@ class KontakScreen extends StatefulWidget {
     );
 
     try {
-      await contactProvider.deleteContact(contact.id);
-      if (txProvider != null) {
-        await txProvider.loadTransactions(silent: true);
-      }
-      if (recProvider != null) {
-        await recProvider.loadRecurring(silent: true);
-      }
+      await runWithLoadingDialog(
+        context,
+        message: 'Menghapus kontak...',
+        action: () async {
+          await contactProvider.deleteContact(contact.id);
+          if (txProvider != null) {
+            await txProvider.loadTransactions(silent: true);
+          }
+          if (recProvider != null) {
+            await recProvider.loadRecurring(silent: true);
+          }
+        },
+      );
       if (context.mounted) {
         ScaffoldMessenger.of(context)
           ..hideCurrentSnackBar()

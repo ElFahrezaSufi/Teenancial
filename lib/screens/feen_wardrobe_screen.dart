@@ -12,13 +12,21 @@ import '../widgets/common/custom_card.dart';
 import '../widgets/common/user_avatar_with_frame.dart';
 import '../widgets/feen/feen_avatar.dart';
 
-class FeenWardrobeScreen extends StatelessWidget {
+class FeenWardrobeScreen extends StatefulWidget {
   const FeenWardrobeScreen({super.key});
   static const List<FeenSlot> _slotOrder = [
     FeenSlot.head,
     FeenSlot.face,
     FeenSlot.neck,
   ];
+
+  @override
+  State<FeenWardrobeScreen> createState() => _FeenWardrobeScreenState();
+}
+
+class _FeenWardrobeScreenState extends State<FeenWardrobeScreen> {
+  bool _isUpdating = false;
+  bool _isUnequippingAll = false;
 
   @override
   Widget build(BuildContext context) {
@@ -98,26 +106,36 @@ class FeenWardrobeScreen extends StatelessWidget {
                         ),
                         const SizedBox(height: 6),
                         TextButton(
-                          onPressed: !hasEquippedAccessories
+                          onPressed: (!hasEquippedAccessories || _isUpdating)
                               ? null
                               : () => _handleUnequipAll(context),
-                          child: Text(
-                            'Lepas semua aksesoris',
-                            style: TextStyle(
-                              color: !hasEquippedAccessories
-                                  ? Colors.grey
-                                  : orangeText,
-                              fontFamily: 'Inter',
-                              fontWeight: FontWeight.w700,
-                              fontSize: 13,
-                            ),
-                          ),
+                          child: _isUnequippingAll
+                              ? const SizedBox(
+                                  width: 16,
+                                  height: 16,
+                                  child: CircularProgressIndicator(
+                                    color: orangeText,
+                                    strokeWidth: 2,
+                                  ),
+                                )
+                              : Text(
+                                  'Lepas semua aksesoris',
+                                  style: TextStyle(
+                                    color: (!hasEquippedAccessories ||
+                                            _isUpdating)
+                                        ? Colors.grey
+                                        : orangeText,
+                                    fontFamily: 'Inter',
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 13,
+                                  ),
+                                ),
                         ),
                       ],
                     ),
                   ),
                   const SizedBox(height: 24),
-                  for (final slot in _slotOrder) ...[
+                  for (final slot in FeenWardrobeScreen._slotOrder) ...[
                     Text(slot.label, style: AppTextStyles.sectionTitle),
                     const SizedBox(height: 10),
                     LayoutBuilder(
@@ -199,6 +217,11 @@ class FeenWardrobeScreen extends StatelessWidget {
   }
 
   Future<void> _handleUnequipAll(BuildContext context) async {
+    if (_isUpdating) return;
+    setState(() {
+      _isUpdating = true;
+      _isUnequippingAll = true;
+    });
     try {
       await context.read<UserProvider>().unequipAllFeen();
     } catch (e) {
@@ -212,6 +235,13 @@ class FeenWardrobeScreen extends StatelessWidget {
             ),
           );
       }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isUpdating = false;
+          _isUnequippingAll = false;
+        });
+      }
     }
   }
 
@@ -221,6 +251,7 @@ class FeenWardrobeScreen extends StatelessWidget {
     required int level,
     required bool selected,
   }) async {
+    if (_isUpdating) return;
     if (level < accessory.unlockLevel) {
       ScaffoldMessenger.of(context)
         ..hideCurrentSnackBar()
@@ -234,6 +265,7 @@ class FeenWardrobeScreen extends StatelessWidget {
         );
       return;
     }
+    setState(() => _isUpdating = true);
     try {
       await context
           .read<UserProvider>()
@@ -249,6 +281,8 @@ class FeenWardrobeScreen extends StatelessWidget {
             ),
           );
       }
+    } finally {
+      if (mounted) setState(() => _isUpdating = false);
     }
   }
 }

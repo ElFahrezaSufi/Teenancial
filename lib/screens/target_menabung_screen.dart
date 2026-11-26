@@ -20,6 +20,7 @@ import '../utils/saving_planner.dart';
 import '../widgets/common/async_state_view.dart';
 import '../widgets/common/custom_app_bar.dart';
 import '../widgets/common/custom_card.dart';
+import '../widgets/common/loading_overlay.dart';
 import '../widgets/common/target_image.dart';
 import '../widgets/feen/feen_avatar.dart';
 
@@ -533,9 +534,13 @@ class TargetMenabungScreen extends StatelessWidget {
                         if (confirm && context.mounted) {
                           final targetProvider = context.read<TargetProvider>();
                           try {
-                            await targetProvider.deleteTarget(
-                              item.id,
-                              walletBackedAmount: withdrawableAmount,
+                            await runWithLoadingDialog(
+                              context,
+                              message: 'Menghapus target...',
+                              action: () => targetProvider.deleteTarget(
+                                item.id,
+                                walletBackedAmount: withdrawableAmount,
+                              ),
                             );
                           } catch (e) {
                             if (context.mounted) {
@@ -603,7 +608,11 @@ class TargetMenabungScreen extends StatelessWidget {
                       : () async {
                           final targetProvider = context.read<TargetProvider>();
                           try {
-                            await targetProvider.togglePin(item);
+                            await runWithLoadingDialog(
+                              context,
+                              message: 'Menyematkan target...',
+                              action: () => targetProvider.togglePin(item),
+                            );
                           } catch (e) {
                             if (context.mounted) {
                               ScaffoldMessenger.of(context).showSnackBar(
@@ -1036,16 +1045,22 @@ class TargetMenabungScreen extends StatelessWidget {
     final double delta = isDeposit ? result.amount : -result.amount;
 
     try {
-      await targetProvider.allocateTargetFunds(
-        targetId: item.id,
-        amountDelta: delta,
-        walletId: result.wallet.id,
-        maxWithdrawable: isDeposit ? null : withdrawableAmount,
+      await runWithLoadingDialog(
+        context,
+        message: isDeposit ? 'Menyimpan tabungan...' : 'Menarik dana target...',
+        action: () async {
+          await targetProvider.allocateTargetFunds(
+            targetId: item.id,
+            amountDelta: delta,
+            walletId: result.wallet.id,
+            maxWithdrawable: isDeposit ? null : withdrawableAmount,
+          );
+          await Future.wait([
+            dompetProvider.loadDompets(silent: true),
+            txProvider.loadTransactions(silent: true),
+          ]);
+        },
       );
-      await Future.wait([
-        dompetProvider.loadDompets(silent: true),
-        txProvider.loadTransactions(silent: true),
-      ]);
 
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -1207,12 +1222,18 @@ class TargetMenabungScreen extends StatelessWidget {
     if (chosenCategoryId == null || !context.mounted) return;
 
     try {
-      await targetProvider.settleTarget(
-        item.id,
-        walletId: walletId,
-        categoryId: chosenCategoryId,
+      await runWithLoadingDialog(
+        context,
+        message: 'Menyelesaikan target...',
+        action: () async {
+          await targetProvider.settleTarget(
+            item.id,
+            walletId: walletId,
+            categoryId: chosenCategoryId,
+          );
+          await txProvider.loadTransactions(silent: true);
+        },
       );
-      await txProvider.loadTransactions(silent: true);
 
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

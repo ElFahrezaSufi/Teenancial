@@ -12,6 +12,7 @@ import '../theme/app_colors.dart';
 import '../utils/currency_formatter.dart';
 import '../utils/date_helper.dart';
 import '../utils/transaction_actions.dart';
+import '../widgets/common/async_state_view.dart';
 import '../widgets/common/custom_app_bar.dart';
 import '../widgets/transaction/paged_transaction_list.dart';
 import '../widgets/transaction/transaction_filter_sheet.dart';
@@ -387,8 +388,20 @@ class _SemuaAktivitasScreenState extends State<SemuaAktivitasScreen> {
                     ),
                   ),
                 Expanded(
-                  child: filteredTransactions.isEmpty
-                      ? Center(
+                  child: txProvider.isLoading && txProvider.transactions.isEmpty
+                      ? const Center(
+                          child: CircularProgressIndicator(color: primaryGreen),
+                        )
+                      : txProvider.errorMessage != null &&
+                              txProvider.transactions.isEmpty
+                          ? ErrorStateView(
+                              errorMessage: txProvider.errorMessage!,
+                              onRetry: () => context
+                                  .read<TransactionProvider>()
+                                  .loadTransactions(),
+                            )
+                          : filteredTransactions.isEmpty
+                              ? Center(
                           child: Padding(
                             padding: const EdgeInsets.all(24),
                             child: Column(

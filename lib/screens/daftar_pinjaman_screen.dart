@@ -13,6 +13,7 @@ import '../utils/currency_formatter.dart';
 import '../utils/error_mapper.dart';
 import '../widgets/common/async_state_view.dart';
 import '../widgets/common/custom_filter_chip.dart';
+import '../widgets/common/loading_overlay.dart';
 import '../widgets/feen/feen_avatar.dart';
 import '../widgets/transaction/loan_card.dart';
 import '../widgets/transaction/loan_payment_dialog.dart';
@@ -32,6 +33,7 @@ class _DaftarPinjamanScreenState extends State<DaftarPinjamanScreen> {
   int _selectedTab = 0;
   _LoanFilter _filter = _LoanFilter.unpaid;
   bool _isProcessing = false;
+  String _processingLabel = 'Memproses...';
 
   List<TransactionModel> _visibleLoans(TransactionProvider txProvider) {
     final source =
@@ -86,7 +88,11 @@ class _DaftarPinjamanScreenState extends State<DaftarPinjamanScreen> {
     );
     if (payment == null || !mounted) return;
 
-    setState(() => _isProcessing = true);
+    setState(() {
+      _isProcessing = true;
+      _processingLabel =
+          settleFull ? 'Melunasi pinjaman...' : 'Mencatat cicilan...';
+    });
     try {
       await context.read<TransactionProvider>().addLoanPayment(
             item.id,
@@ -141,7 +147,10 @@ class _DaftarPinjamanScreenState extends State<DaftarPinjamanScreen> {
 
     if (!confirmed || !mounted) return;
 
-    setState(() => _isProcessing = true);
+    setState(() {
+      _isProcessing = true;
+      _processingLabel = 'Menghapus pinjaman...';
+    });
     try {
       await context.read<TransactionProvider>().deleteTransaction(item.id);
       if (mounted) {
@@ -297,8 +306,11 @@ class _DaftarPinjamanScreenState extends State<DaftarPinjamanScreen> {
     context.watch<DompetProvider>();
     final loans = _visibleLoans(txProvider);
 
-    return TransactionScaffold(
-      title: 'Daftar Pinjaman',
+    return LoadingOverlay(
+      isLoading: _isProcessing,
+      message: _processingLabel,
+      child: TransactionScaffold(
+        title: 'Daftar Pinjaman',
       child: SafeArea(
         child: Padding(
           padding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
@@ -396,6 +408,7 @@ class _DaftarPinjamanScreenState extends State<DaftarPinjamanScreen> {
             ],
           ),
         ),
+      ),
       ),
     );
   }
