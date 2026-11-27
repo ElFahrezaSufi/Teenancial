@@ -148,9 +148,6 @@ class AuthProvider extends ChangeNotifier {
     required String email,
     required String password,
     required String name,
-    String age = '',
-    DateTime? birthDate,
-    String gender = '',
   }) async {
     _setBootstrapping(true);
     try {
@@ -158,9 +155,6 @@ class AuthProvider extends ChangeNotifier {
         email: email,
         password: password,
         name: name.trim(),
-        age: age.trim(),
-        birthDate: birthDate,
-        gender: gender.trim(),
       );
     } finally {
       _setBootstrapping(false);

@@ -187,9 +187,6 @@ class UserProvider extends ChangeNotifier {
 
   Future<void> saveProfile({
     required String name,
-    required String age,
-    DateTime? birthDate,
-    required String gender,
     File? newImageFile,
     bool removeImage = false,
   }) async {
@@ -206,9 +203,6 @@ class UserProvider extends ChangeNotifier {
       final updated = await _repository.updateUserProfile(
         uid: targetUid,
         name: name,
-        age: age,
-        birthDate: birthDate,
-        gender: gender,
         newImageFile: newImageFile,
         currentImageUrl: _profile?.profileImageUrl,
         removeImage: removeImage,

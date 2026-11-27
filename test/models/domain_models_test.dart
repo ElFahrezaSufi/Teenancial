@@ -66,28 +66,36 @@ void main() {
     });
   });
 
-  group('UserModel.calculateAge()', () {
-    test('menghitung umur secara akurat sebelum dan sesudah hari ulang tahun', () {
-      final birthDate = DateTime(2008, 8, 15);
+  group('UserModel', () {
+    test(
+      'fromMap aman mengabaikan field lama age, birthDate, dan gender serta toMap tidak menyertakannya',
+      () {
+        final legacyRaw = <String, dynamic>{
+          'uid': 'legacy_u1',
+          'email': 'legacy@example.com',
+          'name': 'User Lama',
+          'age': '18',
+          'birthDate': '2008-08-15T00:00:00.000',
+          'gender': 'Perempuan',
+        };
 
-      // Sebelum ulang tahun di tahun 2026
-      expect(
-        UserModel.calculateAge(birthDate, now: DateTime(2026, 8, 14)),
-        17,
-      );
+        expect(UserModel.hasDeprecatedFields(legacyRaw), isTrue);
+        expect(UserModel.hasDeprecatedFields({'age': ''}), isTrue);
+        expect(UserModel.hasDeprecatedFields({'birthDate': null}), isTrue);
+        expect(UserModel.hasDeprecatedFields({'gender': ''}), isTrue);
 
-      // Tepat saat ulang tahun di tahun 2026
-      expect(
-        UserModel.calculateAge(birthDate, now: DateTime(2026, 8, 15)),
-        18,
-      );
+        final parsed = UserModel.fromMap(legacyRaw);
+        expect(parsed.uid, 'legacy_u1');
+        expect(parsed.email, 'legacy@example.com');
+        expect(parsed.name, 'User Lama');
 
-      // Setelah ulang tahun di tahun 2026
-      expect(
-        UserModel.calculateAge(birthDate, now: DateTime(2026, 11, 6)),
-        18,
-      );
-    });
+        final serialized = parsed.toMap();
+        expect(serialized.containsKey('age'), isFalse);
+        expect(serialized.containsKey('birthDate'), isFalse);
+        expect(serialized.containsKey('gender'), isFalse);
+        expect(UserModel.hasDeprecatedFields(serialized), isFalse);
+      },
+    );
 
     test(
       'initialBalanceOnboardingDone default true untuk pengguna lama dan terserialisasi dengan benar untuk pengguna baru',
