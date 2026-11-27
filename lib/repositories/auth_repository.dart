@@ -232,10 +232,6 @@ class AuthRepository {
   }
 
   Future<void> deleteUserFirestoreData(String uid) async {
-    final txSnap = await _firestoreService.transactionsCol(uid).get();
-    for (final txDoc in txSnap.docs) {
-      await _deleteCollectionDocs(txDoc.reference.collection('payments'));
-    }
     await _deleteCollectionDocs(_firestoreService.transactionsCol(uid));
     await _deleteCollectionDocs(_firestoreService.walletsCol(uid));
     await _deleteCollectionDocs(_firestoreService.contactsCol(uid));
