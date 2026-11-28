@@ -6,6 +6,7 @@ import '../config/app_constants.dart';
 import '../config/app_routes.dart';
 import '../data/feen_catalog.dart';
 import '../data/mission_catalog.dart';
+import '../models/feen_chat_model.dart';
 import '../models/mission_model.dart';
 import '../models/target_model.dart';
 import '../providers/auth_provider.dart';
@@ -23,6 +24,7 @@ import '../services/firestore_service.dart';
 import '../services/local_storage_service.dart';
 import '../theme/app_colors.dart';
 import '../utils/currency_formatter.dart';
+import '../utils/weekly_balance_forecaster.dart';
 import '../widgets/common/custom_card.dart';
 import '../widgets/common/skeleton.dart';
 import '../widgets/feen/feen_fab.dart';
@@ -34,6 +36,7 @@ import '../widgets/home/profile_header.dart';
 import '../widgets/home/section_header.dart';
 import '../widgets/home/target_menabung_home.dart';
 import '../widgets/home/total_saldo_card.dart';
+import '../widgets/home/weekly_forecast_sheet.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -200,6 +203,31 @@ class _HomeScreenState extends State<HomeScreen> {
     await context.push(AppRoutes.buatTarget);
   }
 
+  void _showWeeklyForecastSheet(WeeklyBalanceForecast forecast) {
+    final userProvider = context.read<UserProvider>();
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      useRootNavigator: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => WeeklyForecastSheet(
+        forecast: forecast,
+        userLevel: userProvider.level,
+        feenEquipped: userProvider.feenEquipped,
+        onAskFeen: () {
+          context.push(
+            AppRoutes.tanyaFeen,
+            extra: TanyaFeenArgs(
+              initialPrompt:
+                  'Perkiraan saldoku minggu depan sekitar ${Formatters.rupiah(forecast.projectedBalance)} dari saldo sekarang ${Formatters.rupiah(forecast.currentBalance)}. Menurutmu gimana dan apa yang perlu kujaga minggu ini?',
+              startNewSession: true,
+            ),
+          );
+        },
+      ),
+    );
+  }
+
   Widget _buildDailyMissionBanner(MissionProvider missionProvider) {
     final dailyMissions = MissionCatalog.byPeriod(MissionPeriod.daily);
     final totalDaily = dailyMissions.length;
@@ -324,6 +352,7 @@ class _HomeScreenState extends State<HomeScreen> {
     final txProvider = context.watch<TransactionProvider>();
     final targetProvider = context.watch<TargetProvider>();
     final missionProvider = context.watch<MissionProvider>();
+    final recurringProvider = Provider.of<RecurringProvider?>(context);
 
     if (activeUid != null &&
         !_isShowingOnboardingSheet &&
@@ -355,8 +384,13 @@ class _HomeScreenState extends State<HomeScreen> {
     final double xpProgress =
         maxXP > 0 ? (currentXP / maxXP).clamp(0.0, 1.0) : 0.0;
     final double totalSaldoReal = dompetProvider.totalSaldo;
-    final double perkiraanMingguanReal =
-        totalSaldoReal + (totalSaldoReal * 0.02);
+    final WeeklyBalanceForecast weeklyForecast =
+        WeeklyBalanceForecaster.forecast(
+      currentBalance: totalSaldoReal,
+      transactions: txProvider.transactions,
+      recurringItems: recurringProvider?.activeItems ?? const [],
+    );
+    final double perkiraanMingguanReal = weeklyForecast.projectedBalance;
 
     final TargetItem? currentTarget = targetProvider.pinnedItem;
     final bool isProfileInitialLoading =
@@ -486,7 +520,8 @@ class _HomeScreenState extends State<HomeScreen> {
                                   maxXP: maxXP,
                                   level: level,
                                   formatRupiah: Formatters.rupiah,
-                                  onTap: () {},
+                                  onTap: () =>
+                                      _showWeeklyForecastSheet(weeklyForecast),
                                 ),
                               const SizedBox(height: 32),
 

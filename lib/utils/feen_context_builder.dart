@@ -21,6 +21,7 @@ import 'date_helper.dart';
 import 'loan_helper.dart';
 import 'report_calculator.dart';
 import 'saving_planner.dart';
+import 'weekly_balance_forecaster.dart';
 
 /// Ringkasan terisolasi progres Misi & XP agar pembacaan `MissionProvider`
 /// tetap aman, dinamis mengikuti `MissionCatalog`, dan mudah disesuaikan.
@@ -243,9 +244,18 @@ class FeenContextBuilder {
       'Level Feen: Level ${snapshot.level} (Tier ${tier.label}, ${snapshot.xpIntoLevel}/${snapshot.xpNeededForNext} XP ke level ${snapshot.level + 1})',
     );
 
-    // 1. Dompet
+    // 1. Dompet & Proyeksi 7 Hari
+    final weeklyForecast = WeeklyBalanceForecaster.forecast(
+      currentBalance: totalSaldo,
+      transactions: snapshot.transactions,
+      recurringItems: snapshot.recurringItems,
+      now: now,
+    );
     buf.writeln('\n[DOMPET]');
     buf.writeln('Total saldo seluruh dompet: ${Formatters.rupiah(totalSaldo)}');
+    buf.writeln(
+      'Perkiraan saldo 7 hari ke depan: ${Formatters.rupiah(weeklyForecast.projectedBalance)} (jadwal rutin 7 hari: ${weeklyForecast.scheduledNet >= 0 ? '+' : '-'}${Formatters.rupiah(weeklyForecast.scheduledNet.abs())}, estimasi pengeluaran harian 7 hari: ${Formatters.rupiah(weeklyForecast.estimatedWeeklyNonRecurringExpense)})',
+    );
     if (snapshot.dompets.isEmpty) {
       buf.writeln('- Belum ada dompet terdaftar.');
     } else {
