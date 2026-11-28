@@ -17,6 +17,7 @@ import 'providers/belajar_provider.dart';
 import 'providers/category_provider.dart';
 import 'providers/contact_provider.dart';
 import 'providers/dompet_provider.dart';
+import 'providers/feen_chat_provider.dart';
 import 'providers/mission_provider.dart';
 import 'providers/recurring_provider.dart';
 import 'providers/target_provider.dart';
@@ -168,6 +169,11 @@ Widget _buildRootApp() {
               (provider ?? BelajarProvider())
                 ..bindDependencies(auth.activeUid, missionProvider),
         ),
+        ChangeNotifierProxyProvider<AuthProvider, FeenChatProvider>(
+          create: (_) => FeenChatProvider(),
+          update: (_, auth, provider) =>
+              (provider ?? FeenChatProvider())..updateUser(auth.activeUid),
+        ),
       ],
       child: const _ConnectivitySyncCoordinator(child: MyApp()),
   );
@@ -233,6 +239,7 @@ class _ConnectivitySyncCoordinatorState
     final missionProvider = context.read<MissionProvider>();
     final recurringProvider = context.read<RecurringProvider>();
     final belajarProvider = context.read<BelajarProvider>();
+    final feenChatProvider = context.read<FeenChatProvider>();
 
     unawaited(
       Future.wait([
@@ -249,6 +256,7 @@ class _ConnectivitySyncCoordinatorState
         belajarProvider.levels.isEmpty
             ? belajarProvider.loadAll(silent: true)
             : belajarProvider.loadProgress(silent: true),
+        feenChatProvider.loadSessions(silent: true),
       ]),
     );
   }
