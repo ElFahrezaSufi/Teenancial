@@ -1,7 +1,10 @@
+import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
+import '../config/app_routes.dart';
 import '../data/feen_catalog.dart';
 import '../models/belajar_model.dart';
+import '../models/feen_chat_model.dart';
 import '../providers/belajar_provider.dart';
 import '../providers/user_provider.dart';
 import '../theme/app_colors.dart';
@@ -269,6 +272,83 @@ class _MateriScreenState extends State<MateriScreen> {
                         ),
                         const SizedBox(height: 20),
                       ],
+
+                      // Pintasan kontekstual Tanya Feen soal materi ini
+                      Material(
+                        color: const Color(0xFFF8FFE8),
+                        borderRadius: BorderRadius.circular(16),
+                        child: InkWell(
+                          borderRadius: BorderRadius.circular(16),
+                          onTap: () {
+                            context.push(
+                              AppRoutes.tanyaFeen,
+                              extra: TanyaFeenArgs(
+                                initialPrompt:
+                                    'Aku lagi baca materi "${module.title}" di Ruang Belajar. Bisa jelaskan intinya dengan contoh sehari-hari yang gampang dipahami?',
+                                startNewSession: true,
+                              ),
+                            );
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 14,
+                              vertical: 12,
+                            ),
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(
+                                color: primaryGreen.withValues(alpha: 0.6),
+                                width: 1.2,
+                              ),
+                            ),
+                            child: Row(
+                              children: [
+                                FeenAvatar(
+                                  level: user.level,
+                                  pose: FeenPose.learning,
+                                  equipped: user.feenEquipped,
+                                  size: 34,
+                                ),
+                                const SizedBox(width: 10),
+                                const Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        'Tanya Feen soal materi ini',
+                                        style: TextStyle(
+                                          color: primaryGreen,
+                                          fontSize: 13,
+                                          fontFamily: 'Inter',
+                                          fontWeight: FontWeight.w800,
+                                        ),
+                                      ),
+                                      SizedBox(height: 2),
+                                      Text(
+                                        'Minta penjelasan lebih simpel atau contoh praktiknya',
+                                        style: TextStyle(
+                                          color: primaryGreen,
+                                          fontSize: 11,
+                                          fontFamily: 'Inter',
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                const SizedBox(width: 6),
+                                const Icon(
+                                  Icons.arrow_forward_ios_rounded,
+                                  size: 14,
+                                  color: primaryGreen,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
                     ],
                   ),
                 ),

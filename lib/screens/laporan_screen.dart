@@ -4,16 +4,19 @@ import 'package:material_ui/material_ui.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../config/app_routes.dart';
+import '../models/feen_chat_model.dart';
 import '../models/transaction_filter.dart';
 import '../models/transaction_model.dart';
 import '../providers/category_provider.dart';
 import '../providers/transaction_provider.dart';
+import '../providers/user_provider.dart';
 import '../theme/app_colors.dart';
 import '../utils/currency_formatter.dart';
 import '../utils/report_calculator.dart';
 import '../widgets/common/async_state_view.dart';
 import '../widgets/common/custom_app_bar.dart';
 import '../widgets/common/custom_card.dart';
+import '../widgets/feen/feen_avatar.dart';
 
 class LaporanScreen extends StatefulWidget {
   final DateTime? initialMonth;
@@ -117,11 +120,17 @@ class _LaporanScreenState extends State<LaporanScreen> {
       allTransactions,
       _selectedMonth,
     );
+    final monthlyTargetSavings =
+        ReportCalculator.calculateMonthlyTargetSavings(
+      allTransactions,
+      _selectedMonth,
+    );
     final insight = ReportCalculator.generateInsight(
       summary: summary,
       expenseBreakdown: expenseBreakdown,
       incomeBreakdown: incomeBreakdown,
       formatCurrency: Formatters.rupiah,
+      monthlyTargetSavings: monthlyTargetSavings,
     );
 
     final lastDayOfMonth = DateTime(
@@ -367,6 +376,9 @@ class _LaporanScreenState extends State<LaporanScreen> {
   }
 
   Widget _buildInsightCard(ReportInsight insight) {
+    final userProvider = Provider.of<UserProvider?>(context);
+    final periodTitle = ReportCalculator.monthTitle(_selectedMonth);
+
     return CustomCard(
       backgroundColor: const Color(0xFFF8FFE8),
       borderRadius: 16,
@@ -383,7 +395,7 @@ class _LaporanScreenState extends State<LaporanScreen> {
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: const Icon(
-                  Icons.auto_awesome_rounded,
+                  Icons.lightbulb_rounded,
                   color: orangeText,
                   size: 18,
                 ),
@@ -451,6 +463,69 @@ class _LaporanScreenState extends State<LaporanScreen> {
               ),
             ),
           ],
+          const SizedBox(height: 8),
+          Divider(
+            color: primaryGreen.withValues(alpha: 0.18),
+            height: 1,
+          ),
+          const SizedBox(height: 10),
+          Material(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            child: InkWell(
+              borderRadius: BorderRadius.circular(12),
+              onTap: () {
+                context.push(
+                  AppRoutes.tanyaFeen,
+                  extra: TanyaFeenArgs(
+                    initialPrompt:
+                        'Bantu evaluasi laporan keuanganku pada $periodTitle (${insight.headline}) dan kasih saran praktis untuk bulan depan dong!',
+                    startNewSession: true,
+                  ),
+                );
+              },
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 9,
+                ),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: primaryGreen.withValues(alpha: 0.45),
+                    width: 1,
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    FeenAvatar(
+                      level: userProvider?.level ?? 1,
+                      equipped: userProvider?.feenEquipped ?? const {},
+                      size: 28,
+                    ),
+                    const SizedBox(width: 10),
+                    const Expanded(
+                      child: Text(
+                        'Tanya Feen untuk Evaluasi & Saran Bulan Depan',
+                        style: TextStyle(
+                          color: primaryGreen,
+                          fontSize: 12,
+                          fontFamily: 'Inter',
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    const Icon(
+                      Icons.arrow_forward_ios_rounded,
+                      size: 13,
+                      color: primaryGreen,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
         ],
       ),
     );

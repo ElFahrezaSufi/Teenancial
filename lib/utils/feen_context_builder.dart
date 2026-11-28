@@ -195,21 +195,8 @@ class FeenContextBuilder {
   static double computeMonthlyTargetSavings(
     List<TransactionModel> transactions,
     DateTime month,
-  ) {
-    final targetMonth = ReportCalculator.normalizeMonth(month);
-    double netSaved = 0.0;
-    for (final tx in transactions) {
-      if (!ReportCalculator.isInMonth(tx.date, targetMonth)) continue;
-      if (tx.targetId == null || tx.targetId!.trim().isEmpty) continue;
-      if (!tx.isAdjustment) continue;
-      if (tx.type == TransactionType.expense) {
-        netSaved += tx.amount;
-      } else if (tx.type == TransactionType.income) {
-        netSaved -= tx.amount;
-      }
-    }
-    return netSaved > 0 ? netSaved : 0.0;
-  }
+  ) =>
+      ReportCalculator.calculateMonthlyTargetSavings(transactions, month);
 
   static String buildContextBlock(FeenLiveSnapshot snapshot) {
     final now = snapshot.now;
