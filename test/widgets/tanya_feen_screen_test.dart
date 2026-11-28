@@ -30,6 +30,7 @@ import 'package:teenancial/repositories/target_repository.dart';
 import 'package:teenancial/repositories/transaction_repository.dart';
 import 'package:teenancial/repositories/user_repository.dart';
 import 'package:teenancial/screens/laporan_screen.dart';
+import 'package:teenancial/screens/semua_aktivitas_screen.dart';
 import 'package:teenancial/screens/tanya_feen_screen.dart';
 import 'package:teenancial/services/gemini_service.dart';
 import 'package:teenancial/utils/weekly_balance_forecaster.dart';
@@ -792,6 +793,72 @@ void main() {
           find.text('Tanya Feen untuk Evaluasi & Saran Bulan Depan'),
           findsOneWidget,
         );
+      },
+    );
+
+    testWidgets(
+      'SemuaAktivitasScreen default menampilkan semua waktu tanpa filter aktif dan memuat transaksi lama',
+      (WidgetTester tester) async {
+        final userProvider = UserProvider(
+          repository: _StubUserRepo(
+            const UserModel(uid: 'u1', email: 'a@b.com', name: 'Alya'),
+          ),
+        )..updateUser('u1');
+        final dompetProvider = DompetProvider(
+          repository: _StubDompetRepo(const [
+            DompetItem(
+              id: 'd1',
+              jenis: JenisDompet.cash,
+              nama: 'Tunai',
+              jumlah: 200000,
+            ),
+          ]),
+        )..updateUser('u1');
+        final missionProvider = MissionProvider(
+          onLoad: (_) async => null,
+          onSave: (_, __) async {},
+        )..bindDependencies('u1', userProvider);
+        final txProvider = TransactionProvider(
+          repository: _StubTxRepo([
+            TransactionModel(
+              id: 'old_tx',
+              title: 'Transaksi Lama Tahun Lalu',
+              amount: 45000,
+              date: DateTime.now().subtract(const Duration(days: 120)),
+              categoryId: 'c3',
+              type: TransactionType.expense,
+              dompetId: 'd1',
+            ),
+          ]),
+        )..bindDependencies('u1', dompetProvider, missionProvider);
+
+        await tester.pumpWidget(
+          MultiProvider(
+            providers: [
+              ChangeNotifierProvider<DompetProvider>.value(value: dompetProvider),
+              ChangeNotifierProvider<TransactionProvider>.value(
+                value: txProvider,
+              ),
+            ],
+            child: const MaterialApp(
+              locale: Locale('id', 'ID'),
+              supportedLocales: [Locale('id', 'ID')],
+              localizationsDelegates: [
+                GlobalMaterialLocalizations.delegate,
+                GlobalWidgetsLocalizations.delegate,
+                GlobalCupertinoLocalizations.delegate,
+              ],
+              home: SemuaAktivitasScreen(),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        expect(tester.takeException(), isNull);
+        expect(find.text('Mingguan'), findsNothing);
+        expect(find.text('Bulanan'), findsNothing);
+        expect(find.text('Tahunan'), findsNothing);
+        expect(find.text('Transaksi Lama Tahun Lalu'), findsOneWidget);
       },
     );
   });

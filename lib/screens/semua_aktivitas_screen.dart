@@ -19,22 +19,22 @@ import '../widgets/transaction/transaction_filter_sheet.dart';
 
 /// Argumen navigasi opsional menuju [SemuaAktivitasScreen].
 class SemuaAktivitasArgs {
-  final int filterIndex;
+  final int? filterIndex;
   final bool autoFocusSearch;
 
   const SemuaAktivitasArgs({
-    required this.filterIndex,
+    this.filterIndex,
     this.autoFocusSearch = false,
   });
 }
 
 class SemuaAktivitasScreen extends StatefulWidget {
-  final int filterIndex;
+  final int? filterIndex;
   final bool autoFocusSearch;
 
   const SemuaAktivitasScreen({
     super.key,
-    this.filterIndex = 0,
+    this.filterIndex,
     this.autoFocusSearch = false,
   });
 
@@ -50,7 +50,9 @@ class _SemuaAktivitasScreenState extends State<SemuaAktivitasScreen> {
   @override
   void initState() {
     super.initState();
-    _filter = TransactionFilter.fromFilterIndex(widget.filterIndex);
+    _filter = widget.filterIndex != null
+        ? TransactionFilter.fromFilterIndex(widget.filterIndex!)
+        : TransactionFilter(periodPreset: HistoryPeriodPreset.all);
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
@@ -262,13 +264,16 @@ class _SemuaAktivitasScreenState extends State<SemuaAktivitasScreen> {
                                 fontFamily: 'Inter',
                                 fontWeight: FontWeight.w500,
                               ),
-                              prefixIcon: const Icon(
-                                Icons.search_rounded,
-                                color: primaryGreen,
-                                size: 20,
+                              prefixIcon: const Padding(
+                                padding: EdgeInsets.only(left: 12, right: 6),
+                                child: Icon(
+                                  Icons.search_rounded,
+                                  color: primaryGreen,
+                                  size: 20,
+                                ),
                               ),
                               prefixIconConstraints: const BoxConstraints(
-                                minWidth: 42,
+                                minWidth: 0,
                                 minHeight: 44,
                               ),
                               suffixIcon: _searchController.text.isNotEmpty
@@ -287,9 +292,11 @@ class _SemuaAktivitasScreenState extends State<SemuaAktivitasScreen> {
                                     )
                                   : null,
                               border: InputBorder.none,
-                              contentPadding: const EdgeInsets.symmetric(
-                                vertical: 12,
-                                horizontal: 12,
+                              contentPadding: const EdgeInsets.fromLTRB(
+                                0,
+                                12,
+                                12,
+                                12,
                               ),
                             ),
                           ),

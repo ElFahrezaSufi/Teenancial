@@ -330,6 +330,7 @@ class _LaporanScreenState extends State<LaporanScreen> {
           child: Row(
             children: [
               Expanded(
+                flex: 5,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -360,18 +361,23 @@ class _LaporanScreenState extends State<LaporanScreen> {
                 ),
               ),
               const SizedBox(width: 8),
-              Flexible(
-                child: FittedBox(
-                  fit: BoxFit.scaleDown,
+              Expanded(
+                flex: 6,
+                child: Align(
                   alignment: Alignment.centerRight,
-                  child: Text(
-                    '${isNetPositive ? '+' : '-'} ${Formatters.rupiah(summary.netCashflow.abs())}',
-                    style: TextStyle(
-                      color:
-                          isNetPositive ? primaryGreen : const Color(0xFFC62828),
-                      fontSize: 16,
-                      fontFamily: 'Inter',
-                      fontWeight: FontWeight.w800,
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerRight,
+                    child: Text(
+                      '${isNetPositive ? '+' : '-'} ${Formatters.rupiah(summary.netCashflow.abs())}',
+                      style: TextStyle(
+                        color: isNetPositive
+                            ? primaryGreen
+                            : const Color(0xFFC62828),
+                        fontSize: 16,
+                        fontFamily: 'Inter',
+                        fontWeight: FontWeight.w800,
+                      ),
                     ),
                   ),
                 ),
@@ -478,7 +484,7 @@ class _LaporanScreenState extends State<LaporanScreen> {
           ),
           const SizedBox(height: 10),
           Material(
-            color: Colors.white,
+            color: scaffoldBg,
             borderRadius: BorderRadius.circular(12),
             child: InkWell(
               borderRadius: BorderRadius.circular(12),
