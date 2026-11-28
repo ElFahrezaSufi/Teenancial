@@ -43,7 +43,7 @@ class GeminiConfig {
 
   static const String fallbackModel = String.fromEnvironment(
     'GEMINI_FALLBACK_MODEL',
-    defaultValue: 'gemini-2.5-flash-lite',
+    defaultValue: 'gemini-flash-lite-latest',
   );
 
   static const String apiHost = 'generativelanguage.googleapis.com';

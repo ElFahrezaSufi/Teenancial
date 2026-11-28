@@ -248,25 +248,33 @@ class _LaporanScreenState extends State<LaporanScreen> {
             visualDensity: VisualDensity.compact,
             tooltip: 'Bulan Sebelumnya',
           ),
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(
-                Icons.calendar_month_rounded,
-                size: 18,
-                color: primaryGreen,
-              ),
-              const SizedBox(width: 8),
-              Text(
-                ReportCalculator.monthTitle(_selectedMonth),
-                style: const TextStyle(
-                  color: primaryGreen,
-                  fontSize: 15,
-                  fontFamily: 'Inter',
-                  fontWeight: FontWeight.w800,
+          Expanded(
+            child: Center(
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(
+                      Icons.calendar_month_rounded,
+                      size: 18,
+                      color: primaryGreen,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      ReportCalculator.monthTitle(_selectedMonth),
+                      maxLines: 1,
+                      style: const TextStyle(
+                        color: primaryGreen,
+                        fontSize: 15,
+                        fontFamily: 'Inter',
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ],
                 ),
               ),
-            ],
+            ),
           ),
           IconButton(
             onPressed: _canGoNextMonth ? () => _changeMonth(1) : null,
@@ -792,22 +800,22 @@ class _LaporanScreenState extends State<LaporanScreen> {
               Icon(item.icon, size: 17, color: item.color),
               const SizedBox(width: 8),
               Expanded(
-                child: Row(
+                child: Wrap(
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  spacing: 6,
+                  runSpacing: 2,
                   children: [
-                    Flexible(
-                      child: Text(
-                        item.categoryName,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          color: primaryGreen,
-                          fontSize: 13,
-                          fontFamily: 'Inter',
-                          fontWeight: FontWeight.w700,
-                        ),
+                    Text(
+                      item.categoryName,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: primaryGreen,
+                        fontSize: 13,
+                        fontFamily: 'Inter',
+                        fontWeight: FontWeight.w700,
                       ),
                     ),
-                    const SizedBox(width: 6),
                     Container(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 6,
@@ -895,13 +903,14 @@ class _LaporanScreenState extends State<LaporanScreen> {
             ),
           ),
           const SizedBox(height: 8),
-          Row(
+          Wrap(
+            spacing: 16,
+            runSpacing: 6,
             children: [
               _buildLegendIndicator(
                 color: primaryGreen,
                 label: 'Pemasukan',
               ),
-              const SizedBox(width: 16),
               _buildLegendIndicator(
                 color: orangeText,
                 label: 'Pengeluaran',
@@ -1107,13 +1116,17 @@ class _SummaryMetricCard extends StatelessWidget {
             children: [
               Icon(icon, size: 15, color: amountColor),
               const SizedBox(width: 6),
-              Text(
-                label,
-                style: const TextStyle(
-                  color: primaryGreen,
-                  fontSize: 12,
-                  fontFamily: 'Inter',
-                  fontWeight: FontWeight.w700,
+              Expanded(
+                child: Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: primaryGreen,
+                    fontSize: 12,
+                    fontFamily: 'Inter',
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
               ),
             ],

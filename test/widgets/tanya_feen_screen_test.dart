@@ -34,6 +34,7 @@ import 'package:teenancial/screens/tanya_feen_screen.dart';
 import 'package:teenancial/services/gemini_service.dart';
 import 'package:teenancial/utils/weekly_balance_forecaster.dart';
 import 'package:teenancial/widgets/feen/feen_markdown_text.dart';
+import 'package:teenancial/widgets/feen/feen_personalization_sheet.dart';
 import 'package:teenancial/widgets/home/weekly_forecast_sheet.dart';
 
 class _StubUserRepo extends UserRepository {
@@ -458,44 +459,216 @@ void main() {
       },
     );
 
-    testWidgets('WeeklyForecastSheet tampil rapi tanpa overflow di layar 320x640',
-        (WidgetTester tester) async {
-      tester.view.physicalSize = const Size(320, 640);
-      tester.view.devicePixelRatio = 1.0;
-      addTearDown(() {
-        tester.view.resetPhysicalSize();
-        tester.view.resetDevicePixelRatio();
-      });
+    testWidgets(
+      'WeeklyForecastSheet tampil rapi tanpa overflow di layar 320x640 font 1.25x',
+      (WidgetTester tester) async {
+        tester.view.physicalSize = const Size(320, 640);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(() {
+          tester.view.resetPhysicalSize();
+          tester.view.resetDevicePixelRatio();
+        });
 
-      const sampleForecast = WeeklyBalanceForecast(
-        currentBalance: 500000,
-        scheduledRecurringIncome: 150000,
-        scheduledRecurringExpense: 50000,
-        scheduledRecurringCount: 2,
-        estimatedDailyExpense: 20000,
-        estimatedWeeklyNonRecurringExpense: 140000,
-        lookbackDays: 14,
-        projectedBalance: 460000,
-      );
+        const sampleForecast = WeeklyBalanceForecast(
+          currentBalance: 500000,
+          scheduledRecurringIncome: 150000,
+          scheduledRecurringExpense: 50000,
+          scheduledRecurringCount: 2,
+          estimatedDailyExpense: 20000,
+          estimatedWeeklyNonRecurringExpense: 140000,
+          lookbackDays: 14,
+          projectedBalance: 460000,
+        );
 
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: WeeklyForecastSheet(
-              forecast: sampleForecast,
-              userLevel: 3,
-              feenEquipped: const {},
-              onAskFeen: () {},
+        await tester.pumpWidget(
+          MaterialApp(
+            builder: (context, child) => MediaQuery(
+              data: MediaQuery.of(context).copyWith(
+                textScaler: const TextScaler.linear(1.25),
+              ),
+              child: child!,
+            ),
+            home: Scaffold(
+              body: WeeklyForecastSheet(
+                forecast: sampleForecast,
+                userLevel: 3,
+                feenEquipped: const {},
+                onAskFeen: () {},
+              ),
             ),
           ),
-        ),
-      );
-      await tester.pumpAndSettle();
+        );
+        await tester.pumpAndSettle();
 
-      expect(tester.takeException(), isNull);
-      expect(find.text('Perkiraan Minggu Depan'), findsOneWidget);
-      expect(find.text('Rp 460.000'), findsOneWidget);
-      expect(find.text('Tanya Feen soal proyeksi ini'), findsOneWidget);
-    });
+        expect(tester.takeException(), isNull);
+        expect(find.text('Perkiraan Minggu Depan'), findsOneWidget);
+        expect(find.text('Rp 460.000'), findsOneWidget);
+        expect(find.text('Tanya Feen soal proyeksi ini'), findsOneWidget);
+      },
+    );
+
+    testWidgets(
+      'FeenPersonalizationSheet bebas overflow di 320x640 font 1.25x dan menyimpan pilihan status + gaya bahasa',
+      (WidgetTester tester) async {
+        tester.view.physicalSize = const Size(320, 640);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(() {
+          tester.view.resetPhysicalSize();
+          tester.view.resetDevicePixelRatio();
+        });
+
+        String? savedOccupation;
+        FeenTone? savedTone;
+
+        await tester.pumpWidget(
+          MaterialApp(
+            builder: (context, child) => MediaQuery(
+              data: MediaQuery.of(context).copyWith(
+                textScaler: const TextScaler.linear(1.25),
+              ),
+              child: child!,
+            ),
+            home: Scaffold(
+              body: FeenPersonalizationSheet(
+                initialOccupation: null,
+                initialTone: FeenTone.casual,
+                userLevel: 2,
+                feenEquipped: const {},
+                onSave: (occ, tone) async {
+                  savedOccupation = occ;
+                  savedTone = tone;
+                },
+              ),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        expect(tester.takeException(), isNull);
+        expect(find.text('Personalisasi Feen'), findsOneWidget);
+
+        await tester.tap(find.text('Mahasiswa'));
+        await tester.pump();
+        await tester.scrollUntilVisible(
+          find.text('Ringkas & Langsung ke Inti'),
+          120,
+          scrollable: find.byType(Scrollable).first,
+        );
+        await tester.tap(find.text('Ringkas & Langsung ke Inti'));
+        await tester.pump();
+
+        await tester.scrollUntilVisible(
+          find.text('Simpan Preferensi'),
+          120,
+          scrollable: find.byType(Scrollable).first,
+        );
+        await tester.tap(find.text('Simpan Preferensi'));
+        await tester.pumpAndSettle();
+
+        expect(tester.takeException(), isNull);
+        expect(savedOccupation, 'Mahasiswa');
+        expect(savedTone, FeenTone.concise);
+      },
+    );
+
+    testWidgets(
+      'LaporanScreen dengan kartu Wawasan Singkat + pintasan Feen bebas overflow di 320x640 font 1.25x',
+      (WidgetTester tester) async {
+        tester.view.physicalSize = const Size(320, 640);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(() {
+          tester.view.resetPhysicalSize();
+          tester.view.resetDevicePixelRatio();
+        });
+
+        final nov2026 = DateTime(2026, 11, 1);
+        final userProvider = UserProvider(
+          repository: _StubUserRepo(
+            const UserModel(uid: 'u1', email: 'a@b.com', name: 'Alya'),
+          ),
+        )..updateUser('u1');
+        final dompetProvider = DompetProvider(
+          repository: _StubDompetRepo(const []),
+        )..updateUser('u1');
+        final missionProvider = MissionProvider(
+          onLoad: (_) async => null,
+          onSave: (_, __) async {},
+        )..bindDependencies('u1', userProvider);
+        final txProvider = TransactionProvider(
+          repository: _StubTxRepo([
+            TransactionModel(
+              id: 'i1',
+              title: 'Uang Saku',
+              amount: 1000000,
+              date: DateTime(2026, 11, 2),
+              categoryId: 'c1',
+              type: TransactionType.income,
+              dompetId: 'd1',
+            ),
+            TransactionModel(
+              id: 'e1',
+              title: 'Makan',
+              amount: 200000,
+              date: DateTime(2026, 11, 5),
+              categoryId: 'c3',
+              type: TransactionType.expense,
+              dompetId: 'd1',
+            ),
+            TransactionModel(
+              id: 's1',
+              title: 'Tabungan: Laptop',
+              amount: 250000,
+              date: DateTime(2026, 11, 6),
+              categoryId: 'c6',
+              type: TransactionType.expense,
+              dompetId: 'd1',
+              isAdjustment: true,
+              targetId: 'tg1',
+            ),
+          ]),
+        )..bindDependencies('u1', dompetProvider, missionProvider);
+
+        await tester.pumpWidget(
+          MultiProvider(
+            providers: [
+              ChangeNotifierProvider<UserProvider>.value(value: userProvider),
+              ChangeNotifierProvider<TransactionProvider>.value(
+                value: txProvider,
+              ),
+            ],
+            child: MaterialApp(
+              locale: const Locale('id', 'ID'),
+              supportedLocales: const [Locale('id', 'ID')],
+              localizationsDelegates: const [
+                GlobalMaterialLocalizations.delegate,
+                GlobalWidgetsLocalizations.delegate,
+                GlobalCupertinoLocalizations.delegate,
+              ],
+              builder: (context, child) => MediaQuery(
+                data: MediaQuery.of(context).copyWith(
+                  textScaler: const TextScaler.linear(1.25),
+                ),
+                child: child!,
+              ),
+              home: LaporanScreen(initialMonth: nov2026),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        expect(tester.takeException(), isNull);
+        expect(find.byIcon(Icons.lightbulb_rounded), findsOneWidget);
+        await tester.scrollUntilVisible(
+          find.text('Tanya Feen untuk Evaluasi & Saran Bulan Depan'),
+          150,
+          scrollable: find.byType(Scrollable).first,
+        );
+        expect(tester.takeException(), isNull);
+        expect(
+          find.text('Tanya Feen untuk Evaluasi & Saran Bulan Depan'),
+          findsOneWidget,
+        );
+      },
+    );
   });
 }

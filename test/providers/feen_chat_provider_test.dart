@@ -264,5 +264,74 @@ void main() {
         provider.dispose();
       },
     );
+
+    test(
+      'simulasi sinkronisasi antar perangkat: chat tersimpan di Perangkat 1 otomatis termuat utuh saat Perangkat 2 login akun yang sama',
+      () async {
+        final sharedCloudRepo = _InMemoryFeenChatRepository();
+        final fakeNow = DateTime(2026, 11, 28, 14, 0, 0);
+
+        MockClient buildOkClient() => MockClient((_) async {
+              return http.Response(
+                jsonEncode({
+                  'candidates': [
+                    {
+                      'content': {
+                        'parts': [
+                          {'text': 'Halo! Saldomu aman dan terkendali.'},
+                        ],
+                      },
+                    },
+                  ],
+                }),
+                200,
+                headers: {'content-type': 'application/json; charset=utf-8'},
+              );
+            });
+
+        // Perangkat 1: login dan kirim 1 pesan ke Tanya Feen
+        final device1 = FeenChatProvider(
+          repository: sharedCloudRepo,
+          geminiService: GeminiService(
+            client: buildOkClient(),
+            apiKey: 'AQ.TestValidKey',
+          ),
+          clock: () => fakeNow,
+        );
+        device1.updateUser('u_sync');
+        await Future<void>.delayed(Duration.zero);
+
+        final sent = await device1.sendMessage(
+          text: 'Cek kondisi keuanganku hari ini dong',
+          snapshot: FeenLiveSnapshot(displayName: 'Budi', now: fakeNow),
+        );
+        expect(sent, isTrue);
+        expect(device1.sessions.length, 1);
+        expect(device1.messages.length, 2);
+        final savedSessionId = device1.activeSessionId!;
+
+        // Perangkat 2: instance provider baru (memori kosong) login akun yang sama
+        final device2 = FeenChatProvider(
+          repository: sharedCloudRepo,
+          geminiService: GeminiService(
+            client: buildOkClient(),
+            apiKey: 'AQ.TestValidKey',
+          ),
+          clock: () => fakeNow.add(const Duration(minutes: 2)),
+        );
+        device2.updateUser('u_sync');
+        await Future<void>.delayed(Duration.zero);
+        await Future<void>.delayed(Duration.zero);
+
+        expect(device2.sessions.length, 1);
+        expect(device2.activeSessionId, savedSessionId);
+        expect(device2.messages.length, 2);
+        expect(device2.messages.first.text, 'Cek kondisi keuanganku hari ini dong');
+        expect(device2.messages.last.text, 'Halo! Saldomu aman dan terkendali.');
+
+        device1.dispose();
+        device2.dispose();
+      },
+    );
   });
 }
