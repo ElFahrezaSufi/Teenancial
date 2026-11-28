@@ -640,7 +640,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                     context.push(AppRoutes.ruangBelajar),
                                 child: const BelajarCard(),
                               ),
-                              const SizedBox(height: 100),
+                              const SizedBox(height: 24),
                             ],
                           ),
                         ),
