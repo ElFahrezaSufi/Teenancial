@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import '../config/app_constants.dart';
 import '../models/dompet_model.dart';
 import '../services/firestore_service.dart';
 
@@ -232,6 +233,13 @@ class AuthRepository {
   }
 
   Future<void> deleteUserFirestoreData(String uid) async {
+    final chatSessionsSnap = await _firestoreService.chatSessionsCol(uid).get();
+    for (final sessionDoc in chatSessionsSnap.docs) {
+      await _deleteCollectionDocs(
+        sessionDoc.reference.collection(AppConstants.chatMessagesSubcollection),
+      );
+    }
+    await _deleteCollectionDocs(_firestoreService.chatSessionsCol(uid));
     await _deleteCollectionDocs(_firestoreService.transactionsCol(uid));
     await _deleteCollectionDocs(_firestoreService.walletsCol(uid));
     await _deleteCollectionDocs(_firestoreService.contactsCol(uid));

@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:firebase_auth/firebase_auth.dart';
+import '../config/gemini_config.dart';
 import '../services/connectivity_service.dart';
 
 class ErrorMapper {
@@ -12,6 +13,9 @@ class ErrorMapper {
     String fallback = 'Terjadi kesalahan. Silakan coba lagi.',
   }) {
     if (error is OfflineException) {
+      return error.message;
+    }
+    if (error is GeminiApiException) {
       return error.message;
     }
     if (error is TimeoutException) {

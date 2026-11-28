@@ -116,7 +116,16 @@ class _EksporScreenState extends State<EksporScreen> {
             colorScheme: const ColorScheme.light(
               primary: primaryGreen,
               onPrimary: Colors.white,
+              surface: appBarBg,
               onSurface: primaryGreen,
+            ),
+            datePickerTheme: const DatePickerThemeData(
+              backgroundColor: appBarBg,
+              surfaceTintColor: Colors.transparent,
+              rangePickerBackgroundColor: appBarBg,
+              rangePickerSurfaceTintColor: Colors.transparent,
+              rangePickerHeaderBackgroundColor: primaryGreen,
+              rangePickerHeaderForegroundColor: Colors.white,
             ),
           ),
           child: child!,

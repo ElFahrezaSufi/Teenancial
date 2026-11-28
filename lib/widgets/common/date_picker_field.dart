@@ -90,7 +90,14 @@ class _DatePickerFieldState extends State<DatePickerField> {
             colorScheme: const ColorScheme.light(
               primary: primaryGreen,
               onPrimary: Colors.white,
+              surface: appBarBg,
               onSurface: primaryGreen,
+            ),
+            datePickerTheme: const DatePickerThemeData(
+              backgroundColor: appBarBg,
+              surfaceTintColor: Colors.transparent,
+              headerBackgroundColor: primaryGreen,
+              headerForegroundColor: Colors.white,
             ),
           ),
           child: child!,

@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../config/app_routes.dart';
 import '../data/feen_catalog.dart';
 import '../models/dompet_model.dart';
+import '../models/feen_chat_model.dart';
 import '../models/target_model.dart';
 import '../models/transaction_model.dart';
 import '../providers/category_provider.dart';
@@ -425,7 +426,7 @@ class TargetMenabungScreen extends StatelessWidget {
                   width: 36,
                   height: 36,
                   decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.9),
+                    color: appBarBg.withValues(alpha: 0.92),
                     shape: BoxShape.circle,
                     boxShadow: const [
                       BoxShadow(
@@ -924,78 +925,142 @@ class TargetMenabungScreen extends StatelessWidget {
                           ),
                         ],
                       )
-                    : Row(
+                    : Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
-                          Expanded(
-                            child: OutlinedButton.icon(
-                              onPressed: canWithdraw
-                                  ? () => _showAllocationDialog(
-                                        context,
-                                        item: item,
-                                        isDeposit: false,
-                                        withdrawableAmount: withdrawableAmount,
-                                      )
-                                  : null,
-                              icon: const Icon(
-                                Icons.remove_circle_outline,
-                                size: 18,
-                              ),
-                              label: const Text(
-                                'Tarik',
-                                style: TextStyle(
-                                  fontFamily: 'Inter',
-                                  fontWeight: FontWeight.w700,
+                          Row(
+                            children: [
+                              Expanded(
+                                child: OutlinedButton.icon(
+                                  onPressed: canWithdraw
+                                      ? () => _showAllocationDialog(
+                                            context,
+                                            item: item,
+                                            isDeposit: false,
+                                            withdrawableAmount:
+                                                withdrawableAmount,
+                                          )
+                                      : null,
+                                  icon: const Icon(
+                                    Icons.remove_circle_outline,
+                                    size: 18,
+                                  ),
+                                  label: const Text(
+                                    'Tarik',
+                                    style: TextStyle(
+                                      fontFamily: 'Inter',
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                  style: OutlinedButton.styleFrom(
+                                    foregroundColor: primaryGreen,
+                                    side: BorderSide(
+                                      color: canWithdraw
+                                          ? primaryGreen
+                                          : Colors.grey.withValues(alpha: 0.4),
+                                      width: 1.5,
+                                    ),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(100),
+                                    ),
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 10,
+                                    ),
+                                  ),
                                 ),
                               ),
-                              style: OutlinedButton.styleFrom(
-                                foregroundColor: primaryGreen,
-                                side: BorderSide(
-                                  color: canWithdraw
-                                      ? primaryGreen
-                                      : Colors.grey.withValues(alpha: 0.4),
-                                  width: 1.5,
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: ElevatedButton.icon(
+                                  onPressed: canDeposit
+                                      ? () => _showAllocationDialog(
+                                            context,
+                                            item: item,
+                                            isDeposit: true,
+                                            withdrawableAmount:
+                                                withdrawableAmount,
+                                          )
+                                      : null,
+                                  icon: const Icon(
+                                    Icons.savings_outlined,
+                                    size: 18,
+                                  ),
+                                  label: const Text(
+                                    'Tabung',
+                                    style: TextStyle(
+                                      fontFamily: 'Inter',
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: primaryGreen,
+                                    foregroundColor: Colors.white,
+                                    disabledBackgroundColor:
+                                        Colors.grey.withValues(alpha: 0.3),
+                                    elevation: 0,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(100),
+                                    ),
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 10,
+                                    ),
+                                  ),
                                 ),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(100),
-                                ),
-                                padding:
-                                    const EdgeInsets.symmetric(vertical: 10),
                               ),
-                            ),
+                            ],
                           ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: ElevatedButton.icon(
-                              onPressed: canDeposit
-                                  ? () => _showAllocationDialog(
-                                        context,
-                                        item: item,
-                                        isDeposit: true,
-                                        withdrawableAmount: withdrawableAmount,
-                                      )
-                                  : null,
-                              icon: const Icon(
-                                Icons.savings_outlined,
-                                size: 18,
+                          const SizedBox(height: 10),
+                          InkWell(
+                            borderRadius: BorderRadius.circular(100),
+                            onTap: () {
+                              final deadlineNote = plan != null
+                                  ? ' dengan tenggat ${plan.deadlineLabel} (${plan.badgeText})'
+                                  : '';
+                              context.push(
+                                AppRoutes.tanyaFeen,
+                                extra: TanyaFeenArgs(
+                                  initialPrompt:
+                                      'Bantu buatkan strategi nabung buat target "${item.nama}" (terkumpul $terkumpulStr dari $targetStr, sisa ${Formatters.rupiah(item.remainingAmount)}$deadlineNote) dong!',
+                                  startNewSession: true,
+                                ),
+                              );
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 8,
                               ),
-                              label: const Text(
-                                'Tabung',
-                                style: TextStyle(
-                                  fontFamily: 'Inter',
-                                  fontWeight: FontWeight.w700,
+                              decoration: BoxDecoration(
+                                color: inputBg,
+                                borderRadius: BorderRadius.circular(100),
+                                border: Border.all(
+                                  color: primaryGreen.withValues(alpha: 0.45),
+                                  width: 1,
                                 ),
                               ),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: primaryGreen,
-                                foregroundColor: Colors.white,
-                                disabledBackgroundColor:
-                                    Colors.grey.withValues(alpha: 0.3),
-                                elevation: 0,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(100),
-                                ),
-                                padding:
-                                    const EdgeInsets.symmetric(vertical: 10),
+                              child: const Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(
+                                    Icons.chat_bubble_outline_rounded,
+                                    size: 15,
+                                    color: primaryGreen,
+                                  ),
+                                  SizedBox(width: 6),
+                                  Flexible(
+                                    child: Text(
+                                      'Minta Strategi Feen',
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: TextStyle(
+                                        color: primaryGreen,
+                                        fontSize: 12,
+                                        fontFamily: 'Inter',
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
                           ),
@@ -1145,6 +1210,7 @@ class TargetMenabungScreen extends StatelessWidget {
                   DropdownButtonFormField<String>(
                     initialValue: selectedCategoryId,
                     isExpanded: true,
+                    dropdownColor: appBarBg,
                     decoration: InputDecoration(
                       labelText: 'Kategori Pengeluaran',
                       filled: true,

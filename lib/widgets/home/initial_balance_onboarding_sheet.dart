@@ -191,7 +191,7 @@ class _InitialBalanceOnboardingSheetState
         fontSize: 14,
       ),
       filled: true,
-      fillColor: Colors.white,
+      fillColor: inputBg,
       contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(14),

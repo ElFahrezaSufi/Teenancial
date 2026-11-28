@@ -12,7 +12,6 @@ class MainScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: scaffoldBg,
-      extendBody: true,
       body: navigationShell,
       bottomNavigationBar: CustomBottomNavBar(
         selectedIndex: navigationShell.currentIndex,

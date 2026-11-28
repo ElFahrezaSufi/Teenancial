@@ -186,6 +186,11 @@ void main() {
         expect(find.text('Riwayat'), findsOneWidget);
         expect(find.text('Akun'), findsOneWidget);
 
+        // Pastikan bottom navbar menempel penuh di tepi bawah layar (docked)
+        final navRect = tester.getRect(find.byType(CustomBottomNavBar));
+        expect(navRect.bottom, closeTo(640, 0.5));
+        expect(navRect.width, closeTo(320, 0.5));
+
         await tester.tap(find.text('Riwayat'));
         expect(tappedIndex, 2);
       },

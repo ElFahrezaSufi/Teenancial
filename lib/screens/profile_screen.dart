@@ -43,6 +43,7 @@ class _ProfileScreenState extends State<ProfileScreen>
 
   late final TextEditingController _fullNameController;
   late final TextEditingController _emailController;
+  String? _selectedOccupation;
 
   @override
   void initState() {
@@ -148,6 +149,7 @@ class _ProfileScreenState extends State<ProfileScreen>
         _syncedUid = null;
         _setControllerTextIfChanged(_fullNameController, 'Memuat...');
         _setControllerTextIfChanged(_emailController, 'Memuat...');
+        _selectedOccupation = null;
       }
       return;
     }
@@ -156,6 +158,11 @@ class _ProfileScreenState extends State<ProfileScreen>
     final nextName = profile.name.isNotEmpty ? profile.name : 'Pengguna';
     _setControllerTextIfChanged(_fullNameController, nextName);
     _setControllerTextIfChanged(_emailController, profile.email);
+    final rawOccupation = profile.occupationStatus?.trim();
+    _selectedOccupation =
+        (rawOccupation != null && UserModel.occupationOptions.contains(rawOccupation))
+            ? rawOccupation
+            : null;
   }
 
   void _startEditing() {
@@ -175,6 +182,11 @@ class _ProfileScreenState extends State<ProfileScreen>
       if (profile != null) {
         _setControllerTextIfChanged(_fullNameController, profile.name);
         _setControllerTextIfChanged(_emailController, profile.email);
+        final rawOccupation = profile.occupationStatus?.trim();
+        _selectedOccupation = (rawOccupation != null &&
+                UserModel.occupationOptions.contains(rawOccupation))
+            ? rawOccupation
+            : null;
       } else if (_fullNameController.text == 'Memuat...') {
         _setControllerTextIfChanged(_fullNameController, '');
       }
@@ -206,6 +218,8 @@ class _ProfileScreenState extends State<ProfileScreen>
             name: trimmedName,
             newImageFile: _pendingImageFile,
             removeImage: _removeExistingImage && _pendingImageFile == null,
+            occupationStatus: _selectedOccupation,
+            updateOccupationStatus: true,
           );
 
       if (!mounted) return;
@@ -411,7 +425,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                   hintText: 'Masukkan password akunmu',
                   errorText: errorText,
                   filled: true,
-                  fillColor: Colors.white,
+                  fillColor: inputBg,
                   contentPadding:
                       const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                   border: OutlineInputBorder(
@@ -1264,6 +1278,7 @@ class _ProfileScreenState extends State<ProfileScreen>
           controller: _fullNameController,
           isEditing: true,
         ),
+        _buildOccupationDropdown(),
         _EditableProfileField(
           label: 'Email',
           controller: _emailController,
@@ -1271,6 +1286,78 @@ class _ProfileScreenState extends State<ProfileScreen>
           keyboardType: TextInputType.emailAddress,
         ),
       ],
+    );
+  }
+
+  Widget _buildOccupationDropdown() {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Status Pendidikan / Pekerjaan (Opsional)',
+            style: TextStyle(
+              color: primaryGreen,
+              fontSize: 14,
+              fontFamily: 'Inter',
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Membantu Tanya Feen memberi contoh dan saran keuangan yang sesuai dengan aktivitasmu.',
+            style: TextStyle(
+              color: primaryGreen.withValues(alpha: 0.7),
+              fontSize: 11,
+              fontFamily: 'Inter',
+              fontWeight: FontWeight.w500,
+              height: 1.35,
+            ),
+          ),
+          const SizedBox(height: 8),
+          CustomCard(
+            padding: EdgeInsets.zero,
+            backgroundColor: inputBg,
+            child: DropdownButtonFormField<String?>(
+              key: ValueKey<String?>(_selectedOccupation),
+              initialValue: _selectedOccupation,
+              isExpanded: true,
+              items: [
+                const DropdownMenuItem<String?>(
+                  value: null,
+                  child: Text('Belum diisi'),
+                ),
+                ...UserModel.occupationOptions.map(
+                  (option) => DropdownMenuItem<String?>(
+                    value: option,
+                    child: Text(option),
+                  ),
+                ),
+              ],
+              onChanged: (value) {
+                setState(() => _selectedOccupation = value);
+              },
+              style: const TextStyle(
+                color: primaryGreen,
+                fontSize: 14,
+                fontFamily: 'Inter',
+                fontWeight: FontWeight.w600,
+              ),
+              decoration: const InputDecoration(
+                border: InputBorder.none,
+                contentPadding:
+                    EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              ),
+              icon: const Icon(
+                Icons.arrow_drop_down,
+                color: primaryGreen,
+              ),
+              dropdownColor: appBarBg,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -1411,7 +1498,7 @@ class _EditableProfileField extends StatelessWidget {
           const SizedBox(height: 8),
           CustomCard(
             padding: EdgeInsets.zero,
-            backgroundColor: isEditing ? Colors.white : inputBg,
+            backgroundColor: isEditing ? inputBg : scaffoldBg,
             child: TextFormField(
               controller: controller,
               enabled: isEditing,

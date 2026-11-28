@@ -272,7 +272,6 @@ void main() {
                 OfflineBanner(visible: true, connectivity: service),
                 Expanded(
                   child: Scaffold(
-                    extendBody: true,
                     bottomNavigationBar: CustomBottomNavBar(
                       selectedIndex: 0,
                       onItemTapped: (_) {},

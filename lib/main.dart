@@ -17,6 +17,7 @@ import 'providers/belajar_provider.dart';
 import 'providers/category_provider.dart';
 import 'providers/contact_provider.dart';
 import 'providers/dompet_provider.dart';
+import 'providers/feen_chat_provider.dart';
 import 'providers/mission_provider.dart';
 import 'providers/recurring_provider.dart';
 import 'providers/target_provider.dart';
@@ -53,11 +54,41 @@ Future<void> main() async {
   ErrorWidget.builder = (FlutterErrorDetails details) =>
       RenderErrorFallbackView(details: details);
 
-  await SystemChrome.setPreferredOrientations(const [
-    DeviceOrientation.portraitUp,
-  ]);
+  await _applyPreferredOrientationsForCurrentView();
 
   await _bootstrapAndRunApp();
+}
+
+bool? _lastIsTabletOrientation;
+
+/// Menjaga ponsel tetap portrait agar tata letak mobile konsisten, sementara
+/// tablet (`shortestSide >= 600 dp`) bebas berotasi sehingga [ResponsiveAppShell]
+/// mengisi layar penuh tanpa letterbox hitam.
+Future<void> _applyPreferredOrientationsForCurrentView() async {
+  final views = PlatformDispatcher.instance.views;
+  if (views.isEmpty) return;
+  final view = views.first;
+  if (view.devicePixelRatio <= 0 || view.physicalSize.isEmpty) return;
+
+  final shortestSideDp = view.physicalSize.shortestSide / view.devicePixelRatio;
+  final isTablet = shortestSideDp >= ResponsiveAppShell.tabletBreakpoint;
+  if (_lastIsTabletOrientation == isTablet) return;
+  _lastIsTabletOrientation = isTablet;
+  await _setPreferredOrientationsForDevice(isTablet: isTablet);
+}
+
+Future<void> _setPreferredOrientationsForDevice({required bool isTablet}) {
+  if (isTablet) {
+    return SystemChrome.setPreferredOrientations(const [
+      DeviceOrientation.portraitUp,
+      DeviceOrientation.portraitDown,
+      DeviceOrientation.landscapeLeft,
+      DeviceOrientation.landscapeRight,
+    ]);
+  }
+  return SystemChrome.setPreferredOrientations(const [
+    DeviceOrientation.portraitUp,
+  ]);
 }
 
 Future<void> _bootstrapAndRunApp() async {
@@ -168,6 +199,11 @@ Widget _buildRootApp() {
               (provider ?? BelajarProvider())
                 ..bindDependencies(auth.activeUid, missionProvider),
         ),
+        ChangeNotifierProxyProvider<AuthProvider, FeenChatProvider>(
+          create: (_) => FeenChatProvider(),
+          update: (_, auth, provider) =>
+              (provider ?? FeenChatProvider())..updateUser(auth.activeUid),
+        ),
       ],
       child: const _ConnectivitySyncCoordinator(child: MyApp()),
   );
@@ -195,6 +231,13 @@ class _ConnectivitySyncCoordinatorState
     WidgetsBinding.instance.addObserver(this);
     _wasOffline = ConnectivityService.instance.isOffline;
     ConnectivityService.instance.addListener(_onConnectivityChanged);
+    unawaited(_applyPreferredOrientationsForCurrentView());
+  }
+
+  @override
+  void didChangeMetrics() {
+    super.didChangeMetrics();
+    unawaited(_applyPreferredOrientationsForCurrentView());
   }
 
   @override
@@ -233,6 +276,7 @@ class _ConnectivitySyncCoordinatorState
     final missionProvider = context.read<MissionProvider>();
     final recurringProvider = context.read<RecurringProvider>();
     final belajarProvider = context.read<BelajarProvider>();
+    final feenChatProvider = context.read<FeenChatProvider>();
 
     unawaited(
       Future.wait([
@@ -249,6 +293,7 @@ class _ConnectivitySyncCoordinatorState
         belajarProvider.levels.isEmpty
             ? belajarProvider.loadAll(silent: true)
             : belajarProvider.loadProgress(silent: true),
+        feenChatProvider.loadSessions(silent: true),
       ]),
     );
   }
@@ -279,7 +324,42 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         fontFamily: 'Inter',
         scaffoldBackgroundColor: scaffoldBg,
-        colorScheme: ColorScheme.fromSeed(seedColor: primaryGreen),
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: primaryGreen,
+          surface: appBarBg,
+        ),
+        popupMenuTheme: PopupMenuThemeData(
+          color: appBarBg,
+          surfaceTintColor: Colors.transparent,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+            side: BorderSide(
+              color: primaryGreen.withValues(alpha: 0.45),
+              width: 1,
+            ),
+          ),
+        ),
+        dialogTheme: DialogThemeData(
+          backgroundColor: appBarBg,
+          surfaceTintColor: Colors.transparent,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+        ),
+        bottomSheetTheme: const BottomSheetThemeData(
+          backgroundColor: appBarBg,
+          surfaceTintColor: Colors.transparent,
+        ),
+        datePickerTheme: const DatePickerThemeData(
+          backgroundColor: appBarBg,
+          surfaceTintColor: Colors.transparent,
+          headerBackgroundColor: primaryGreen,
+          headerForegroundColor: Colors.white,
+          rangePickerBackgroundColor: appBarBg,
+          rangePickerSurfaceTintColor: Colors.transparent,
+          rangePickerHeaderBackgroundColor: primaryGreen,
+          rangePickerHeaderForegroundColor: Colors.white,
+        ),
         useMaterial3: true,
       ),
       routerConfig: appRouter,

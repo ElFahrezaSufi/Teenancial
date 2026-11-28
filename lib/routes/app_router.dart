@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import '../config/app_routes.dart';
 import '../models/contact_model.dart';
 import '../models/dompet_model.dart';
+import '../models/feen_chat_model.dart';
 import '../models/recurring_model.dart';
 import '../models/target_model.dart';
 import '../models/transaction_filter.dart';
@@ -325,17 +326,13 @@ final GoRouter appRouter = GoRouter(
       path: AppRoutes.semuaAktivitas,
       pageBuilder: (context, state) {
         final extra = state.extra;
-        late final int filterIndex;
-        late final bool autoFocusSearch;
+        int? filterIndex;
+        bool autoFocusSearch = false;
         if (extra is SemuaAktivitasArgs) {
           filterIndex = extra.filterIndex;
           autoFocusSearch = extra.autoFocusSearch;
         } else if (extra is int) {
           filterIndex = extra;
-          autoFocusSearch = false;
-        } else {
-          filterIndex = LocalStorageService.instance.riwayatFilterIndex;
-          autoFocusSearch = false;
         }
         return AppTransitions.slideHorizontal(
           key: state.pageKey,
@@ -349,10 +346,24 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       parentNavigatorKey: rootNavigatorKey,
       path: AppRoutes.tanyaFeen,
-      pageBuilder: (context, state) => AppTransitions.slideHorizontal(
-        key: state.pageKey,
-        child: const TanyaFeenScreen(),
-      ),
+      pageBuilder: (context, state) {
+        final extra = state.extra;
+        String? initialPrompt;
+        bool startNewSession = false;
+        if (extra is TanyaFeenArgs) {
+          initialPrompt = extra.initialPrompt;
+          startNewSession = extra.startNewSession;
+        } else if (extra is String) {
+          initialPrompt = extra;
+        }
+        return AppTransitions.slideHorizontal(
+          key: state.pageKey,
+          child: TanyaFeenScreen(
+            initialPrompt: initialPrompt,
+            startNewSession: startNewSession,
+          ),
+        );
+      },
     ),
     GoRoute(
       parentNavigatorKey: rootNavigatorKey,

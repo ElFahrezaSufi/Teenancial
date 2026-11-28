@@ -416,23 +416,54 @@ class ReportCalculator {
     }).toList(growable: false);
   }
 
+  /// Menghitung dana bersih yang dialokasikan ke Target Menabung pada [month]
+  /// (total Tabung ke target dikurangi Tarik dari target, minimal Rp 0).
+  static double calculateMonthlyTargetSavings(
+    List<TransactionModel> transactions,
+    DateTime month,
+  ) {
+    final targetMonth = normalizeMonth(month);
+    double netSaved = 0.0;
+    for (final tx in transactions) {
+      if (!isInMonth(tx.date, targetMonth)) continue;
+      if (tx.targetId == null || tx.targetId!.trim().isEmpty) continue;
+      if (!tx.isAdjustment) continue;
+      if (tx.type == TransactionType.expense) {
+        netSaved += tx.amount;
+      } else if (tx.type == TransactionType.income) {
+        netSaved -= tx.amount;
+      }
+    }
+    return netSaved > 0 ? netSaved : 0.0;
+  }
+
   /// Menghasilkan wawasan singkat berbasis aturan beserta konteks terstruktur
-  /// yang siap diteruskan ke Tanya Feen (Gemini AI) di masa depan.
+  /// yang siap diteruskan ke Tanya Feen (Gemini AI).
   static ReportInsight generateInsight({
     required MonthlyReportSummary summary,
     required CategoryBreakdownResult expenseBreakdown,
     required CategoryBreakdownResult incomeBreakdown,
     required String Function(double) formatCurrency,
+    double? monthlyTargetSavings,
     DateTime? now,
   }) {
     final periodTitle = monthTitle(summary.month);
+    final double? targetSavingsRate =
+        (monthlyTargetSavings != null &&
+                monthlyTargetSavings > 0 &&
+                summary.totalIncome > 0)
+            ? (monthlyTargetSavings / summary.totalIncome) * 100.0
+            : null;
 
     if (summary.isEmpty) {
+      final List<String> emptyHighlights = [
+        'Catat pemasukan atau pengeluaranmu bulan ini untuk melihat proporsi kategori dan tren bulanan.',
+        if (monthlyTargetSavings != null && monthlyTargetSavings > 0)
+          'Tabungan target bulan ini: ${formatCurrency(monthlyTargetSavings)} dialokasikan ke target menabung.',
+      ];
       return ReportInsight(
         headline: 'Belum ada arus kas di $periodTitle',
-        highlights: const [
-          'Catat pemasukan atau pengeluaranmu bulan ini untuk melihat proporsi kategori dan tren bulanan.',
-        ],
+        highlights: List<String>.unmodifiable(emptyHighlights),
         structuredContext: {
           'period': periodTitle,
           'totalIncome': 0.0,
@@ -440,6 +471,8 @@ class ReportCalculator {
           'netCashflow': 0.0,
           'dailyAverageExpense': 0.0,
           'savingsRatePercent': null,
+          'monthlyTargetSavings': monthlyTargetSavings ?? 0.0,
+          'targetSavingsRatePercent': null,
           'topExpenseCategory': null,
           'topIncomeCategory': null,
         },
@@ -536,6 +569,25 @@ class ReportCalculator {
       );
     }
 
+    // 6. Persentase alokasi tabungan target bulan ini (opsional bila dikirim)
+    if (monthlyTargetSavings != null) {
+      if (monthlyTargetSavings > 0 && summary.totalIncome > 0) {
+        final int targetPct =
+            ((monthlyTargetSavings / summary.totalIncome) * 100.0).round();
+        highlights.add(
+          'Tabungan target bulan ini: ${formatCurrency(monthlyTargetSavings)} ($targetPct% dari pemasukan).',
+        );
+      } else if (monthlyTargetSavings > 0) {
+        highlights.add(
+          'Tabungan target bulan ini: ${formatCurrency(monthlyTargetSavings)} dialokasikan ke target menabung.',
+        );
+      } else if (summary.netCashflow > 0) {
+        highlights.add(
+          'Tabungan target bulan ini: belum ada dana yang disisihkan ke Target Menabung.',
+        );
+      }
+    }
+
     return ReportInsight(
       headline: headline,
       highlights: List<String>.unmodifiable(highlights),
@@ -546,6 +598,8 @@ class ReportCalculator {
         'netCashflow': summary.netCashflow,
         'dailyAverageExpense': dailyAvg,
         'savingsRatePercent': savingRate,
+        'monthlyTargetSavings': monthlyTargetSavings ?? 0.0,
+        'targetSavingsRatePercent': targetSavingsRate,
         'expenseChangePercent': summary.expenseChangePercent,
         'incomeChangePercent': summary.incomeChangePercent,
         'topExpenseCategory': expenseBreakdown.fullItems.isNotEmpty

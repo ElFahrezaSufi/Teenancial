@@ -175,6 +175,17 @@ class FirestoreService {
   CollectionReference<Map<String, dynamic>> recurringCol(String uid) =>
       userDoc(uid).collection(AppConstants.recurringSubcollection);
 
+  CollectionReference<Map<String, dynamic>> chatSessionsCol(String uid) =>
+      userDoc(uid).collection(AppConstants.chatSessionsSubcollection);
+
+  CollectionReference<Map<String, dynamic>> chatMessagesCol(
+    String uid,
+    String sessionId,
+  ) =>
+      chatSessionsCol(uid)
+          .doc(sessionId)
+          .collection(AppConstants.chatMessagesSubcollection);
+
   CollectionReference<Map<String, dynamic>> get belajarLevelsCol =>
       db.collection(AppConstants.belajarLevelsCollection);
 
