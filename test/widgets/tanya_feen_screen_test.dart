@@ -370,6 +370,130 @@ void main() {
         expect(find.text('Riwayat Obrolan'), findsOneWidget);
       },
     );
+
+    testWidgets(
+      'menghapus sesi di FeenSessionSheet langsung memperbarui daftar, memindahkan badge Aktif, menampilkan banner sukses, dan menutup sheet saat sesi terakhir dihapus',
+      (WidgetTester tester) async {
+        final userProvider = UserProvider(
+          repository: _StubUserRepo(
+            const UserModel(
+              uid: 'u1',
+              email: 'alya@example.com',
+              name: 'Alya',
+            ),
+          ),
+        )..updateUser('u1');
+        final dompetProvider = DompetProvider(
+          repository: _StubDompetRepo(const []),
+        )..updateUser('u1');
+        final missionProvider = MissionProvider(
+          onLoad: (_) async => null,
+          onSave: (_, __) async {},
+        )..bindDependencies('u1', userProvider);
+        final txProvider = TransactionProvider(
+          repository: _StubTxRepo(const []),
+        )..bindDependencies('u1', dompetProvider, missionProvider);
+        final targetProvider = TargetProvider(
+          repository: _StubTargetRepo(const []),
+        )..bindDependencies('u1', missionProvider);
+        final belajarProvider = BelajarProvider(
+          repository: _StubBelajarRepo(),
+        )..bindDependencies('u1', missionProvider);
+
+        final repo = _StubChatRepo();
+        final s2 = FeenChatSession(
+          id: 's2',
+          title: 'Sesi Kedua Terbaru',
+          lastMessagePreview: 'Balasan sesi kedua',
+          messageCount: 2,
+          createdAt: DateTime(2026, 11, 28, 10, 0),
+          updatedAt: DateTime(2026, 11, 28, 10, 5),
+        );
+        final s1 = FeenChatSession(
+          id: 's1',
+          title: 'Sesi Pertama Lama',
+          lastMessagePreview: 'Balasan sesi pertama',
+          messageCount: 2,
+          createdAt: DateTime(2026, 11, 27, 9, 0),
+          updatedAt: DateTime(2026, 11, 27, 9, 5),
+        );
+        repo.sessions.addAll([s2, s1]);
+        repo.msgs['s2'] = [
+          FeenChatMessage(
+            id: 'm2u',
+            role: FeenMessageRole.user,
+            text: 'Halo sesi dua',
+            createdAt: DateTime(2026, 11, 28, 10, 0),
+          ),
+        ];
+        repo.msgs['s1'] = [
+          FeenChatMessage(
+            id: 'm1u',
+            role: FeenMessageRole.user,
+            text: 'Halo sesi satu',
+            createdAt: DateTime(2026, 11, 27, 9, 0),
+          ),
+        ];
+
+        final chatProvider = FeenChatProvider(
+          repository: repo,
+          geminiService: GeminiService(
+            client: MockClient((_) async => http.Response('{}', 200)),
+            apiKey: 'AIzaTestKey123',
+          ),
+        )..updateUser('u1');
+
+        await tester.pumpWidget(
+          buildHarness(
+            chatProvider: chatProvider,
+            userProvider: userProvider,
+            dompetProvider: dompetProvider,
+            txProvider: txProvider,
+            targetProvider: targetProvider,
+            belajarProvider: belajarProvider,
+            missionProvider: missionProvider,
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        expect(chatProvider.activeSessionId, 's2');
+
+        // Buka sheet Riwayat Obrolan
+        await tester.tap(find.byTooltip('Riwayat Obrolan'));
+        await tester.pumpAndSettle();
+        expect(find.text('Sesi Kedua Terbaru'), findsOneWidget);
+        expect(find.text('Sesi Pertama Lama'), findsOneWidget);
+        expect(find.text('Aktif'), findsOneWidget);
+
+        // Hapus sesi aktif pertama (Sesi Kedua Terbaru)
+        await tester.tap(find.byTooltip('Hapus obrolan').first);
+        await tester.pumpAndSettle();
+        expect(find.text('Hapus Riwayat Obrolan?'), findsOneWidget);
+
+        await tester.tap(find.text('Hapus'));
+        // Gunakan pump terbatas agar inline feedback banner (timer 3 dtk) terverifikasi
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 300));
+
+        expect(tester.takeException(), isNull);
+        expect(find.text('Sesi Kedua Terbaru'), findsNothing);
+        expect(find.text('Sesi Pertama Lama'), findsOneWidget);
+        expect(chatProvider.activeSessionId, 's1');
+        expect(find.text('Aktif'), findsOneWidget);
+        expect(find.text('Riwayat obrolan berhasil dihapus.'), findsOneWidget);
+
+        // Hapus sesi terakhir (Sesi Pertama Lama) -> sheet otomatis tertutup & SnackBar tampil
+        await tester.tap(find.byTooltip('Hapus obrolan').first);
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Hapus'));
+        await tester.pumpAndSettle();
+
+        expect(tester.takeException(), isNull);
+        expect(chatProvider.sessions, isEmpty);
+        expect(find.text('Sesi Pertama Lama'), findsNothing);
+        expect(find.text('Riwayat obrolan berhasil dihapus.'), findsOneWidget);
+      },
+    );
   });
 
   group('LaporanScreen & WeeklyForecastSheet Widget Tests', () {

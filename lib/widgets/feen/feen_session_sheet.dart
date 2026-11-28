@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:material_ui/material_ui.dart';
 import '../../models/feen_chat_model.dart';
 import '../../theme/app_colors.dart';
@@ -8,7 +9,11 @@ import '../common/loading_overlay.dart';
 import 'feen_avatar.dart';
 
 /// Bottom sheet daftar riwayat sesi percakapan Tanya Feen lintas perangkat.
-class FeenSessionSheet extends StatelessWidget {
+///
+/// Dirender di dalam `Consumer<FeenChatProvider>` agar setiap penghapusan sesi
+/// langsung memperbarui daftar dan badge `Aktif` secara real-time, dengan
+/// feedback konfirmasi inline yang selalu terlihat di dalam sheet.
+class FeenSessionSheet extends StatefulWidget {
   final List<FeenChatSession> sessions;
   final String? activeSessionId;
   final int userLevel;
@@ -16,6 +21,7 @@ class FeenSessionSheet extends StatelessWidget {
   final VoidCallback onStartNewSession;
   final ValueChanged<FeenChatSession> onSelectSession;
   final Future<void> Function(FeenChatSession session) onDeleteSession;
+  final VoidCallback? onAllSessionsDeleted;
 
   const FeenSessionSheet({
     super.key,
@@ -26,7 +32,37 @@ class FeenSessionSheet extends StatelessWidget {
     required this.onStartNewSession,
     required this.onSelectSession,
     required this.onDeleteSession,
+    this.onAllSessionsDeleted,
   });
+
+  @override
+  State<FeenSessionSheet> createState() => _FeenSessionSheetState();
+}
+
+class _FeenSessionSheetState extends State<FeenSessionSheet> {
+  String? _feedbackMessage;
+  bool _feedbackIsError = false;
+  Timer? _feedbackTimer;
+
+  @override
+  void dispose() {
+    _feedbackTimer?.cancel();
+    super.dispose();
+  }
+
+  void _showInlineFeedback(String message, {bool isError = false}) {
+    _feedbackTimer?.cancel();
+    if (!mounted) return;
+    setState(() {
+      _feedbackMessage = message;
+      _feedbackIsError = isError;
+    });
+    _feedbackTimer = Timer(const Duration(seconds: 3), () {
+      if (mounted) {
+        setState(() => _feedbackMessage = null);
+      }
+    });
+  }
 
   Future<void> _confirmAndDelete(
     BuildContext context,
@@ -41,41 +77,36 @@ class FeenSessionSheet extends StatelessWidget {
     );
     if (!confirmed || !context.mounted) return;
 
+    final bool wasLastSession = widget.sessions.length <= 1;
+
     try {
       await runWithLoadingDialog(
         context,
         message: 'Menghapus riwayat obrolan...',
-        action: () => onDeleteSession(session),
+        action: () => widget.onDeleteSession(session),
       );
-      if (context.mounted) {
-        ScaffoldMessenger.of(context)
-          ..hideCurrentSnackBar()
-          ..showSnackBar(
-            const SnackBar(
-              content: Text('Riwayat obrolan berhasil dihapus.'),
-              backgroundColor: primaryGreen,
-            ),
-          );
+      if (!context.mounted) return;
+
+      if (wasLastSession || widget.sessions.isEmpty) {
+        Navigator.pop(context);
+        widget.onAllSessionsDeleted?.call();
+      } else {
+        _showInlineFeedback('Riwayat obrolan berhasil dihapus.');
       }
     } catch (e) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context)
-          ..hideCurrentSnackBar()
-          ..showSnackBar(
-            SnackBar(
-              content: Text(
-                'Gagal menghapus obrolan: ${ErrorMapper.message(e)}',
-              ),
-              backgroundColor: Colors.redAccent,
-            ),
-          );
-      }
+      if (!context.mounted) return;
+      _showInlineFeedback(
+        'Gagal menghapus obrolan: ${ErrorMapper.message(e)}',
+        isError: true,
+      );
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final maxHeight = MediaQuery.sizeOf(context).height * 0.72;
+    final sessions = widget.sessions;
+    final activeSessionId = widget.activeSessionId;
 
     return Container(
       margin: const EdgeInsets.only(top: 2),
@@ -110,8 +141,8 @@ class FeenSessionSheet extends StatelessWidget {
                   child: Row(
                     children: [
                       FeenAvatar(
-                        level: userLevel,
-                        equipped: feenEquipped,
+                        level: widget.userLevel,
+                        equipped: widget.feenEquipped,
                         size: 38,
                       ),
                       const SizedBox(width: 10),
@@ -132,7 +163,7 @@ class FeenSessionSheet extends StatelessWidget {
                       ElevatedButton.icon(
                         onPressed: () {
                           Navigator.pop(context);
-                          onStartNewSession();
+                          widget.onStartNewSession();
                         },
                         icon: const Icon(Icons.add_rounded, size: 16),
                         label: const Text(
@@ -160,6 +191,72 @@ class FeenSessionSheet extends StatelessWidget {
                   ),
                 ),
                 const Divider(color: primaryGreen, height: 1, thickness: 1),
+                if (_feedbackMessage != null)
+                  Container(
+                    width: double.infinity,
+                    margin: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 10,
+                    ),
+                    decoration: BoxDecoration(
+                      color: _feedbackIsError
+                          ? Colors.redAccent.withValues(alpha: 0.12)
+                          : primaryGreen.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: _feedbackIsError
+                            ? Colors.redAccent.withValues(alpha: 0.5)
+                            : primaryGreen.withValues(alpha: 0.45),
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          _feedbackIsError
+                              ? Icons.error_outline_rounded
+                              : Icons.check_circle_outline_rounded,
+                          size: 18,
+                          color: _feedbackIsError
+                              ? Colors.redAccent
+                              : primaryGreen,
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            _feedbackMessage!,
+                            style: TextStyle(
+                              color: _feedbackIsError
+                                  ? Colors.redAccent
+                                  : primaryGreen,
+                              fontSize: 12,
+                              fontFamily: 'Inter',
+                              fontWeight: FontWeight.w700,
+                              height: 1.35,
+                            ),
+                          ),
+                        ),
+                        InkWell(
+                          borderRadius: BorderRadius.circular(100),
+                          onTap: () {
+                            _feedbackTimer?.cancel();
+                            setState(() => _feedbackMessage = null);
+                          },
+                          child: Padding(
+                            padding: const EdgeInsets.all(2),
+                            child: Icon(
+                              Icons.close_rounded,
+                              size: 16,
+                              color: (_feedbackIsError
+                                      ? Colors.redAccent
+                                      : primaryGreen)
+                                  .withValues(alpha: 0.7),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 if (sessions.isEmpty)
                   Padding(
                     padding: const EdgeInsets.all(28),
@@ -216,7 +313,7 @@ class FeenSessionSheet extends StatelessWidget {
                             borderRadius: BorderRadius.circular(16),
                             onTap: () {
                               Navigator.pop(context);
-                              onSelectSession(session);
+                              widget.onSelectSession(session);
                             },
                             child: Container(
                               padding: const EdgeInsets.fromLTRB(14, 12, 8, 12),

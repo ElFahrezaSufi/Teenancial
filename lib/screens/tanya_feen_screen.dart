@@ -175,20 +175,31 @@ class _TanyaFeenScreenState extends State<TanyaFeenScreen> {
   }
 
   void _showSessionSheet() {
-    final user = context.read<UserProvider>();
-    final chat = context.read<FeenChatProvider>();
+    final parentMessenger = ScaffoldMessenger.of(context);
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (_) => FeenSessionSheet(
-        sessions: chat.sessions,
-        activeSessionId: chat.activeSessionId,
-        userLevel: user.level,
-        feenEquipped: user.feenEquipped,
-        onStartNewSession: () => chat.startNewSession(),
-        onSelectSession: (session) => chat.selectSession(session.id),
-        onDeleteSession: (session) => chat.deleteSession(session.id),
+      builder: (_) => Consumer2<FeenChatProvider, UserProvider>(
+        builder: (_, chat, user, __) => FeenSessionSheet(
+          sessions: chat.sessions,
+          activeSessionId: chat.activeSessionId,
+          userLevel: user.level,
+          feenEquipped: user.feenEquipped,
+          onStartNewSession: () => chat.startNewSession(),
+          onSelectSession: (session) => chat.selectSession(session.id),
+          onDeleteSession: (session) => chat.deleteSession(session.id),
+          onAllSessionsDeleted: () {
+            parentMessenger
+              ..hideCurrentSnackBar()
+              ..showSnackBar(
+                const SnackBar(
+                  content: Text('Riwayat obrolan berhasil dihapus.'),
+                  backgroundColor: primaryGreen,
+                ),
+              );
+          },
+        ),
       ),
     );
   }
