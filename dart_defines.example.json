@@ -1,0 +1,5 @@
+{
+  "GEMINI_API_KEY": "ISI_API_KEY_GOOGLE_AI_STUDIO_DI_SINI",
+  "GEMINI_MODEL": "gemini-flash-latest",
+  "GEMINI_FALLBACK_MODEL": "gemini-2.5-flash-lite"
+}
