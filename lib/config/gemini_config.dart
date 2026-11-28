@@ -4,6 +4,7 @@ enum GeminiErrorType {
   rateLimited,
   modelUnavailable,
   safetyBlocked,
+  timeout,
   network,
   invalidResponse,
   server,
@@ -47,7 +48,9 @@ class GeminiConfig {
   );
 
   static const String apiHost = 'generativelanguage.googleapis.com';
-  static const Duration requestTimeout = Duration(seconds: 25);
+  static const Duration requestTimeout = Duration(seconds: 20);
+  static const int maxOutputTokens = 1500;
+  static const String defaultThinkingLevel = 'low';
 
   /// Mengecek apakah API key valid dan bukan placeholder dari file contoh.
   static bool isKeyConfigured([String? candidateKey]) {

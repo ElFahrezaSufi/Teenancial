@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import '../config/gemini_config.dart';
 import '../models/feen_chat_model.dart';
@@ -8,8 +9,8 @@ import '../models/feen_chat_model.dart';
 /// Layanan REST client untuk Gemini Developer API (`generateContent`).
 ///
 /// Mendukung injeksi [http.Client] untuk unit test serta fallback otomatis
-/// ke model cadangan saat model utama mengalami rate-limit (`429`) atau tidak
-/// tersedia (`404`/`503`).
+/// ke model cadangan saat model utama mengalami rate-limit (`429`), timeout,
+/// atau tidak tersedia (`404`/`503`).
 class GeminiService {
   final http.Client _client;
   final bool _ownsClient;
@@ -57,12 +58,6 @@ class GeminiService {
       );
     }
 
-    final payload = _buildPayload(
-      systemPrompt: systemPrompt,
-      history: history,
-      userMessage: trimmedPrompt,
-    );
-
     final List<String> modelChain = [
       if (_primaryModel.isNotEmpty) _primaryModel,
       if (_fallbackModel.isNotEmpty && _fallbackModel != _primaryModel)
@@ -76,13 +71,22 @@ class GeminiService {
       final bool hasNextModel = i + 1 < modelChain.length;
 
       try {
-        return await _callModel(model: model, payload: payload);
+        return await _callModelWithThinkingFallback(
+          model: model,
+          systemPrompt: systemPrompt,
+          history: history,
+          userMessage: trimmedPrompt,
+        );
       } on GeminiApiException catch (e) {
         final canFallback = hasNextModel &&
             (e.type == GeminiErrorType.rateLimited ||
                 e.type == GeminiErrorType.modelUnavailable ||
+                e.type == GeminiErrorType.timeout ||
                 e.type == GeminiErrorType.server);
         if (canFallback) {
+          _log(
+            'Fallback dari $model (${e.type.name}) ke ${modelChain[i + 1]}',
+          );
           lastRetryableError = e;
           continue;
         }
@@ -97,10 +101,45 @@ class GeminiService {
         );
   }
 
+  Future<String> _callModelWithThinkingFallback({
+    required String model,
+    required String systemPrompt,
+    required List<FeenChatMessage> history,
+    required String userMessage,
+  }) async {
+    final payloadWithThinking = _buildPayload(
+      systemPrompt: systemPrompt,
+      history: history,
+      userMessage: userMessage,
+      includeThinkingConfig: true,
+    );
+
+    try {
+      return await _callModel(model: model, payload: payloadWithThinking);
+    } on GeminiApiException catch (e) {
+      // Pengaman jika model tertentu menolak field thinkingConfig dengan HTTP 400:
+      // ulang 1 kali tanpa thinkingConfig sebelum melempar error.
+      if (e.statusCode == 400) {
+        _log(
+          '$model menolak thinkingConfig (HTTP 400), mengulang tanpa thinkingConfig',
+        );
+        final payloadWithoutThinking = _buildPayload(
+          systemPrompt: systemPrompt,
+          history: history,
+          userMessage: userMessage,
+          includeThinkingConfig: false,
+        );
+        return await _callModel(model: model, payload: payloadWithoutThinking);
+      }
+      rethrow;
+    }
+  }
+
   Map<String, dynamic> _buildPayload({
     required String systemPrompt,
     required List<FeenChatMessage> history,
     required String userMessage,
+    required bool includeThinkingConfig,
   }) {
     final List<Map<String, dynamic>> contents = [
       for (final msg in history)
@@ -119,6 +158,17 @@ class GeminiService {
       },
     ];
 
+    final Map<String, dynamic> generationConfig = {
+      'temperature': 0.6,
+      'topP': 0.9,
+      'maxOutputTokens': GeminiConfig.maxOutputTokens,
+    };
+    if (includeThinkingConfig) {
+      generationConfig['thinkingConfig'] = {
+        'thinkingLevel': GeminiConfig.defaultThinkingLevel,
+      };
+    }
+
     return {
       'systemInstruction': {
         'parts': [
@@ -126,11 +176,7 @@ class GeminiService {
         ],
       },
       'contents': contents,
-      'generationConfig': {
-        'temperature': 0.6,
-        'topP': 0.9,
-        'maxOutputTokens': 700,
-      },
+      'generationConfig': generationConfig,
     };
   }
 
@@ -139,6 +185,7 @@ class GeminiService {
     required Map<String, dynamic> payload,
   }) async {
     final uri = GeminiConfig.generateContentUri(model);
+    final stopwatch = Stopwatch()..start();
 
     late http.Response response;
     try {
@@ -153,27 +200,42 @@ class GeminiService {
           )
           .timeout(_timeout);
     } on TimeoutException {
+      stopwatch.stop();
+      _log('$model TIMEOUT (${stopwatch.elapsedMilliseconds}ms)');
       throw const GeminiApiException(
-        GeminiErrorType.network,
+        GeminiErrorType.timeout,
         'Feen terlalu lama merespons. Periksa koneksi internetmu lalu coba lagi.',
       );
     } on SocketException {
+      stopwatch.stop();
+      _log('$model SocketException (${stopwatch.elapsedMilliseconds}ms)');
       throw const GeminiApiException(
         GeminiErrorType.network,
         'Tidak dapat terhubung ke layanan Feen. Periksa koneksi internetmu.',
       );
     } on http.ClientException {
+      stopwatch.stop();
+      _log('$model ClientException (${stopwatch.elapsedMilliseconds}ms)');
       throw const GeminiApiException(
         GeminiErrorType.network,
         'Koneksi ke layanan Feen terputus. Silakan coba lagi.',
       );
     }
 
+    stopwatch.stop();
     if (response.statusCode == 200) {
+      _log('$model HTTP 200 (${stopwatch.elapsedMilliseconds}ms)');
       return _extractReplyText(response.body);
     }
 
+    _log('$model HTTP ${response.statusCode} (${stopwatch.elapsedMilliseconds}ms)');
     throw _mapHttpError(response.statusCode, response.body);
+  }
+
+  void _log(String message) {
+    if (kDebugMode) {
+      debugPrint('[GeminiService] $message');
+    }
   }
 
   String _extractReplyText(String body) {
@@ -233,7 +295,9 @@ class GeminiService {
       if (parts is List) {
         final buffer = StringBuffer();
         for (final part in parts) {
-          if (part is Map<String, dynamic> && part['text'] is String) {
+          if (part is Map<String, dynamic> &&
+              part['thought'] != true &&
+              part['text'] is String) {
             buffer.write(part['text'] as String);
           }
         }
