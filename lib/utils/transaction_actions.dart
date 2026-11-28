@@ -5,6 +5,7 @@ import '../config/app_routes.dart';
 import '../models/transaction_model.dart';
 import '../providers/transaction_provider.dart';
 import '../theme/app_colors.dart';
+import '../widgets/common/loading_overlay.dart';
 import 'confirm_dialog.dart';
 import 'currency_formatter.dart';
 import 'error_mapper.dart';
@@ -93,7 +94,11 @@ class TransactionActions {
     if (!confirm || !context.mounted) return;
 
     try {
-      await txProvider.deleteTransaction(id);
+      await runWithLoadingDialog(
+        context,
+        message: 'Menghapus transaksi...',
+        action: () => txProvider.deleteTransaction(id),
+      );
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(

@@ -1,6 +1,8 @@
+import 'dart:async';
 import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 import '../models/user_model.dart';
 import '../services/cloudinary_service.dart';
 import '../services/connectivity_service.dart';
@@ -36,7 +38,12 @@ class UserRepository {
         _firestoreService.userDoc(uid),
       );
       if (doc.exists && doc.data() != null) {
-        final parsed = UserModel.fromMap(doc.data()!, uidFallback: uid);
+        final rawData = doc.data()!;
+        if (!doc.metadata.isFromCache &&
+            UserModel.hasDeprecatedFields(rawData)) {
+          unawaited(_cleanupDeprecatedFields(uid));
+        }
+        final parsed = UserModel.fromMap(rawData, uidFallback: uid);
         return parsed.copyWith(
           email: parsed.email.isNotEmpty
               ? parsed.email
@@ -61,12 +68,20 @@ class UserRepository {
     );
   }
 
+  Future<void> _cleanupDeprecatedFields(String uid) async {
+    try {
+      await _firestoreService.userDoc(uid).update({
+        for (final field in UserModel.deprecatedFields)
+          field: FieldValue.delete(),
+      });
+    } catch (e) {
+      debugPrint('Pembersihan field profil usang dilewati: $e');
+    }
+  }
+
   Future<UserModel> updateUserProfile({
     required String uid,
     required String name,
-    required String age,
-    DateTime? birthDate,
-    required String gender,
     File? newImageFile,
     String? currentImageUrl,
     bool removeImage = false,
@@ -87,19 +102,14 @@ class UserRepository {
       await currentUser.updatePhotoURL(finalImageUrl);
     }
 
-    final resolvedAge = birthDate != null
-        ? UserModel.calculateAge(birthDate).toString()
-        : age.trim();
-
     await _firestoreService.userDoc(uid).set(
       {
         'uid': uid,
         if (currentUser?.email != null) 'email': currentUser!.email,
         'name': trimmedName,
-        'age': resolvedAge,
-        'birthDate': birthDate != null ? Timestamp.fromDate(birthDate) : null,
-        'gender': gender.trim(),
         'profileImageUrl': finalImageUrl,
+        for (final field in UserModel.deprecatedFields)
+          field: FieldValue.delete(),
       },
       SetOptions(merge: true),
     );

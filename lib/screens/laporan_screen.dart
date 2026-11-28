@@ -11,6 +11,7 @@ import '../providers/transaction_provider.dart';
 import '../theme/app_colors.dart';
 import '../utils/currency_formatter.dart';
 import '../utils/report_calculator.dart';
+import '../widgets/common/async_state_view.dart';
 import '../widgets/common/custom_app_bar.dart';
 import '../widgets/common/custom_card.dart';
 
@@ -168,7 +169,18 @@ class _LaporanScreenState extends State<LaporanScreen> {
             ),
           ),
           SafeArea(
-            child: RefreshIndicator(
+            child: txProvider.isLoading && allTransactions.isEmpty
+                ? const Center(
+                    child: CircularProgressIndicator(color: primaryGreen),
+                  )
+                : txProvider.errorMessage != null && allTransactions.isEmpty
+                    ? ErrorStateView(
+                        errorMessage: txProvider.errorMessage!,
+                        onRetry: () => context
+                            .read<TransactionProvider>()
+                            .loadTransactions(),
+                      )
+                    : RefreshIndicator(
               color: primaryGreen,
               backgroundColor: scaffoldBg,
               onRefresh: () => context
@@ -591,20 +603,22 @@ class _LaporanScreenState extends State<LaporanScreen> {
                           ),
                         ),
                         const SizedBox(height: 2),
-                        Text(
-                          Formatters.rupiah(
-                            activeSlice != null
-                                ? activeSlice.amount
-                                : breakdown.totalAmount,
-                          ),
-                          textAlign: TextAlign.center,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            color: primaryGreen,
-                            fontSize: 12,
-                            fontFamily: 'Inter',
-                            fontWeight: FontWeight.w800,
+                        FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Text(
+                            Formatters.rupiah(
+                              activeSlice != null
+                                  ? activeSlice.amount
+                                  : breakdown.totalAmount,
+                            ),
+                            textAlign: TextAlign.center,
+                            maxLines: 1,
+                            style: const TextStyle(
+                              color: primaryGreen,
+                              fontSize: 12,
+                              fontFamily: 'Inter',
+                              fontWeight: FontWeight.w800,
+                            ),
                           ),
                         ),
                         if (activeSlice != null)

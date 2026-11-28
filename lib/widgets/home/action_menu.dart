@@ -8,6 +8,8 @@ class ActionMenu extends StatelessWidget {
   final String label;
   final VoidCallback onTap;
   final EdgeInsetsGeometry iconPadding;
+  final double circleSize;
+  final double iconSize;
 
   const ActionMenu({
     super.key,
@@ -15,6 +17,8 @@ class ActionMenu extends StatelessWidget {
     required this.label,
     required this.onTap,
     this.iconPadding = EdgeInsets.zero,
+    this.circleSize = 72,
+    this.iconSize = 36,
   });
 
   @override
@@ -23,11 +27,13 @@ class ActionMenu extends StatelessWidget {
 
     return GestureDetector(
       onTap: onTap,
+      behavior: HitTestBehavior.opaque,
       child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
           Container(
-            width: 72,
-            height: 72,
+            width: circleSize,
+            height: circleSize,
             decoration: const BoxDecoration(
               color: primaryGreen,
               shape: BoxShape.circle,
@@ -38,8 +44,8 @@ class ActionMenu extends StatelessWidget {
                 child: isPng
                     ? Image.asset(
                         assetPath,
-                        width: 36,
-                        height: 36,
+                        width: iconSize,
+                        height: iconSize,
                         color: iconLightGreen,
                         errorBuilder: (context, error, stackTrace) =>
                             const Icon(Icons.broken_image,
@@ -47,8 +53,8 @@ class ActionMenu extends StatelessWidget {
                       )
                     : SvgPicture.asset(
                         assetPath,
-                        width: 36,
-                        height: 36,
+                        width: iconSize,
+                        height: iconSize,
                         colorFilter: const ColorFilter.mode(
                             iconLightGreen, BlendMode.srcIn),
                         placeholderBuilder: (context) => const SizedBox(
@@ -62,7 +68,14 @@ class ActionMenu extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 8),
-          Text(label, style: AppTextStyles.captionGreen),
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(
+              label,
+              maxLines: 1,
+              style: AppTextStyles.captionGreen,
+            ),
+          ),
         ],
       ),
     );

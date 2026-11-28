@@ -57,17 +57,7 @@ class DompetRepository {
     final items = snapshot.docs
         .map((doc) => DompetItem.fromMap(doc.data(), docId: doc.id))
         .toList();
-    items.sort((a, b) {
-      if (a.createdAt != null && b.createdAt != null) {
-        final cmp = a.createdAt!.compareTo(b.createdAt!);
-        if (cmp != 0) return cmp;
-      } else if (a.createdAt == null && b.createdAt != null) {
-        return -1;
-      } else if (a.createdAt != null && b.createdAt == null) {
-        return 1;
-      }
-      return a.id.compareTo(b.id);
-    });
+    items.sort(DompetItem.compareByTypeAndCreatedAt);
     return items;
   }
 

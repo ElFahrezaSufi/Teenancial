@@ -1,12 +1,13 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:material_ui/material_ui.dart';
-import '../../theme/app_colors.dart';
 import '../../theme/app_text_styles.dart';
+import '../common/user_avatar_with_frame.dart';
 
 class ProfileHeader extends StatelessWidget {
   final String displayName;
   final int level;
   final String? imageUrl;
+  final String? frameId;
   final VoidCallback onProfileTap;
 
   const ProfileHeader({
@@ -14,6 +15,7 @@ class ProfileHeader extends StatelessWidget {
     required this.displayName,
     required this.level,
     this.imageUrl,
+    this.frameId,
     required this.onProfileTap,
   });
 
@@ -27,41 +29,37 @@ class ProfileHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final activeProvider = _getAvatarProvider();
+    final hasFrame = frameId != null && frameId!.isNotEmpty;
 
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Padding(
-          padding: const EdgeInsets.only(left: 24),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('Halo $displayName !', style: AppTextStyles.headerName),
-              Text('level $level', style: AppTextStyles.headerLevel),
-            ],
+        Expanded(
+          child: Padding(
+            padding: const EdgeInsets.only(left: 24, right: 12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Halo $displayName !',
+                  style: AppTextStyles.headerName,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                Text('level $level', style: AppTextStyles.headerLevel),
+              ],
+            ),
           ),
         ),
         Padding(
-          padding: const EdgeInsets.only(right: 24),
+          padding: EdgeInsets.only(right: hasFrame ? 14 : 24),
           child: GestureDetector(
             onTap: onProfileTap,
-            child: Container(
-              width: 50,
-              height: 50,
-              decoration: BoxDecoration(
-                color: inputBg,
-                shape: BoxShape.circle,
-                border: Border.all(color: primaryGreen, width: 2),
-                image: activeProvider != null
-                    ? DecorationImage(
-                        image: activeProvider,
-                        fit: BoxFit.cover,
-                      )
-                    : null,
-              ),
-              child: activeProvider == null
-                  ? const Icon(Icons.person, color: primaryGreen, size: 30)
-                  : null,
+            child: UserAvatarWithFrame(
+              avatarImage: activeProvider,
+              frameId: frameId,
+              size: hasFrame ? 68 : 50,
+              placeholderIconSize: 30,
             ),
           ),
         ),

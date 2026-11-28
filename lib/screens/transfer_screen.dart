@@ -23,10 +23,12 @@ import '../widgets/transaction/transaction_scaffold.dart';
 
 class TransferScreen extends StatefulWidget {
   final TransactionModel? transactionToEdit;
+  final String? initialRecipientName;
 
   const TransferScreen({
     super.key,
     this.transactionToEdit,
+    this.initialRecipientName,
   });
 
   @override
@@ -91,6 +93,10 @@ class _TransferScreenState extends State<TransferScreen> {
               editing.title.substring('Transfer ke '.length).trim();
         }
       }
+    } else if (widget.initialRecipientName != null &&
+        widget.initialRecipientName!.trim().isNotEmpty) {
+      _isSelfTransfer = false;
+      _untukController.text = widget.initialRecipientName!.trim();
     }
 
     WidgetsBinding.instance.addPostFrameCallback((_) async {
@@ -202,17 +208,17 @@ class _TransferScreenState extends State<TransferScreen> {
       final txProvider = context.read<TransactionProvider>();
 
       String? contactId;
-      final recipientName = _untukController.text.trim();
+      String recipientName = _untukController.text.trim();
 
       if (!_isSelfTransfer && recipientName.isNotEmpty) {
-        final existing = contactProvider.contacts.where(
-          (c) => c.name.trim().toLowerCase() == recipientName.toLowerCase(),
-        );
-        if (existing.isNotEmpty) {
-          contactId = existing.first.id;
+        final existing = contactProvider.findByName(recipientName);
+        if (existing != null) {
+          contactId = existing.id;
+          recipientName = existing.name;
         } else if (_simpanKeDaftar) {
           final newContact = await contactProvider.addContact(recipientName);
           contactId = newContact.id;
+          recipientName = newContact.name;
         }
       }
 
@@ -342,11 +348,44 @@ class _TransferScreenState extends State<TransferScreen> {
                           ),
                         ),
                       ),
-                      AnimatedSwitcher(
-                        duration: const Duration(milliseconds: 400),
+                      ValueListenableBuilder<TextEditingValue>(
+                        valueListenable: _jumlahController,
+                        builder: (context, amountValue, _) {
+                          return DompetSelectionDropdown(
+                            label: _isSelfTransfer ? 'Dari' : 'Sumber Uang',
+                            hint: _isSelfTransfer
+                                ? 'Pilih Dompet Asal'
+                                : 'Pilih Sumber Uang',
+                            dompets: dompets,
+                            selectedDompetId: _selectedSourceDompetId,
+                            showBalanceInfo: true,
+                            checkSufficiency: true,
+                            enteredAmount: DompetSelectionDropdown.parseAmount(
+                              amountValue.text,
+                            ),
+                            editRefundAllowance: _sourceEditRefundAllowance,
+                            onChanged: (val) =>
+                                setState(() => _selectedSourceDompetId = val),
+                          );
+                        },
+                      ),
+                      AnimatedSize(
+                        duration: const Duration(milliseconds: 250),
+                        curve: Curves.easeInOut,
+                        alignment: Alignment.topCenter,
                         child: _isSelfTransfer
-                            ? _buildSelfTransferUI(dompets)
-                            : _buildNormalTransferUI(dompets),
+                            ? DompetSelectionDropdown(
+                                label: 'Ke',
+                                hint: 'Pilih Dompet Tujuan',
+                                dompets: dompets,
+                                selectedDompetId: _selectedDestDompetId,
+                                showBalanceInfo: true,
+                                checkSufficiency: false,
+                                onChanged: (val) => setState(
+                                  () => _selectedDestDompetId = val,
+                                ),
+                              )
+                            : const SizedBox.shrink(),
                       ),
                       CustomTextField(
                         label: 'Jumlah Uang',
@@ -398,57 +437,30 @@ class _TransferScreenState extends State<TransferScreen> {
                         },
                       ),
                       AnimatedSize(
-                        duration: const Duration(milliseconds: 300),
+                        duration: const Duration(milliseconds: 250),
                         curve: Curves.easeInOut,
+                        alignment: Alignment.topCenter,
                         child: !_isSelfTransfer
-                            ? Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  ContactSelectionAutocomplete(
-                                    label: 'Untuk',
-                                    hint: 'Nama teman',
-                                    controller: _untukController,
-                                    contacts: contacts,
-                                    validator: (value) {
-                                      if (!_isSelfTransfer &&
-                                          (value == null ||
-                                              value.trim().isEmpty)) {
-                                        return 'Nama tujuan tidak boleh kosong';
-                                      }
-                                      return null;
-                                    },
-                                  ),
-                                  GestureDetector(
-                                    onTap: () {
-                                      setState(() {
-                                        _simpanKeDaftar = !_simpanKeDaftar;
-                                      });
-                                    },
-                                    child: Padding(
-                                      padding:
-                                          const EdgeInsets.only(bottom: 24.0),
-                                      child: Row(
-                                        children: [
-                                          Icon(
-                                            _simpanKeDaftar
-                                                ? Icons.check_box
-                                                : Icons.check_box_outline_blank,
-                                            color: primaryGreen,
-                                            size: 24,
-                                          ),
-                                          const SizedBox(width: 8),
-                                          const Text(
-                                            'Simpan ke daftar',
-                                            style: TextStyle(
-                                              color: primaryGreen,
-                                              fontWeight: FontWeight.w700,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ),
-                                ],
+                            ? ContactSelectionAutocomplete(
+                                label: 'Untuk',
+                                hint: 'Nama teman',
+                                controller: _untukController,
+                                contacts: contacts,
+                                showSaveToListOption: true,
+                                saveToListValue: _simpanKeDaftar,
+                                optionsViewOpenDirection:
+                                    OptionsViewOpenDirection.up,
+                                onSaveToListChanged: (val) =>
+                                    setState(() => _simpanKeDaftar = val),
+                                onManageContacts: () =>
+                                    context.push(AppRoutes.kontak),
+                                validator: (value) {
+                                  if (!_isSelfTransfer &&
+                                      (value == null || value.trim().isEmpty)) {
+                                    return 'Nama tujuan tidak boleh kosong';
+                                  }
+                                  return null;
+                                },
                               )
                             : const SizedBox(height: 24),
                       ),
@@ -464,42 +476,11 @@ class _TransferScreenState extends State<TransferScreen> {
     );
   }
 
-  Widget _buildNormalTransferUI(List<DompetItem> dompets) {
-    return Column(
-      key: const ValueKey('normal_transfer'),
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        DompetSelectionDropdown(
-          label: 'Sumber Uang',
-          hint: 'Pilih Sumber Uang',
-          dompets: dompets,
-          selectedDompetId: _selectedSourceDompetId,
-          onChanged: (val) => setState(() => _selectedSourceDompetId = val),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildSelfTransferUI(List<DompetItem> dompets) {
-    return Column(
-      key: const ValueKey('self_transfer'),
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        DompetSelectionDropdown(
-          label: 'Dari',
-          hint: 'Pilih Dompet Asal',
-          dompets: dompets,
-          selectedDompetId: _selectedSourceDompetId,
-          onChanged: (val) => setState(() => _selectedSourceDompetId = val),
-        ),
-        DompetSelectionDropdown(
-          label: 'Ke',
-          hint: 'Pilih Dompet Tujuan',
-          dompets: dompets,
-          selectedDompetId: _selectedDestDompetId,
-          onChanged: (val) => setState(() => _selectedDestDompetId = val),
-        ),
-      ],
-    );
+  double get _sourceEditRefundAllowance {
+    final editing = widget.transactionToEdit;
+    if (editing != null && editing.dompetId == _selectedSourceDompetId) {
+      return editing.amount;
+    }
+    return 0.0;
   }
 }

@@ -3,7 +3,6 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import '../models/dompet_model.dart';
-import '../models/user_model.dart';
 import '../services/firestore_service.dart';
 
 /// Dilempar ketika pengguna membatalkan proses re-autentikasi Google.
@@ -31,9 +30,6 @@ class AuthRepository {
   Future<void> ensureUserBootstrapped(
     User user, {
     String? name,
-    String? age,
-    DateTime? birthDate,
-    String? gender,
   }) async {
     final userDocRef = _firestoreService.userDoc(user.uid);
     final initialWallet = DompetItem.initialWallet();
@@ -50,17 +46,11 @@ class AuthRepository {
           : (user.displayName?.trim().isNotEmpty == true
               ? user.displayName!.trim()
               : 'Pengguna Baru');
-      final resolvedAge = birthDate != null
-          ? UserModel.calculateAge(birthDate).toString()
-          : (age ?? '').trim();
 
       fsTx.set(userDocRef, {
         'uid': user.uid,
         'email': user.email,
         'name': resolvedName,
-        'age': resolvedAge,
-        if (birthDate != null) 'birthDate': Timestamp.fromDate(birthDate),
-        'gender': (gender ?? '').trim(),
         if (user.photoURL != null && user.photoURL!.isNotEmpty)
           'profileImageUrl': user.photoURL,
         'completedModules': <String>[],
@@ -86,9 +76,6 @@ class AuthRepository {
     required String email,
     required String password,
     required String name,
-    required String age,
-    DateTime? birthDate,
-    required String gender,
   }) async {
     final credential = await _auth.createUserWithEmailAndPassword(
       email: email.trim(),
@@ -102,9 +89,6 @@ class AuthRepository {
         await ensureUserBootstrapped(
           user,
           name: name,
-          age: age,
-          birthDate: birthDate,
-          gender: gender,
         );
 
         // Kirim email verifikasi (kalau gagal, akun tetap dibuat).
@@ -248,10 +232,6 @@ class AuthRepository {
   }
 
   Future<void> deleteUserFirestoreData(String uid) async {
-    final txSnap = await _firestoreService.transactionsCol(uid).get();
-    for (final txDoc in txSnap.docs) {
-      await _deleteCollectionDocs(txDoc.reference.collection('payments'));
-    }
     await _deleteCollectionDocs(_firestoreService.transactionsCol(uid));
     await _deleteCollectionDocs(_firestoreService.walletsCol(uid));
     await _deleteCollectionDocs(_firestoreService.contactsCol(uid));

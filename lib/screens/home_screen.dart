@@ -1,8 +1,10 @@
+import 'dart:math' as math;
 import 'package:material_ui/material_ui.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../config/app_constants.dart';
 import '../config/app_routes.dart';
+import '../data/feen_catalog.dart';
 import '../data/mission_catalog.dart';
 import '../models/mission_model.dart';
 import '../models/target_model.dart';
@@ -22,6 +24,7 @@ import '../services/local_storage_service.dart';
 import '../theme/app_colors.dart';
 import '../utils/currency_formatter.dart';
 import '../widgets/common/custom_card.dart';
+import '../widgets/common/skeleton.dart';
 import '../widgets/feen/feen_fab.dart';
 import '../widgets/home/action_menu.dart';
 import '../widgets/home/belajar_card.dart';
@@ -35,6 +38,54 @@ import '../widgets/home/total_saldo_card.dart';
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
+  static const double feenButtonWidth = 80.0;
+  static const double feenButtonHeight = 92.0;
+
+  /// Menghitung batas area gerak dan posisi default tombol Feen berdasarkan
+  /// ukuran viewport aktual `HomeScreen` (sudah otomatis menyesuaikan tinggi
+  /// ketika OfflineBanner muncul/hilang serta tinggi bottom navbar + SafeArea).
+  @visibleForTesting
+  static ({
+    double minX,
+    double maxX,
+    double minY,
+    double maxY,
+    double defaultX,
+    double defaultY,
+  }) computeFeenBounds({
+    required double viewportWidth,
+    required double viewportHeight,
+    required double topPadding,
+    required double bottomPadding,
+  }) {
+    const double horizontalEdgeMargin = 16.0;
+    const double navbarFallbackHeight = 108.0;
+    const double clearanceAboveNavbar = 16.0;
+
+    final double effectiveBottomClearance =
+        math.max(bottomPadding, navbarFallbackHeight) + clearanceAboveNavbar;
+
+    final double minX = horizontalEdgeMargin;
+    final double maxX = math.max(
+      minX,
+      viewportWidth - feenButtonWidth - horizontalEdgeMargin,
+    );
+    final double minY = topPadding + 8.0;
+    final double maxY = math.max(
+      minY,
+      viewportHeight - effectiveBottomClearance - feenButtonHeight,
+    );
+
+    return (
+      minX: minX,
+      maxX: maxX,
+      minY: minY,
+      maxY: maxY,
+      defaultX: maxX,
+      defaultY: maxY,
+    );
+  }
+
   @override
   State<HomeScreen> createState() => _HomeScreenState();
 }
@@ -42,24 +93,11 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   double _feenX = 0;
   double _feenY = 0;
-  bool _isFeenInitialized = false;
+  bool _hasUserDraggedFeen = false;
   bool _isDraggingFeen = false;
+  bool _isSnappingFeen = false;
   String? _onboardingPromptShownForUid;
   bool _isShowingOnboardingSheet = false;
-
-  static const double _feenButtonWidth = 84.0;
-  static const double _feenBottomMargin = 220.0;
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    if (!_isFeenInitialized) {
-      final size = MediaQuery.sizeOf(context);
-      _feenX = (size.width - _feenButtonWidth).clamp(0.0, double.infinity);
-      _feenY = (size.height - _feenBottomMargin).clamp(0.0, double.infinity);
-      _isFeenInitialized = true;
-    }
-  }
 
   Future<void> _handleRefresh() async {
     final userProvider = context.read<UserProvider>();
@@ -311,15 +349,9 @@ class _HomeScreenState extends State<HomeScreen> {
     final int currentXP = userProvider.xpIntoLevel;
     final int maxXP = userProvider.xpNeededForNext;
 
-    final screenSize = MediaQuery.sizeOf(context);
-    final double maxFeenX =
-        (screenSize.width - _feenButtonWidth).clamp(0.0, double.infinity);
-    final double maxFeenY =
-        (screenSize.height - _feenBottomMargin).clamp(0.0, double.infinity);
-    final double clampedFeenX = _feenX.clamp(0.0, maxFeenX);
-    final double clampedFeenY = _feenY.clamp(0.0, maxFeenY);
-
-    final double topPadding = MediaQuery.paddingOf(context).top;
+    final mediaPadding = MediaQuery.paddingOf(context);
+    final double topPadding = mediaPadding.top;
+    final double bottomPadding = mediaPadding.bottom;
     final double xpProgress =
         maxXP > 0 ? (currentXP / maxXP).clamp(0.0, 1.0) : 0.0;
     final double totalSaldoReal = dompetProvider.totalSaldo;
@@ -327,188 +359,318 @@ class _HomeScreenState extends State<HomeScreen> {
         totalSaldoReal + (totalSaldoReal * 0.02);
 
     final TargetItem? currentTarget = targetProvider.pinnedItem;
+    final bool isProfileInitialLoading =
+        userProvider.isLoading && userProvider.profile == null;
+    final bool isSaldoInitialLoading =
+        dompetProvider.isLoading && dompetProvider.items.isEmpty;
 
     return Scaffold(
       backgroundColor: Colors.transparent,
-      body: Stack(
-        children: [
-          MediaQuery.removePadding(
-            context: context,
-            removeTop: true,
-            child: RefreshIndicator(
-              onRefresh: _handleRefresh,
-              color: primaryGreen,
-              backgroundColor: scaffoldBg,
-              child: SingleChildScrollView(
-                physics: const AlwaysScrollableScrollPhysics(),
-                padding: EdgeInsets.zero,
-                child: Stack(
-                  children: [
-                    Image.asset(
-                      'assets/images/stenga_lingkaran.png',
-                      width: double.infinity,
-                      fit: BoxFit.fitWidth,
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 24,
-                        vertical: 20,
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          SizedBox(height: topPadding + 20),
-                          ProfileHeader(
-                            displayName: userProvider.displayName,
-                            level: level,
-                            imageUrl: userProvider.profileImageUrl,
-                            onProfileTap: () => context.go(AppRoutes.profile),
-                          ),
-                          const SizedBox(height: 16),
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          final feenBounds = HomeScreen.computeFeenBounds(
+            viewportWidth: constraints.maxWidth,
+            viewportHeight: constraints.maxHeight,
+            topPadding: topPadding,
+            bottomPadding: bottomPadding,
+          );
+          final double currentFeenX = _hasUserDraggedFeen
+              ? _feenX.clamp(feenBounds.minX, feenBounds.maxX)
+              : feenBounds.defaultX;
+          final double currentFeenY = _hasUserDraggedFeen
+              ? _feenY.clamp(feenBounds.minY, feenBounds.maxY)
+              : feenBounds.defaultY;
 
-                          // Total Saldo Card
-                          TotalSaldoCard(
-                            totalSaldoReal: totalSaldoReal,
-                            perkiraanMingguanReal: perkiraanMingguanReal,
-                            xpProgress: xpProgress,
-                            currentXP: currentXP,
-                            maxXP: maxXP,
-                            level: level,
-                            formatRupiah: Formatters.rupiah,
-                            onTap: () {},
+          return Stack(
+            children: [
+              MediaQuery.removePadding(
+                context: context,
+                removeTop: true,
+                child: RefreshIndicator(
+                  onRefresh: _handleRefresh,
+                  color: primaryGreen,
+                  backgroundColor: scaffoldBg,
+                  child: SingleChildScrollView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    padding: EdgeInsets.zero,
+                    child: Stack(
+                      children: [
+                        Image.asset(
+                          'assets/images/stenga_lingkaran.png',
+                          width: double.infinity,
+                          height: constraints.maxWidth > 500 ? 280 : null,
+                          fit: constraints.maxWidth > 500
+                              ? BoxFit.fill
+                              : BoxFit.fitWidth,
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 24,
+                            vertical: 20,
                           ),
-                          const SizedBox(height: 32),
-
-                          // Menu Action
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
                             children: [
-                              ActionMenu(
-                                assetPath: 'assets/images/pemasukan.svg',
-                                label: 'Pemasukan',
-                                onTap: () => context.push(AppRoutes.pemasukan),
+                              SizedBox(height: topPadding + 20),
+                              if (isProfileInitialLoading)
+                                const Padding(
+                                  padding: EdgeInsets.symmetric(vertical: 6),
+                                  child: Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Skeleton(width: 140, height: 18),
+                                          SizedBox(height: 8),
+                                          Skeleton(width: 90, height: 13),
+                                        ],
+                                      ),
+                                      Skeleton(
+                                        width: 50,
+                                        height: 50,
+                                        radius: 100,
+                                      ),
+                                    ],
+                                  ),
+                                )
+                              else
+                                ProfileHeader(
+                                  displayName: userProvider.displayName,
+                                  level: level,
+                                  imageUrl: userProvider.profileImageUrl,
+                                  frameId: userProvider
+                                      .feenEquipped[FeenSlot.frame.name],
+                                  onProfileTap: () =>
+                                      context.go(AppRoutes.profile),
+                                ),
+                              const SizedBox(height: 16),
+
+                              // Total Saldo Card
+                              if (isSaldoInitialLoading)
+                                const CustomCard(
+                                  backgroundColor: cardBg,
+                                  borderRadius: 24,
+                                  padding: EdgeInsets.all(20),
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Skeleton(width: 96, height: 14),
+                                      SizedBox(height: 10),
+                                      Skeleton(width: 190, height: 32),
+                                      SizedBox(height: 18),
+                                      Skeleton(
+                                        width: double.infinity,
+                                        height: 8,
+                                      ),
+                                      SizedBox(height: 10),
+                                      Skeleton(width: 150, height: 12),
+                                      SizedBox(height: 16),
+                                      Skeleton(
+                                        width: double.infinity,
+                                        height: 36,
+                                        radius: 12,
+                                      ),
+                                    ],
+                                  ),
+                                )
+                              else
+                                TotalSaldoCard(
+                                  totalSaldoReal: totalSaldoReal,
+                                  perkiraanMingguanReal: perkiraanMingguanReal,
+                                  xpProgress: xpProgress,
+                                  currentXP: currentXP,
+                                  maxXP: maxXP,
+                                  level: level,
+                                  formatRupiah: Formatters.rupiah,
+                                  onTap: () {},
+                                ),
+                              const SizedBox(height: 32),
+
+                              // Menu Action
+                              LayoutBuilder(
+                                builder: (context, menuConstraints) {
+                                  final double circleSize =
+                                      ((menuConstraints.maxWidth - 24) / 4)
+                                          .clamp(54.0, 72.0);
+                                  final double iconSize =
+                                      (circleSize * 0.5).clamp(27.0, 36.0);
+                                  return Row(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Expanded(
+                                        child: ActionMenu(
+                                          assetPath:
+                                              'assets/images/pemasukan.svg',
+                                          label: 'Pemasukan',
+                                          circleSize: circleSize,
+                                          iconSize: iconSize,
+                                          onTap: () => context
+                                              .push(AppRoutes.pemasukan),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 6),
+                                      Expanded(
+                                        child: ActionMenu(
+                                          assetPath:
+                                              'assets/images/pengeluaran.svg',
+                                          label: 'Pengeluaran',
+                                          circleSize: circleSize,
+                                          iconSize: iconSize,
+                                          onTap: () => context
+                                              .push(AppRoutes.pengeluaran),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 6),
+                                      Expanded(
+                                        child: ActionMenu(
+                                          assetPath:
+                                              'assets/images/pinjaman.svg',
+                                          label: 'Pinjaman',
+                                          circleSize: circleSize,
+                                          iconSize: iconSize,
+                                          onTap: () =>
+                                              context.push(AppRoutes.pinjaman),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 6),
+                                      Expanded(
+                                        child: ActionMenu(
+                                          assetPath:
+                                              'assets/images/transfer.png',
+                                          label: 'Transfer',
+                                          circleSize: circleSize,
+                                          iconSize: iconSize,
+                                          iconPadding:
+                                              const EdgeInsets.only(left: 4.0),
+                                          onTap: () =>
+                                              context.push(AppRoutes.transfer),
+                                        ),
+                                      ),
+                                    ],
+                                  );
+                                },
                               ),
-                              ActionMenu(
-                                assetPath: 'assets/images/pengeluaran.svg',
-                                label: 'Pengeluaran',
+                              const SizedBox(height: 24),
+
+                              // Misi Harian Banner
+                              _buildDailyMissionBanner(missionProvider),
+                              const SizedBox(height: 24),
+
+                              // Target Menabung
+                              SectionHeader(
+                                title: 'Target Menabung',
+                                actionText: 'Lihat Semua',
+                                onActionTap: () =>
+                                    context.push(AppRoutes.targetMenabung),
+                              ),
+                              const SizedBox(height: 12),
+
+                              TargetMenabungHome(
+                                currentTarget: currentTarget,
+                                totalSaldoReal: totalSaldoReal,
+                                formatRupiah: Formatters.rupiah,
+                                onTambahTarget: _tambahTargetData,
+                              ),
+                              const SizedBox(height: 24),
+
+                              // Daftar Pinjaman
+                              SectionHeader(
+                                title: 'Daftar Pinjaman',
+                                actionText: 'Lihat Semua',
+                                onActionTap: () =>
+                                    context.push(AppRoutes.daftarPinjaman),
+                              ),
+                              const SizedBox(height: 12),
+                              PinjamanHome(
+                                formatRupiah: Formatters.rupiah,
                                 onTap: () =>
-                                    context.push(AppRoutes.pengeluaran),
+                                    context.push(AppRoutes.daftarPinjaman),
                               ),
-                              ActionMenu(
-                                assetPath: 'assets/images/pinjaman.svg',
-                                label: 'Pinjaman',
-                                onTap: () => context.push(AppRoutes.pinjaman),
+                              const SizedBox(height: 24),
+
+                              // Ruang Belajar
+                              SectionHeader(
+                                title: 'Ruang Belajar',
+                                actionText: 'Lihat Semua',
+                                onActionTap: () =>
+                                    context.push(AppRoutes.ruangBelajar),
                               ),
-                              ActionMenu(
-                                assetPath: 'assets/images/transfer.png',
-                                label: 'Transfer',
-                                iconPadding: const EdgeInsets.only(left: 4.0),
-                                onTap: () => context.push(AppRoutes.transfer),
+                              const SizedBox(height: 12),
+                              GestureDetector(
+                                onTap: () =>
+                                    context.push(AppRoutes.ruangBelajar),
+                                child: const BelajarCard(),
                               ),
+                              const SizedBox(height: 120),
                             ],
                           ),
-                          const SizedBox(height: 24),
-
-                          // Misi Harian Banner
-                          _buildDailyMissionBanner(missionProvider),
-                          const SizedBox(height: 24),
-
-                          // Target Menabung
-                          SectionHeader(
-                            title: 'Target Menabung',
-                            actionText: 'Lihat Semua',
-                            onActionTap: () =>
-                                context.push(AppRoutes.targetMenabung),
-                          ),
-                          const SizedBox(height: 12),
-
-                          TargetMenabungHome(
-                            currentTarget: currentTarget,
-                            totalSaldoReal: totalSaldoReal,
-                            formatRupiah: Formatters.rupiah,
-                            onTambahTarget: _tambahTargetData,
-                          ),
-                          const SizedBox(height: 24),
-
-                          // Daftar Pinjaman
-                          SectionHeader(
-                            title: 'Daftar Pinjaman',
-                            actionText: 'Lihat Semua',
-                            onActionTap: () =>
-                                context.push(AppRoutes.daftarPinjaman),
-                          ),
-                          const SizedBox(height: 12),
-                          PinjamanHome(
-                            formatRupiah: Formatters.rupiah,
-                            onTap: () => context.push(AppRoutes.daftarPinjaman),
-                          ),
-                          const SizedBox(height: 24),
-
-                          // Ruang Belajar
-                          SectionHeader(
-                            title: 'Ruang Belajar',
-                            actionText: 'Lihat Semua',
-                            onActionTap: () =>
-                                context.push(AppRoutes.ruangBelajar),
-                          ),
-                          const SizedBox(height: 12),
-                          GestureDetector(
-                            onTap: () => context.push(AppRoutes.ruangBelajar),
-                            child: const BelajarCard(),
-                          ),
-                          const SizedBox(height: 120),
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
-                  ],
+                  ),
                 ),
               ),
-            ),
-          ),
 
-          // Floating button Tanya Feen
-          AnimatedPositioned(
-            duration: _isDraggingFeen
-                ? Duration.zero
-                : const Duration(milliseconds: 300),
-            curve: Curves.easeOutBack,
-            left: clampedFeenX,
-            top: clampedFeenY,
-            child: GestureDetector(
-              onPanStart: (details) {
-                setState(() => _isDraggingFeen = true);
-              },
-              onPanUpdate: (details) {
-                final size = MediaQuery.sizeOf(context);
-                setState(() {
-                  _feenX = (_feenX + details.delta.dx).clamp(
-                      0.0, (size.width - 80).clamp(0.0, double.infinity));
-                  _feenY = (_feenY + details.delta.dy).clamp(
-                    0.0,
-                    (size.height - _feenBottomMargin)
-                        .clamp(0.0, double.infinity),
-                  );
-                });
-              },
-              onPanEnd: (details) {
-                final screenWidth = MediaQuery.sizeOf(context).width;
-                setState(() {
-                  _isDraggingFeen = false;
-                  final centerScreen = screenWidth / 2;
-
-                  if (_feenX + 30 < centerScreen) {
-                    _feenX = 24.0;
-                  } else {
-                    _feenX = (screenWidth - _feenButtonWidth)
-                        .clamp(0.0, double.infinity);
+              // Floating button Tanya Feen
+              AnimatedPositioned(
+                duration: _isSnappingFeen
+                    ? const Duration(milliseconds: 300)
+                    : Duration.zero,
+                curve: Curves.easeOutBack,
+                onEnd: () {
+                  if (_isSnappingFeen && mounted) {
+                    setState(() => _isSnappingFeen = false);
                   }
-                });
-              },
-              onTap: () => context.push(AppRoutes.tanyaFeen),
-              child: const FeenFab(),
-            ),
-          ),
-        ],
+                },
+                left: currentFeenX,
+                top: currentFeenY,
+                child: GestureDetector(
+                  onPanStart: (details) {
+                    setState(() {
+                      _isDraggingFeen = true;
+                      _isSnappingFeen = false;
+                      if (!_hasUserDraggedFeen) {
+                        _feenX = currentFeenX;
+                        _feenY = currentFeenY;
+                        _hasUserDraggedFeen = true;
+                      }
+                    });
+                  },
+                  onPanUpdate: (details) {
+                    if (!_isDraggingFeen) return;
+                    setState(() {
+                      _feenX = (_feenX + details.delta.dx)
+                          .clamp(feenBounds.minX, feenBounds.maxX);
+                      _feenY = (_feenY + details.delta.dy)
+                          .clamp(feenBounds.minY, feenBounds.maxY);
+                    });
+                  },
+                  onPanEnd: (details) {
+                    final double centerScreen = constraints.maxWidth / 2;
+                    final double targetX =
+                        (_feenX + (HomeScreen.feenButtonWidth / 2) <
+                                centerScreen)
+                            ? feenBounds.minX
+                            : feenBounds.maxX;
+                    final bool willAnimateX = (targetX - _feenX).abs() > 0.5;
+                    setState(() {
+                      _isDraggingFeen = false;
+                      _isSnappingFeen = willAnimateX;
+                      _feenX = targetX;
+                    });
+                  },
+                  onTap: () => context.push(AppRoutes.tanyaFeen),
+                  child: const FeenFab(),
+                ),
+              ),
+            ],
+          );
+        },
       ),
     );
   }

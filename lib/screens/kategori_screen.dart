@@ -12,6 +12,7 @@ import '../widgets/common/custom_app_bar.dart';
 import '../widgets/common/custom_card.dart';
 import '../widgets/common/custom_filter_chip.dart';
 import '../widgets/common/custom_text_field.dart';
+import '../widgets/common/loading_overlay.dart';
 import '../widgets/common/primary_button.dart';
 
 class KategoriScreen extends StatefulWidget {
@@ -65,6 +66,8 @@ class KategoriScreen extends StatefulWidget {
 
 class _KategoriScreenState extends State<KategoriScreen> {
   late TransactionType _selectedType;
+  bool _isProcessing = false;
+  String _processingLabel = 'Memproses...';
 
   static const List<TransactionType> _tabOrder = [
     TransactionType.expense,
@@ -110,12 +113,19 @@ class _KategoriScreenState extends State<KategoriScreen> {
   }
 
   Future<void> _handleDelete(CategoryModel category) async {
+    if (_isProcessing) return;
     final categoryProvider = context.read<CategoryProvider>();
+    setState(() {
+      _isProcessing = true;
+      _processingLabel = 'Memeriksa kategori...';
+    });
     int usageCount = 0;
     try {
       usageCount = await categoryProvider.countUsages(category.id);
     } catch (_) {
       usageCount = 0;
+    } finally {
+      if (mounted) setState(() => _isProcessing = false);
     }
     if (!mounted) return;
 
@@ -185,8 +195,12 @@ class _KategoriScreenState extends State<KategoriScreen> {
       ),
     );
 
-    if (confirmed != true || !mounted) return;
+    if (confirmed != true || !mounted || _isProcessing) return;
 
+    setState(() {
+      _isProcessing = true;
+      _processingLabel = 'Menghapus kategori...';
+    });
     try {
       final reassigned = await categoryProvider.deleteCategory(
         categoryId: category.id,
@@ -217,6 +231,8 @@ class _KategoriScreenState extends State<KategoriScreen> {
           backgroundColor: Colors.redAccent,
         ),
       );
+    } finally {
+      if (mounted) setState(() => _isProcessing = false);
     }
   }
 
@@ -227,8 +243,11 @@ class _KategoriScreenState extends State<KategoriScreen> {
         categoryProvider?.customCategoriesFor(_selectedType) ?? const [];
     final builtInList = CategoryCatalog.getByType(_selectedType);
 
-    return Scaffold(
-      backgroundColor: scaffoldBg,
+    return LoadingOverlay(
+      isLoading: _isProcessing,
+      message: _processingLabel,
+      child: Scaffold(
+        backgroundColor: scaffoldBg,
       appBar: const CustomAppBar(title: 'Kelola Kategori'),
       body: Stack(
         fit: StackFit.expand,
@@ -404,6 +423,7 @@ class _KategoriScreenState extends State<KategoriScreen> {
             ),
           ),
         ],
+      ),
       ),
     );
   }

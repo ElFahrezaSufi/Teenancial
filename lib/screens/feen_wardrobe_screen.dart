@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
 import '../data/feen_catalog.dart';
@@ -7,9 +9,10 @@ import '../theme/app_text_styles.dart';
 import '../utils/error_mapper.dart';
 import '../widgets/common/custom_app_bar.dart';
 import '../widgets/common/custom_card.dart';
+import '../widgets/common/user_avatar_with_frame.dart';
 import '../widgets/feen/feen_avatar.dart';
 
-class FeenWardrobeScreen extends StatelessWidget {
+class FeenWardrobeScreen extends StatefulWidget {
   const FeenWardrobeScreen({super.key});
   static const List<FeenSlot> _slotOrder = [
     FeenSlot.head,
@@ -18,11 +21,26 @@ class FeenWardrobeScreen extends StatelessWidget {
   ];
 
   @override
+  State<FeenWardrobeScreen> createState() => _FeenWardrobeScreenState();
+}
+
+class _FeenWardrobeScreenState extends State<FeenWardrobeScreen> {
+  bool _isUpdating = false;
+  bool _isUnequippingAll = false;
+
+  @override
   Widget build(BuildContext context) {
     final user = context.watch<UserProvider>();
     final level = user.level;
     final equipped = user.feenEquipped;
+    final bool hasEquippedAccessories =
+        equipped.keys.any((key) => key != FeenSlot.frame.name);
     final tier = tierForLevel(level);
+    final remoteImageUrl = user.profileImageUrl;
+    final ImageProvider? avatarImage =
+        (remoteImageUrl != null && remoteImageUrl.isNotEmpty)
+            ? CachedNetworkImageProvider(remoteImageUrl)
+            : null;
 
     return Scaffold(
       backgroundColor: scaffoldBg,
@@ -88,52 +106,107 @@ class FeenWardrobeScreen extends StatelessWidget {
                         ),
                         const SizedBox(height: 6),
                         TextButton(
-                          onPressed: equipped.isEmpty
+                          onPressed: (!hasEquippedAccessories || _isUpdating)
                               ? null
                               : () => _handleUnequipAll(context),
-                          child: Text(
-                            'Lepas semua aksesoris',
-                            style: TextStyle(
-                              color:
-                                  equipped.isEmpty ? Colors.grey : orangeText,
-                              fontFamily: 'Inter',
-                              fontWeight: FontWeight.w700,
-                              fontSize: 13,
-                            ),
-                          ),
+                          child: _isUnequippingAll
+                              ? const SizedBox(
+                                  width: 16,
+                                  height: 16,
+                                  child: CircularProgressIndicator(
+                                    color: orangeText,
+                                    strokeWidth: 2,
+                                  ),
+                                )
+                              : Text(
+                                  'Lepas semua aksesoris',
+                                  style: TextStyle(
+                                    color: (!hasEquippedAccessories ||
+                                            _isUpdating)
+                                        ? Colors.grey
+                                        : orangeText,
+                                    fontFamily: 'Inter',
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 13,
+                                  ),
+                                ),
                         ),
                       ],
                     ),
                   ),
                   const SizedBox(height: 24),
-                  for (final slot in _slotOrder) ...[
+                  for (final slot in FeenWardrobeScreen._slotOrder) ...[
                     Text(slot.label, style: AppTextStyles.sectionTitle),
                     const SizedBox(height: 10),
-                    GridView.count(
-                      crossAxisCount: 3,
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      mainAxisSpacing: 12,
-                      crossAxisSpacing: 12,
-                      childAspectRatio: 0.82,
-                      children: [
-                        for (final accessory in feenBySlot(slot))
-                          _AccessoryTile(
-                            accessory: accessory,
-                            level: level,
-                            selected: equipped[slot.name] == accessory.id,
-                            locked: level < accessory.unlockLevel,
-                            onTap: () => _onTapAccessory(
-                              context,
-                              accessory: accessory,
-                              level: level,
-                              selected: equipped[slot.name] == accessory.id,
-                            ),
-                          ),
-                      ],
+                    LayoutBuilder(
+                      builder: (context, gridConstraints) {
+                        final int columns =
+                            gridConstraints.maxWidth >= 460 ? 4 : 3;
+                        final double aspectRatio =
+                            gridConstraints.maxWidth < 300 ? 0.68 : 0.78;
+                        return GridView.count(
+                          crossAxisCount: columns,
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          mainAxisSpacing: 12,
+                          crossAxisSpacing: 12,
+                          childAspectRatio: aspectRatio,
+                          children: [
+                            for (final accessory in feenBySlot(slot))
+                              _AccessoryTile(
+                                accessory: accessory,
+                                level: level,
+                                selected: equipped[slot.name] == accessory.id,
+                                locked: level < accessory.unlockLevel,
+                                onTap: () => _onTapAccessory(
+                                  context,
+                                  accessory: accessory,
+                                  level: level,
+                                  selected: equipped[slot.name] == accessory.id,
+                                ),
+                              ),
+                          ],
+                        );
+                      },
                     ),
                     const SizedBox(height: 20),
                   ],
+                  Text(FeenSlot.frame.label, style: AppTextStyles.sectionTitle),
+                  const SizedBox(height: 10),
+                  LayoutBuilder(
+                    builder: (context, gridConstraints) {
+                      final int columns =
+                          gridConstraints.maxWidth >= 460 ? 4 : 3;
+                      final double aspectRatio =
+                          gridConstraints.maxWidth < 300 ? 0.68 : 0.78;
+                      return GridView.count(
+                        crossAxisCount: columns,
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        mainAxisSpacing: 12,
+                        crossAxisSpacing: 12,
+                        childAspectRatio: aspectRatio,
+                        children: [
+                          for (final frame in feenBySlot(FeenSlot.frame))
+                            _FrameTile(
+                              frame: frame,
+                              avatarImage: avatarImage,
+                              selected:
+                                  equipped[FeenSlot.frame.name] == frame.id,
+                              locked: level < frame.unlockLevel,
+                              onTap: () => _onTapAccessory(
+                                context,
+                                accessory: frame,
+                                level: level,
+                                selected:
+                                    equipped[FeenSlot.frame.name] == frame.id,
+                              ),
+                            ),
+                        ],
+                      );
+                    },
+                  ),
+                  const SizedBox(height: 20),
                 ],
               ),
             ),
@@ -144,6 +217,11 @@ class FeenWardrobeScreen extends StatelessWidget {
   }
 
   Future<void> _handleUnequipAll(BuildContext context) async {
+    if (_isUpdating) return;
+    setState(() {
+      _isUpdating = true;
+      _isUnequippingAll = true;
+    });
     try {
       await context.read<UserProvider>().unequipAllFeen();
     } catch (e) {
@@ -157,6 +235,13 @@ class FeenWardrobeScreen extends StatelessWidget {
             ),
           );
       }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isUpdating = false;
+          _isUnequippingAll = false;
+        });
+      }
     }
   }
 
@@ -166,6 +251,7 @@ class FeenWardrobeScreen extends StatelessWidget {
     required int level,
     required bool selected,
   }) async {
+    if (_isUpdating) return;
     if (level < accessory.unlockLevel) {
       ScaffoldMessenger.of(context)
         ..hideCurrentSnackBar()
@@ -179,6 +265,7 @@ class FeenWardrobeScreen extends StatelessWidget {
         );
       return;
     }
+    setState(() => _isUpdating = true);
     try {
       await context
           .read<UserProvider>()
@@ -194,6 +281,8 @@ class FeenWardrobeScreen extends StatelessWidget {
             ),
           );
       }
+    } finally {
+      if (mounted) setState(() => _isUpdating = false);
     }
   }
 }
@@ -207,17 +296,12 @@ class _FeenEvolutionStagesRow extends StatelessWidget {
     required this.currentTier,
   });
 
-  static const List<({FeenTier tier, int minLevel})> _stages = [
-    (tier: FeenTier.rookie, minLevel: 1),
-    (tier: FeenTier.saver, minLevel: 6),
-    (tier: FeenTier.pro, minLevel: 11),
-  ];
-
   @override
   Widget build(BuildContext context) {
+    const stages = FeenTier.values;
     return Row(
       children: [
-        for (int i = 0; i < _stages.length; i++) ...[
+        for (int i = 0; i < stages.length; i++) ...[
           if (i > 0)
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 4),
@@ -230,8 +314,8 @@ class _FeenEvolutionStagesRow extends StatelessWidget {
           Expanded(
             child: Builder(
               builder: (context) {
-                final stage = _stages[i];
-                final isCurrent = currentTier == stage.tier;
+                final stage = stages[i];
+                final isCurrent = currentTier == stage;
                 final isUnlocked = currentLevel >= stage.minLevel;
 
                 return Container(
@@ -274,7 +358,7 @@ class _FeenEvolutionStagesRow extends StatelessWidget {
                           ),
                           const SizedBox(width: 4),
                           Text(
-                            '${stage.tier.label} (Lv.${stage.minLevel})',
+                            '${stage.label} (Lv.${stage.minLevel})',
                             style: TextStyle(
                               color: isCurrent
                                   ? Colors.white
@@ -283,9 +367,8 @@ class _FeenEvolutionStagesRow extends StatelessWidget {
                                       : primaryGreen.withValues(alpha: 0.55)),
                               fontSize: 10.5,
                               fontFamily: 'Inter',
-                              fontWeight: isCurrent
-                                  ? FontWeight.w800
-                                  : FontWeight.w700,
+                              fontWeight:
+                                  isCurrent ? FontWeight.w800 : FontWeight.w700,
                             ),
                           ),
                         ],
@@ -317,43 +400,8 @@ class _AccessoryTile extends StatelessWidget {
     required this.onTap,
   });
 
-  static const ColorFilter _grayscale = ColorFilter.matrix(<double>[
-    0.2126,
-    0.7152,
-    0.0722,
-    0,
-    0,
-    0.2126,
-    0.7152,
-    0.0722,
-    0,
-    0,
-    0.2126,
-    0.7152,
-    0.0722,
-    0,
-    0,
-    0,
-    0,
-    0,
-    1,
-    0,
-  ]);
-
   @override
   Widget build(BuildContext context) {
-    Widget preview = FeenAvatar(
-      level: level,
-      equipped: {accessory.slot.name: accessory.id},
-      size: 80,
-    );
-    if (locked) {
-      preview = ColorFiltered(
-        colorFilter: _grayscale,
-        child: Opacity(opacity: 0.45, child: preview),
-      );
-    }
-
     return Semantics(
       button: true,
       selected: selected,
@@ -375,33 +423,165 @@ class _AccessoryTile extends StatelessWidget {
           child: Column(
             children: [
               Expanded(
-                child: Stack(
-                  alignment: Alignment.center,
-                  children: [
-                    preview,
-                    if (locked)
-                      const Icon(Icons.lock_rounded,
-                          color: primaryGreen, size: 22),
-                  ],
+                child: LayoutBuilder(
+                  builder: (context, box) {
+                    final double previewSize =
+                        math.min(box.maxWidth, box.maxHeight).clamp(40.0, 74.0);
+                    Widget preview = FeenAvatar(
+                      level: level,
+                      equipped: {accessory.slot.name: accessory.id},
+                      size: previewSize,
+                    );
+                    if (locked) {
+                      preview = ColorFiltered(
+                        colorFilter: feenLockedGrayscaleFilter,
+                        child: Opacity(opacity: 0.45, child: preview),
+                      );
+                    }
+                    return Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        preview,
+                        if (locked)
+                          const Icon(
+                            Icons.lock_rounded,
+                            color: primaryGreen,
+                            size: 22,
+                          ),
+                      ],
+                    );
+                  },
                 ),
               ),
               const SizedBox(height: 4),
               Text(
                 accessory.name,
-                maxLines: 1,
+                maxLines: 2,
                 overflow: TextOverflow.ellipsis,
                 textAlign: TextAlign.center,
                 style: const TextStyle(
                   color: primaryGreen,
-                  fontSize: 11,
+                  fontSize: 10.5,
+                  height: 1.15,
                   fontFamily: 'Inter',
                   fontWeight: FontWeight.w700,
                 ),
               ),
+              const SizedBox(height: 2),
               Text(
                 locked
                     ? 'Level ${accessory.unlockLevel}'
                     : (selected ? 'Dipakai' : 'Pakai'),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: locked
+                      ? Colors.grey
+                      : (selected ? orangeText : primaryGreen),
+                  fontSize: 10,
+                  fontFamily: 'Inter',
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _FrameTile extends StatelessWidget {
+  final FeenAccessory frame;
+  final ImageProvider? avatarImage;
+  final bool selected;
+  final bool locked;
+  final VoidCallback onTap;
+
+  const _FrameTile({
+    required this.frame,
+    required this.avatarImage,
+    required this.selected,
+    required this.locked,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      button: true,
+      selected: selected,
+      label: locked
+          ? '${frame.name}, terkunci, terbuka di level ${frame.unlockLevel}'
+          : '${frame.name}${selected ? ', sedang dipakai' : ''}',
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          decoration: BoxDecoration(
+            color: cardBg,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: selected ? orangeText : primaryGreen,
+              width: selected ? 3 : 1.5,
+            ),
+          ),
+          padding: const EdgeInsets.fromLTRB(6, 8, 6, 8),
+          child: Column(
+            children: [
+              Expanded(
+                child: LayoutBuilder(
+                  builder: (context, box) {
+                    final double previewSize =
+                        math.min(box.maxWidth, box.maxHeight).clamp(42.0, 76.0);
+                    Widget preview = UserAvatarWithFrame(
+                      avatarImage: avatarImage,
+                      frameId: frame.id,
+                      size: previewSize,
+                      placeholderIconSize:
+                          (previewSize * 0.4).clamp(18.0, 30.0),
+                    );
+                    if (locked) {
+                      preview = ColorFiltered(
+                        colorFilter: feenLockedGrayscaleFilter,
+                        child: Opacity(opacity: 0.45, child: preview),
+                      );
+                    }
+                    return Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        preview,
+                        if (locked)
+                          const Icon(
+                            Icons.lock_rounded,
+                            color: primaryGreen,
+                            size: 22,
+                          ),
+                      ],
+                    );
+                  },
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                frame.name,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  color: primaryGreen,
+                  fontSize: 10.5,
+                  height: 1.15,
+                  fontFamily: 'Inter',
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                locked
+                    ? 'Level ${frame.unlockLevel}'
+                    : (selected ? 'Dipakai' : 'Pakai'),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
                 style: TextStyle(
                   color: locked
                       ? Colors.grey

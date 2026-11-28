@@ -1,8 +1,10 @@
 import 'dart:async';
+import 'dart:ui';
 import 'package:cupertino_ui/cupertino_ui.dart'
     show GlobalCupertinoLocalizations;
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/scheduler.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart'
     show GlobalWidgetsLocalizations;
 import 'package:intl/date_symbol_data_local.dart';
@@ -25,20 +27,85 @@ import 'services/connectivity_service.dart';
 import 'services/local_storage_service.dart';
 import 'services/notification_service.dart';
 import 'theme/app_colors.dart';
+import 'utils/error_mapper.dart';
+import 'widgets/common/app_fallback_views.dart';
 import 'widgets/common/offline_banner.dart';
+import 'widgets/common/responsive_app_shell.dart';
 
-void main() async {
+bool _dateFormattingReady = false;
+bool _localStorageReady = false;
+bool _notificationReady = false;
+bool _connectivityReady = false;
+
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await initializeDateFormatting('id_ID', null);
-  await LocalStorageService.instance.init();
-  await NotificationService.instance.init();
-  await ConnectivityService.instance.init();
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
 
-  runApp(
-    MultiProvider(
+  // Global error boundary: menangkap error widget & error async tak tertangkap
+  // agar aplikasi tidak menampilkan layar abu-abu/merah mentah.
+  FlutterError.onError = (FlutterErrorDetails details) {
+    FlutterError.presentError(details);
+    debugPrint('FlutterError: ${details.exceptionAsString()}');
+  };
+  PlatformDispatcher.instance.onError = (Object error, StackTrace stack) {
+    debugPrint('Uncaught platform error: $error\n$stack');
+    return true;
+  };
+  ErrorWidget.builder = (FlutterErrorDetails details) =>
+      RenderErrorFallbackView(details: details);
+
+  await SystemChrome.setPreferredOrientations(const [
+    DeviceOrientation.portraitUp,
+  ]);
+
+  await _bootstrapAndRunApp();
+}
+
+Future<void> _bootstrapAndRunApp() async {
+  try {
+    if (!_dateFormattingReady) {
+      await initializeDateFormatting('id_ID', null);
+      _dateFormattingReady = true;
+    }
+    if (!_localStorageReady) {
+      await LocalStorageService.instance.init();
+      _localStorageReady = true;
+    }
+    if (!_notificationReady) {
+      try {
+        await NotificationService.instance.init();
+      } catch (e) {
+        debugPrint('Inisialisasi notifikasi dilewati: $e');
+      }
+      _notificationReady = true;
+    }
+    if (!_connectivityReady) {
+      await ConnectivityService.instance.init();
+      _connectivityReady = true;
+    }
+    if (Firebase.apps.isEmpty) {
+      await Firebase.initializeApp(
+        options: DefaultFirebaseOptions.currentPlatform,
+      );
+    }
+
+    runApp(_buildRootApp());
+  } catch (e, stack) {
+    debugPrint('Gagal memulai aplikasi: $e\n$stack');
+    runApp(
+      StartupErrorApp(
+        errorMessage: ErrorMapper.message(
+          e,
+          fallback:
+              'Terjadi gangguan saat menyiapkan layanan aplikasi. Pastikan koneksi & perangkat siap lalu coba lagi.',
+        ),
+        onRetry: _bootstrapAndRunApp,
+      ),
+    );
+  }
+}
+
+Widget _buildRootApp() {
+  return MultiProvider(
       providers: [
         ChangeNotifierProvider.value(value: ConnectivityService.instance),
         ChangeNotifierProvider(create: (_) => AuthProvider(), lazy: false),
@@ -103,7 +170,6 @@ void main() async {
         ),
       ],
       child: const _ConnectivitySyncCoordinator(child: MyApp()),
-    ),
   );
 }
 
@@ -120,20 +186,33 @@ class _ConnectivitySyncCoordinator extends StatefulWidget {
 }
 
 class _ConnectivitySyncCoordinatorState
-    extends State<_ConnectivitySyncCoordinator> {
+    extends State<_ConnectivitySyncCoordinator> with WidgetsBindingObserver {
   late bool _wasOffline;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _wasOffline = ConnectivityService.instance.isOffline;
     ConnectivityService.instance.addListener(_onConnectivityChanged);
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     ConnectivityService.instance.removeListener(_onConnectivityChanged);
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      ConnectivityService.instance.setAppForeground(true);
+    } else if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.hidden ||
+        state == AppLifecycleState.detached) {
+      ConnectivityService.instance.setAppForeground(false);
+    }
   }
 
   void _onConnectivityChanged() {
@@ -206,7 +285,9 @@ class MyApp extends StatelessWidget {
       routerConfig: appRouter,
       builder: (context, child) {
         if (child == null) return const SizedBox.shrink();
-        return _GlobalOfflineBannerShell(child: child);
+        return ResponsiveAppShell(
+          child: _GlobalOfflineBannerShell(child: child),
+        );
       },
     );
   }

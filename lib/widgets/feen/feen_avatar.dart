@@ -1,6 +1,14 @@
 import 'package:material_ui/material_ui.dart';
 import '../../data/feen_catalog.dart';
 
+/// Filter abu-abu bersama untuk menampilkan item/evolusi yang masih terkunci.
+const ColorFilter feenLockedGrayscaleFilter = ColorFilter.matrix(<double>[
+  0.2126, 0.7152, 0.0722, 0, 0,
+  0.2126, 0.7152, 0.0722, 0, 0,
+  0.2126, 0.7152, 0.0722, 0, 0,
+  0, 0, 0, 1, 0,
+]);
+
 class FeenAvatar extends StatelessWidget {
   final int level;
   final FeenPose pose;
@@ -43,6 +51,7 @@ class FeenAvatar extends StatelessWidget {
       ),
     ];
     for (final slot in FeenSlot.values) {
+      if (slot == FeenSlot.frame) continue;
       final accessory = feenById(equipped[slot.name]);
       if (accessory != null && accessory.slot == slot) {
         layers.add(_layer(context, accessory.asset));

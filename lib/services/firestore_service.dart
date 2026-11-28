@@ -18,7 +18,7 @@ class FirestoreService {
 
   static final FirestoreService instance = FirestoreService();
 
-  static const Duration defaultServerTimeout = Duration(seconds: 5);
+  static const Duration defaultServerTimeout = Duration(seconds: 8);
 
   /// Memastikan perangkat sedang online sebelum menjalankan operasi tulis atau
   /// transaksi atomik Firestore. Melempar [OfflineException] seketika bila

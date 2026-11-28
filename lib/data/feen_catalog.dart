@@ -3,27 +3,36 @@ library;
 enum FeenSlot {
   neck('Leher'),
   face('Wajah'),
-  head('Kepala');
+  head('Kepala'),
+  frame('Bingkai Profil');
 
   final String label;
   const FeenSlot(this.label);
 }
 
 enum FeenTier {
-  rookie('Rookie'),
-  saver('Saver'),
-  pro('Pro');
+  rookie('Rookie', 1),
+  saver('Saver', 15),
+  pro('Pro', 30);
 
   final String label;
-  const FeenTier(this.label);
+  final int minLevel;
+  const FeenTier(this.label, this.minLevel);
 }
 
 enum FeenPose { normal, saving, learning, levelup, alert }
 
 FeenTier tierForLevel(int level) {
-  if (level >= 11) return FeenTier.pro;
-  if (level >= 6) return FeenTier.saver;
+  if (level >= FeenTier.pro.minLevel) return FeenTier.pro;
+  if (level >= FeenTier.saver.minLevel) return FeenTier.saver;
   return FeenTier.rookie;
+}
+
+FeenTier? tierUnlockedAt(int level) {
+  for (final tier in FeenTier.values) {
+    if (tier.minLevel == level) return tier;
+  }
+  return null;
 }
 
 class FeenAccessory {
@@ -31,15 +40,21 @@ class FeenAccessory {
   final String name;
   final FeenSlot slot;
   final int unlockLevel;
+  final double frameScale;
+  final double frameOffsetY;
 
   const FeenAccessory({
     required this.id,
     required this.name,
     required this.slot,
     required this.unlockLevel,
+    this.frameScale = 1.52,
+    this.frameOffsetY = 0.0,
   });
 
-  String get asset => 'assets/feen/accessories/${slot.name}/$id.png';
+  String get asset => slot == FeenSlot.frame
+      ? 'assets/images/$id.png'
+      : 'assets/feen/accessories/${slot.name}/$id.png';
 }
 
 const List<FeenAccessory> feenCatalog = [
@@ -62,6 +77,33 @@ const List<FeenAccessory> feenCatalog = [
       name: 'Dasi Kupu-kupu',
       slot: FeenSlot.neck,
       unlockLevel: 8),
+  FeenAccessory(
+      id: 'frame_matcha',
+      name: 'Matcha Swirl',
+      slot: FeenSlot.frame,
+      unlockLevel: 5),
+  FeenAccessory(
+      id: 'frame_cloud',
+      name: 'Dreamy Cloud',
+      slot: FeenSlot.frame,
+      unlockLevel: 11,
+      frameScale: 1.54,
+      frameOffsetY: 0.028),
+  FeenAccessory(
+      id: 'frame_explorer',
+      name: 'Smart Explorer',
+      slot: FeenSlot.frame,
+      unlockLevel: 16),
+  FeenAccessory(
+      id: 'frame_botanical',
+      name: 'Botanical Wreath',
+      slot: FeenSlot.frame,
+      unlockLevel: 22),
+  FeenAccessory(
+      id: 'frame_gold',
+      name: 'Prosperity Gold',
+      slot: FeenSlot.frame,
+      unlockLevel: 30),
 ];
 
 FeenAccessory? feenById(String? id) {

@@ -26,7 +26,10 @@ class _LoginScreenState extends State<LoginScreen> {
   final _passwordController = TextEditingController();
 
   bool _obscurePassword = true;
-  bool _isLoading = false;
+  bool _isEmailLoading = false;
+  bool _isGoogleLoading = false;
+
+  bool get _isAnyLoading => _isEmailLoading || _isGoogleLoading;
 
   @override
   void dispose() {
@@ -36,8 +39,9 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> _handleLogin() async {
+    if (_isAnyLoading) return;
     if (_formKey.currentState?.validate() ?? false) {
-      setState(() => _isLoading = true);
+      setState(() => _isEmailLoading = true);
 
       try {
         final bool isVerified = await context.read<AuthProvider>().login(
@@ -65,11 +69,11 @@ class _LoginScreenState extends State<LoginScreen> {
           );
 
         if (!mounted) return;
-        setState(() => _isLoading = false);
+        setState(() => _isEmailLoading = false);
         context.go(isVerified ? AppRoutes.home : AppRoutes.verifyEmail);
       } on FirebaseAuthException catch (e) {
         if (!mounted) return;
-        setState(() => _isLoading = false);
+        setState(() => _isEmailLoading = false);
 
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -84,7 +88,7 @@ class _LoginScreenState extends State<LoginScreen> {
         );
       } catch (e) {
         if (!mounted) return;
-        setState(() => _isLoading = false);
+        setState(() => _isEmailLoading = false);
 
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -102,7 +106,8 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> _handleGoogleLogin() async {
-    setState(() => _isLoading = true);
+    if (_isAnyLoading) return;
+    setState(() => _isGoogleLoading = true);
 
     try {
       final bool signedIn =
@@ -121,14 +126,14 @@ class _LoginScreenState extends State<LoginScreen> {
       }
 
       if (!mounted) return;
-      setState(() => _isLoading = false);
+      setState(() => _isGoogleLoading = false);
 
       if (signedIn) {
         context.go(AppRoutes.home);
       }
     } catch (e) {
       if (!mounted) return;
-      setState(() => _isLoading = false);
+      setState(() => _isGoogleLoading = false);
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -256,7 +261,7 @@ class _LoginScreenState extends State<LoginScreen> {
         SizedBox(
           height: 54,
           child: ElevatedButton(
-            onPressed: _isLoading ? null : _handleLogin,
+            onPressed: _isAnyLoading ? null : _handleLogin,
             style: ElevatedButton.styleFrom(
               backgroundColor: primaryGreen,
               shape: RoundedRectangleBorder(
@@ -264,7 +269,7 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
               elevation: 0,
             ),
-            child: _isLoading
+            child: _isEmailLoading
                 ? const SizedBox(
                     width: 24,
                     height: 24,
@@ -318,7 +323,8 @@ class _LoginScreenState extends State<LoginScreen> {
         ),
         const SizedBox(height: 12),
         _GoogleLoginButton(
-          onTap: _isLoading ? () {} : _handleGoogleLogin,
+          isLoading: _isGoogleLoading,
+          onTap: _isAnyLoading ? null : _handleGoogleLogin,
         ),
         const SizedBox(height: 32),
         Center(
@@ -357,38 +363,67 @@ class _LoginScreenState extends State<LoginScreen> {
 }
 
 class _GoogleLoginButton extends StatelessWidget {
-  const _GoogleLoginButton({required this.onTap});
-  final VoidCallback onTap;
+  const _GoogleLoginButton({
+    required this.onTap,
+    this.isLoading = false,
+  });
+
+  final VoidCallback? onTap;
+  final bool isLoading;
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: onTap,
-      child: SizedBox(
-        height: 54,
-        child: CustomCard(
-          borderRadius: 12,
-          padding: EdgeInsets.zero,
-          backgroundColor: inputBg,
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              SvgPicture.asset(
-                'assets/images/google_icon.svg',
-                height: 24,
-                width: 24,
-              ),
-              const SizedBox(width: 12),
-              const Text(
-                'Google',
-                style: TextStyle(
-                  color: primaryGreen,
-                  fontSize: 16,
-                  fontFamily: 'Inter',
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ],
+      child: Opacity(
+        opacity: onTap == null && !isLoading ? 0.6 : 1.0,
+        child: SizedBox(
+          height: 54,
+          child: CustomCard(
+            borderRadius: 12,
+            padding: EdgeInsets.zero,
+            backgroundColor: inputBg,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: isLoading
+                  ? const [
+                      SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                          color: primaryGreen,
+                          strokeWidth: 2.4,
+                        ),
+                      ),
+                      SizedBox(width: 12),
+                      Text(
+                        'Memproses Google...',
+                        style: TextStyle(
+                          color: primaryGreen,
+                          fontSize: 15,
+                          fontFamily: 'Inter',
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ]
+                  : [
+                      SvgPicture.asset(
+                        'assets/images/google_icon.svg',
+                        height: 24,
+                        width: 24,
+                      ),
+                      const SizedBox(width: 12),
+                      const Text(
+                        'Google',
+                        style: TextStyle(
+                          color: primaryGreen,
+                          fontSize: 16,
+                          fontFamily: 'Inter',
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ],
+            ),
           ),
         ),
       ),

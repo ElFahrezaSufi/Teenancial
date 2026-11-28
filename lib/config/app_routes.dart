@@ -35,6 +35,8 @@ class AppRoutes {
   static const String buatBerulang = '/buat_berulang';
   static const String ekspor = '/ekspor';
   static const String misi = '/misi';
+  static const String kontak = '/kontak';
+  static const String detailKontak = '/detail_kontak';
 
   static const Set<String> authRoutes = {
     getStarted,

@@ -1,6 +1,7 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
+import '../config/app_routes.dart';
 import '../data/category_catalog.dart';
 import '../models/dompet_model.dart';
 import '../models/transaction_model.dart';
@@ -24,10 +25,12 @@ import '../widgets/transaction/transaction_scaffold.dart';
 
 class PinjamanScreen extends StatefulWidget {
   final TransactionModel? loanToEdit;
+  final String? initialContactName;
 
   const PinjamanScreen({
     super.key,
     this.loanToEdit,
+    this.initialContactName,
   });
 
   @override
@@ -74,6 +77,9 @@ class _PinjamanScreenState extends State<PinjamanScreen> {
       _selectedTransactionDate = editing.date;
       _selectedDateObj = editing.dueDate;
       _temanController.text = LoanHelper.counterpartyName(editing);
+    } else if (widget.initialContactName != null &&
+        widget.initialContactName!.trim().isNotEmpty) {
+      _temanController.text = widget.initialContactName!.trim();
     }
 
     WidgetsBinding.instance.addPostFrameCallback((_) async {
@@ -183,16 +189,16 @@ class _PinjamanScreenState extends State<PinjamanScreen> {
       final categoryId = _selectedCategoryId ?? currentCategories.first.id;
 
       String? contactId;
-      final friendName = _temanController.text.trim();
+      String friendName = _temanController.text.trim();
       if (friendName.isNotEmpty) {
-        final existing = contactProvider.contacts.where(
-          (c) => c.name.trim().toLowerCase() == friendName.toLowerCase(),
-        );
-        if (existing.isNotEmpty) {
-          contactId = existing.first.id;
+        final existing = contactProvider.findByName(friendName);
+        if (existing != null) {
+          contactId = existing.id;
+          friendName = existing.name;
         } else if (_simpanKeDaftar) {
           final newContact = await contactProvider.addContact(friendName);
           contactId = newContact.id;
+          friendName = newContact.name;
         }
       }
 
@@ -383,13 +389,30 @@ class _PinjamanScreenState extends State<PinjamanScreen> {
                         ),
                       ),
                       const SizedBox(height: 16),
-                      DompetSelectionDropdown(
-                        label: 'Sumber Uang',
-                        hint: 'Pilih Sumber Uang',
-                        dompets: dompets,
-                        selectedDompetId: _selectedDompetId,
-                        onChanged: (val) =>
-                            setState(() => _selectedDompetId = val),
+                      ValueListenableBuilder<TextEditingValue>(
+                        valueListenable: _jumlahController,
+                        builder: (context, amountValue, _) {
+                          final bool isReceivable = _selectedTab == 1;
+                          final double editRefundAllowance = (editing != null &&
+                                  editing.type == TransactionType.receivable &&
+                                  editing.dompetId == _selectedDompetId)
+                              ? editing.amount
+                              : 0.0;
+                          return DompetSelectionDropdown(
+                            label: 'Sumber Uang',
+                            hint: 'Pilih Sumber Uang',
+                            dompets: dompets,
+                            selectedDompetId: _selectedDompetId,
+                            showBalanceInfo: true,
+                            checkSufficiency: isReceivable,
+                            enteredAmount: DompetSelectionDropdown.parseAmount(
+                              amountValue.text,
+                            ),
+                            editRefundAllowance: editRefundAllowance,
+                            onChanged: (val) =>
+                                setState(() => _selectedDompetId = val),
+                          );
+                        },
                       ),
                       CustomTextField(
                         label: 'Jumlah Uang',
@@ -494,41 +517,19 @@ class _PinjamanScreenState extends State<PinjamanScreen> {
                         hint: 'Nama teman',
                         controller: _temanController,
                         contacts: contacts,
+                        showSaveToListOption: true,
+                        saveToListValue: _simpanKeDaftar,
+                        optionsViewOpenDirection: OptionsViewOpenDirection.up,
+                        onSaveToListChanged: (val) =>
+                            setState(() => _simpanKeDaftar = val),
+                        onManageContacts: () =>
+                            context.push(AppRoutes.kontak),
                         validator: (value) {
                           if (value == null || value.trim().isEmpty) {
                             return 'Nama teman tidak boleh kosong';
                           }
                           return null;
                         },
-                      ),
-                      GestureDetector(
-                        onTap: () {
-                          setState(() {
-                            _simpanKeDaftar = !_simpanKeDaftar;
-                          });
-                        },
-                        child: Padding(
-                          padding: const EdgeInsets.only(bottom: 24.0),
-                          child: Row(
-                            children: [
-                              Icon(
-                                _simpanKeDaftar
-                                    ? Icons.check_box
-                                    : Icons.check_box_outline_blank,
-                                color: primaryGreen,
-                                size: 24,
-                              ),
-                              const SizedBox(width: 8),
-                              const Text(
-                                'Simpan ke daftar',
-                                style: TextStyle(
-                                  color: primaryGreen,
-                                  fontWeight: FontWeight.w700,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
                       ),
                       PrimaryButton(
                         label: _isLoading ? 'Menyimpan...' : 'Simpan',

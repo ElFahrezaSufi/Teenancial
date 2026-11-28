@@ -5,8 +5,10 @@ import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import '../config/app_routes.dart';
+import '../data/feen_catalog.dart';
 import '../models/user_model.dart';
 import '../providers/auth_provider.dart';
+import '../providers/contact_provider.dart';
 import '../providers/mission_provider.dart';
 import '../providers/user_provider.dart';
 import '../routes/app_router.dart';
@@ -16,6 +18,7 @@ import '../theme/app_colors.dart';
 import '../utils/error_mapper.dart';
 import '../widgets/common/custom_app_bar.dart';
 import '../widgets/common/custom_card.dart';
+import '../widgets/common/user_avatar_with_frame.dart';
 import '../widgets/feen/feen_avatar.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -39,11 +42,7 @@ class _ProfileScreenState extends State<ProfileScreen>
   String? _syncedUid;
 
   late final TextEditingController _fullNameController;
-  late final TextEditingController _ageController;
   late final TextEditingController _emailController;
-
-  String? _selectedGender;
-  DateTime? _selectedBirthDate;
 
   @override
   void initState() {
@@ -52,8 +51,6 @@ class _ProfileScreenState extends State<ProfileScreen>
     _dailyReminder = LocalStorageService.instance.dailyReminderEnabled;
     _fullNameController = TextEditingController(text: 'Memuat...');
     _emailController = TextEditingController(text: 'Memuat...');
-    _ageController = TextEditingController(text: '');
-    _selectedGender = null;
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
@@ -69,7 +66,6 @@ class _ProfileScreenState extends State<ProfileScreen>
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _fullNameController.dispose();
-    _ageController.dispose();
     _emailController.dispose();
     super.dispose();
   }
@@ -152,9 +148,6 @@ class _ProfileScreenState extends State<ProfileScreen>
         _syncedUid = null;
         _setControllerTextIfChanged(_fullNameController, 'Memuat...');
         _setControllerTextIfChanged(_emailController, 'Memuat...');
-        _setControllerTextIfChanged(_ageController, '');
-        _selectedGender = null;
-        _selectedBirthDate = null;
       }
       return;
     }
@@ -163,15 +156,6 @@ class _ProfileScreenState extends State<ProfileScreen>
     final nextName = profile.name.isNotEmpty ? profile.name : 'Pengguna';
     _setControllerTextIfChanged(_fullNameController, nextName);
     _setControllerTextIfChanged(_emailController, profile.email);
-    _setControllerTextIfChanged(_ageController, profile.age);
-    _selectedBirthDate = profile.birthDate;
-
-    final fetchedGender = profile.gender.trim();
-    if (fetchedGender == 'Laki-Laki' || fetchedGender == 'Perempuan') {
-      _selectedGender = fetchedGender;
-    } else {
-      _selectedGender = null;
-    }
   }
 
   void _startEditing() {
@@ -191,8 +175,6 @@ class _ProfileScreenState extends State<ProfileScreen>
       if (profile != null) {
         _setControllerTextIfChanged(_fullNameController, profile.name);
         _setControllerTextIfChanged(_emailController, profile.email);
-        _setControllerTextIfChanged(_ageController, profile.age);
-        _selectedBirthDate = profile.birthDate;
       } else if (_fullNameController.text == 'Memuat...') {
         _setControllerTextIfChanged(_fullNameController, '');
       }
@@ -202,39 +184,10 @@ class _ProfileScreenState extends State<ProfileScreen>
     });
   }
 
-  Future<void> _pickBirthDate() async {
-    final now = DateTime.now();
-    final defaultDate = DateTime(now.year - 17, now.month, now.day);
-    final firstDate = DateTime(now.year - 100, 1, 1);
-    final lastDate = DateTime(now.year - 10, now.month, now.day);
-
-    final initialDate = _selectedBirthDate != null &&
-            !_selectedBirthDate!.isBefore(firstDate) &&
-            !_selectedBirthDate!.isAfter(lastDate)
-        ? _selectedBirthDate!
-        : defaultDate;
-
-    final picked = await showDatePicker(
-      context: context,
-      initialDate: initialDate,
-      firstDate: firstDate,
-      lastDate: lastDate,
-      helpText: 'Pilih Tanggal Lahir',
-    );
-    if (picked == null || !mounted) return;
-
-    final calculatedAge = UserModel.calculateAge(picked);
-    setState(() {
-      _selectedBirthDate = picked;
-      _setControllerTextIfChanged(_ageController, calculatedAge.toString());
-    });
-  }
-
   Future<void> _saveProfile() async {
     if (_isSaving) return;
 
     final trimmedName = _fullNameController.text.trim();
-    final trimmedAge = _ageController.text.trim();
 
     if (trimmedName.isEmpty || trimmedName == 'Memuat...') {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -246,34 +199,11 @@ class _ProfileScreenState extends State<ProfileScreen>
       return;
     }
 
-    if (trimmedAge.isNotEmpty) {
-      final parsedAge = int.tryParse(trimmedAge);
-      if (parsedAge == null || parsedAge < 10 || parsedAge > 100) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content:
-                Text('Umur harus berupa angka antara 10 hingga 100 tahun.'),
-            backgroundColor: Colors.redAccent,
-          ),
-        );
-        return;
-      }
-    }
-
     setState(() => _isSaving = true);
 
     try {
-      final effectiveBirthDate = (_selectedBirthDate != null &&
-              UserModel.calculateAge(_selectedBirthDate!).toString() ==
-                  trimmedAge)
-          ? _selectedBirthDate
-          : null;
-
       await context.read<UserProvider>().saveProfile(
             name: trimmedName,
-            age: trimmedAge,
-            birthDate: effectiveBirthDate,
-            gender: _selectedGender ?? '',
             newImageFile: _pendingImageFile,
             removeImage: _removeExistingImage && _pendingImageFile == null,
           );
@@ -831,6 +761,61 @@ class _ProfileScreenState extends State<ProfileScreen>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
+        if (profile == null && userProvider.errorMessage != null) ...[
+          Container(
+            margin: const EdgeInsets.only(bottom: 14),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            decoration: BoxDecoration(
+              color: const Color(0xFFFFF1EC),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: const Color(0xFFE07A5F), width: 1.5),
+            ),
+            child: Row(
+              children: [
+                const Icon(
+                  Icons.error_outline_rounded,
+                  color: Color(0xFFD9534F),
+                  size: 20,
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    userProvider.errorMessage!,
+                    style: const TextStyle(
+                      color: darkGreen,
+                      fontSize: 12,
+                      fontFamily: 'Inter',
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                TextButton(
+                  onPressed: userProvider.isLoading
+                      ? null
+                      : () => context.read<UserProvider>().loadProfile(),
+                  style: TextButton.styleFrom(
+                    foregroundColor: primaryGreen,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 6,
+                    ),
+                    minimumSize: Size.zero,
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
+                  child: const Text(
+                    'Coba Lagi',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontFamily: 'Inter',
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
         // 1. Kotak Profil Utama
         CustomCard(
           backgroundColor: cardBg,
@@ -840,27 +825,13 @@ class _ProfileScreenState extends State<ProfileScreen>
             children: [
               Row(
                 children: [
-                  Container(
-                    width: 68,
-                    height: 68,
-                    decoration: BoxDecoration(
-                      color: inputBg,
-                      shape: BoxShape.circle,
-                      border: Border.all(color: primaryGreen, width: 2),
-                      image: avatarImage != null
-                          ? DecorationImage(
-                              image: avatarImage,
-                              fit: BoxFit.cover,
-                            )
-                          : null,
-                    ),
-                    child: avatarImage == null
-                        ? const Icon(
-                            Icons.person,
-                            color: primaryGreen,
-                            size: 38,
-                          )
-                        : null,
+                  UserAvatarWithFrame(
+                    avatarImage: avatarImage,
+                    frameId: userProvider.feenEquipped[FeenSlot.frame.name],
+                    size: userProvider.feenEquipped[FeenSlot.frame.name] != null
+                        ? 86
+                        : 70,
+                    placeholderIconSize: 36,
                   ),
                   const SizedBox(width: 14),
                   Expanded(
@@ -978,7 +949,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                       ),
                       SizedBox(height: 2),
                       Text(
-                        'Ganti aksesoris & tampilan maskotmu',
+                        'Ganti aksesoris Feen & bingkai profil',
                         style: TextStyle(
                           color: primaryGreen,
                           fontSize: 12,
@@ -1089,6 +1060,57 @@ class _ProfileScreenState extends State<ProfileScreen>
           padding: const EdgeInsets.symmetric(vertical: 4),
           child: Column(
             children: [
+              Builder(
+                builder: (context) {
+                  final contactProvider =
+                      Provider.of<ContactProvider?>(context);
+                  final contactCount = contactProvider?.contacts.length ?? 0;
+                  return _AccountMenuTile(
+                    icon: Icons.contacts_outlined,
+                    title: 'Daftar Kontak',
+                    subtitle: 'Kelola teman untuk transfer & pinjaman',
+                    trailing: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (contactCount > 0) ...[
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 3,
+                            ),
+                            decoration: BoxDecoration(
+                              color: primaryGreen.withValues(alpha: 0.14),
+                              borderRadius: BorderRadius.circular(100),
+                            ),
+                            child: Text(
+                              '$contactCount',
+                              style: const TextStyle(
+                                color: primaryGreen,
+                                fontSize: 11,
+                                fontFamily: 'Inter',
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                        ],
+                        Icon(
+                          Icons.chevron_right_rounded,
+                          color: primaryGreen.withValues(alpha: 0.7),
+                          size: 22,
+                        ),
+                      ],
+                    ),
+                    onTap: () => context.push(AppRoutes.kontak),
+                  );
+                },
+              ),
+              Divider(
+                height: 1,
+                indent: 60,
+                endIndent: 16,
+                color: primaryGreen.withValues(alpha: 0.15),
+              ),
               _AccountMenuTile(
                 icon: Icons.notifications_none_rounded,
                 title: 'Pengingat Harian',
@@ -1203,27 +1225,11 @@ class _ProfileScreenState extends State<ProfileScreen>
           child: Stack(
             alignment: Alignment.bottomRight,
             children: [
-              Container(
-                width: 100,
-                height: 100,
-                decoration: BoxDecoration(
-                  color: inputBg,
-                  shape: BoxShape.circle,
-                  border: Border.all(color: primaryGreen, width: 2),
-                  image: avatarImage != null
-                      ? DecorationImage(
-                          image: avatarImage,
-                          fit: BoxFit.cover,
-                        )
-                      : null,
-                ),
-                child: avatarImage == null
-                    ? const Icon(
-                        Icons.person,
-                        color: primaryGreen,
-                        size: 60,
-                      )
-                    : null,
+              UserAvatarWithFrame(
+                avatarImage: avatarImage,
+                frameId: null,
+                size: 100,
+                placeholderIconSize: 60,
               ),
               GestureDetector(
                 onTap: hasDisplayedPhoto
@@ -1257,32 +1263,6 @@ class _ProfileScreenState extends State<ProfileScreen>
           label: 'Nama Lengkap',
           controller: _fullNameController,
           isEditing: true,
-        ),
-        _EditableProfileField(
-          label: 'Umur',
-          controller: _ageController,
-          isEditing: true,
-          keyboardType: TextInputType.number,
-          suffixIcon: IconButton(
-            tooltip: 'Pilih Tanggal Lahir',
-            icon: const Icon(
-              Icons.calendar_month_outlined,
-              color: primaryGreen,
-              size: 20,
-            ),
-            onPressed: _pickBirthDate,
-          ),
-        ),
-        _EditableDropdownField(
-          label: 'Jenis Kelamin',
-          value: _selectedGender,
-          items: const ['Laki-Laki', 'Perempuan'],
-          isEditing: true,
-          onChanged: (value) {
-            setState(() {
-              _selectedGender = value;
-            });
-          },
         ),
         _EditableProfileField(
           label: 'Email',
@@ -1404,14 +1384,12 @@ class _EditableProfileField extends StatelessWidget {
   final TextEditingController controller;
   final bool isEditing;
   final TextInputType? keyboardType;
-  final Widget? suffixIcon;
 
   const _EditableProfileField({
     required this.label,
     required this.controller,
     required this.isEditing,
     this.keyboardType,
-    this.suffixIcon,
   });
 
   @override
@@ -1446,99 +1424,12 @@ class _EditableProfileField extends StatelessWidget {
                 fontFamily: 'Inter',
                 fontWeight: FontWeight.w600,
               ),
-              decoration: InputDecoration(
+              decoration: const InputDecoration(
                 border: InputBorder.none,
-                suffixIcon: suffixIcon,
                 contentPadding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               ),
             ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _EditableDropdownField extends StatelessWidget {
-  final String label;
-  final String? value;
-  final List<String> items;
-  final bool isEditing;
-  final ValueChanged<String?> onChanged;
-
-  const _EditableDropdownField({
-    required this.label,
-    required this.value,
-    required this.items,
-    required this.isEditing,
-    required this.onChanged,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            label,
-            style: const TextStyle(
-              color: primaryGreen,
-              fontSize: 14,
-              fontFamily: 'Inter',
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-          const SizedBox(height: 8),
-          CustomCard(
-            padding: EdgeInsets.zero,
-            backgroundColor: isEditing ? Colors.white : inputBg,
-            child: isEditing
-                ? DropdownButtonFormField<String>(
-                    initialValue:
-                        (value != null && items.contains(value)) ? value : null,
-                    items: items.map((String item) {
-                      return DropdownMenuItem<String>(
-                        value: item,
-                        child: Text(item),
-                      );
-                    }).toList(),
-                    onChanged: onChanged,
-                    style: const TextStyle(
-                      color: primaryGreen,
-                      fontSize: 14,
-                      fontFamily: 'Inter',
-                      fontWeight: FontWeight.w600,
-                    ),
-                    decoration: const InputDecoration(
-                      border: InputBorder.none,
-                      contentPadding:
-                          EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                    ),
-                    icon: const Icon(
-                      Icons.arrow_drop_down,
-                      color: primaryGreen,
-                    ),
-                    dropdownColor: Colors.white,
-                  )
-                : Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 14,
-                    ),
-                    child: Text(
-                      (value != null && value!.isNotEmpty) ? value! : '-',
-                      style: TextStyle(
-                        color: primaryGreen.withValues(alpha: 0.7),
-                        fontSize: 14,
-                        fontFamily: 'Inter',
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
           ),
         ],
       ),

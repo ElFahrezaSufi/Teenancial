@@ -26,6 +26,19 @@ class ContactProvider extends ChangeNotifier {
     return null;
   }
 
+  /// Mencari kontak berdasarkan nama (case-insensitive & trimmed).
+  ContactModel? findByName(String? rawName) {
+    final trimmed = rawName?.trim();
+    if (trimmed == null || trimmed.isEmpty) return null;
+    final lower = trimmed.toLowerCase();
+    for (final c in _contacts) {
+      if (c.name.trim().toLowerCase() == lower) {
+        return c;
+      }
+    }
+    return null;
+  }
+
   void updateUser(String? newUid) {
     if (_uid == newUid) return;
     _uid = newUid;
@@ -78,14 +91,33 @@ class ContactProvider extends ChangeNotifier {
     }
   }
 
-  Future<ContactModel> addContact(String name) async {
+  Future<ContactModel> addContact(
+    String name, {
+    String? note,
+    bool rejectDuplicate = false,
+  }) async {
     final targetUid = _uid;
     if (targetUid == null) {
       throw Exception('Sesi pengguna tidak ditemukan');
     }
-    final created = await _repository.addContact(targetUid, name);
+    final created = await _repository.addContact(
+      targetUid,
+      name,
+      note: note,
+      rejectDuplicate: rejectDuplicate,
+    );
     await loadContacts(silent: true);
     return created;
+  }
+
+  Future<ContactModel> updateContact(ContactModel contact) async {
+    final targetUid = _uid;
+    if (targetUid == null) {
+      throw Exception('Sesi pengguna tidak ditemukan');
+    }
+    final updated = await _repository.updateContact(targetUid, contact);
+    await loadContacts(silent: true);
+    return updated;
   }
 
   Future<void> deleteContact(String contactId) async {

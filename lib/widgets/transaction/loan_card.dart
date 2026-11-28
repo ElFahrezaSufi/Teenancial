@@ -56,6 +56,8 @@ class LoanCard extends StatelessWidget {
         : 0.0;
     final bool hasHistory =
         onShowHistory != null && (item.payments.isNotEmpty || item.isPaid);
+    final bool isDirectFullSettlement = LoanHelper.isDirectFullSettlement(item);
+    final String? paymentBadgeLabel = LoanHelper.paymentBadgeLabel(item);
     final bool canShowMenu =
         (onEdit != null && !item.isPaid) || hasHistory || onDelete != null;
 
@@ -124,31 +126,44 @@ class LoanCard extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 8),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Text(
-                    formatCurrency(
-                      hasPartialPayment ? remainingAmount : item.amount,
-                    ),
-                    style: const TextStyle(
-                      color: primaryGreen,
-                      fontSize: 14,
-                      fontFamily: 'Inter',
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                  if (hasPartialPayment)
-                    Text(
-                      'dari ${formatCurrency(item.amount)}',
-                      style: TextStyle(
-                        color: primaryGreen.withValues(alpha: 0.7),
-                        fontSize: 11,
-                        fontFamily: 'Inter',
-                        fontWeight: FontWeight.w600,
+              ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 140),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.centerRight,
+                      child: Text(
+                        formatCurrency(
+                          hasPartialPayment ? remainingAmount : item.amount,
+                        ),
+                        maxLines: 1,
+                        style: const TextStyle(
+                          color: primaryGreen,
+                          fontSize: 14,
+                          fontFamily: 'Inter',
+                          fontWeight: FontWeight.w800,
+                        ),
                       ),
                     ),
-                ],
+                    if (hasPartialPayment)
+                      FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: Alignment.centerRight,
+                        child: Text(
+                          'dari ${formatCurrency(item.amount)}',
+                          maxLines: 1,
+                          style: TextStyle(
+                            color: primaryGreen.withValues(alpha: 0.7),
+                            fontSize: 11,
+                            fontFamily: 'Inter',
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
               ),
               if (canShowMenu) ...[
                 const SizedBox(width: 2),
@@ -198,15 +213,15 @@ class LoanCard extends StatelessWidget {
                           value: 'history',
                           child: Row(
                             children: [
-                              const Icon(
-                                Icons.history_rounded,
+                              Icon(
+                                isDirectFullSettlement
+                                    ? Icons.receipt_long_outlined
+                                    : Icons.history_rounded,
                                 color: primaryGreen,
                               ),
                               const SizedBox(width: 8),
                               Text(
-                                item.payments.isNotEmpty
-                                    ? 'Riwayat Cicilan (${item.payments.length})'
-                                    : 'Detail Pelunasan',
+                                LoanHelper.paymentHistoryLabel(item),
                                 style: const TextStyle(
                                   color: primaryGreen,
                                   fontWeight: FontWeight.w600,
@@ -294,7 +309,7 @@ class LoanCard extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
-              if (item.payments.isNotEmpty && onShowHistory != null) ...[
+              if (paymentBadgeLabel != null && onShowHistory != null) ...[
                 GestureDetector(
                   onTap: onShowHistory,
                   child: Container(
@@ -309,14 +324,16 @@ class LoanCard extends StatelessWidget {
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(
-                          Icons.history_rounded,
+                        Icon(
+                          isDirectFullSettlement
+                              ? Icons.receipt_long_outlined
+                              : Icons.history_rounded,
                           size: 12,
                           color: primaryGreen,
                         ),
                         const SizedBox(width: 4),
                         Text(
-                          '${item.payments.length}x cicilan',
+                          paymentBadgeLabel,
                           style: const TextStyle(
                             color: primaryGreen,
                             fontSize: 11,

@@ -84,4 +84,35 @@ class LoanHelper {
         .replaceFirst(RegExp(r'^(Hutang dari|Piutang ke)\s+'), '')
         .trim();
   }
+
+  /// Bernilai `true` apabila pinjaman langsung dilunasi penuh tanpa cicilan
+  /// bertahap (1 kali pembayaran lunas penuh atau data legacy lunas langsung).
+  static bool isDirectFullSettlement(TransactionModel t) {
+    return isLoan(t) && t.isPaid && t.payments.length <= 1;
+  }
+
+  /// Label badge pembayaran di kartu pinjaman:
+  /// - `null` bila belum ada pembayaran dan belum lunas.
+  /// - `'Bayar Penuh'` bila langsung dilunasi dalam 1 kali bayar penuh.
+  /// - `'Nx cicilan'` bila dicicil bertahap (parsial atau lunas >= 2x bayar).
+  static String? paymentBadgeLabel(TransactionModel t) {
+    if (!isLoan(t)) return null;
+    if (t.payments.isEmpty) {
+      return t.isPaid ? 'Bayar Penuh' : null;
+    }
+    if (isDirectFullSettlement(t)) {
+      return 'Bayar Penuh';
+    }
+    return '${t.payments.length}x cicilan';
+  }
+
+  /// Label menu/tindakan riwayat pembayaran pada kartu pinjaman.
+  static String paymentHistoryLabel(TransactionModel t) {
+    if (isDirectFullSettlement(t)) {
+      return 'Detail Pelunasan';
+    }
+    return t.payments.isNotEmpty
+        ? 'Riwayat Cicilan (${t.payments.length})'
+        : 'Detail Pelunasan';
+  }
 }

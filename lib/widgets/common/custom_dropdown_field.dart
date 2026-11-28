@@ -9,6 +9,7 @@ class CustomDropdownField extends StatelessWidget {
   final Map<String, Widget>? itemLeading;
   final void Function(String?)? onChanged;
   final String? Function(String?)? validator;
+  final double bottomPadding;
 
   const CustomDropdownField({
     super.key,
@@ -19,6 +20,7 @@ class CustomDropdownField extends StatelessWidget {
     this.value,
     this.onChanged,
     this.validator,
+    this.bottomPadding = 16.0,
   });
 
   @override
@@ -28,7 +30,7 @@ class CustomDropdownField extends StatelessWidget {
         (value != null && uniqueItems.contains(value)) ? value : null;
 
     return Padding(
-      padding: const EdgeInsets.only(bottom: 16.0),
+      padding: EdgeInsets.only(bottom: bottomPadding),
       child: FormField<String>(
         key: ValueKey(effectiveValue),
         validator: validator,
