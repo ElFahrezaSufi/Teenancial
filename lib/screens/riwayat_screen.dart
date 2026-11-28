@@ -424,7 +424,7 @@ class _RiwayatScreenState extends State<RiwayatScreen> {
                                 TransactionActions.delete(context, id),
                           ),
                         ),
-                      const SizedBox(height: 80),
+                      const SizedBox(height: 24),
                     ],
                   ),
                 ),

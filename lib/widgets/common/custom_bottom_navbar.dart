@@ -13,63 +13,82 @@ class CustomBottomNavBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SafeArea(
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          final bool isCompact = constraints.maxWidth < 360;
-          final double horizontalMargin = isCompact ? 12.0 : 24.0;
-          final double itemHorizontalPadding = isCompact ? 4.0 : 8.0;
+    return ColoredBox(
+      color: scaffoldBg,
+      child: Container(
+        decoration: BoxDecoration(
+          color: primaryGreen,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          boxShadow: [
+            BoxShadow(
+              color: primaryGreen.withValues(alpha: 0.10),
+              blurRadius: 12,
+              offset: const Offset(0, -3),
+            ),
+          ],
+        ),
+        padding: const EdgeInsets.only(top: 1.8, left: 1.5, right: 1.5),
+        child: Container(
+          decoration: const BoxDecoration(
+            color: appBarBg,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(22.5)),
+          ),
+          child: SafeArea(
+            top: false,
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final bool isCompact = constraints.maxWidth < 360;
+                final double horizontalPadding = isCompact ? 10.0 : 16.0;
+                final double itemHorizontalPadding = isCompact ? 4.0 : 8.0;
 
-          return Container(
-            margin: EdgeInsets.only(
-              left: horizontalMargin,
-              right: horizontalMargin,
-              bottom: 16,
+                return Padding(
+                  padding: EdgeInsets.fromLTRB(
+                    horizontalPadding,
+                    8,
+                    horizontalPadding,
+                    8,
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: _buildNavItem(
+                          icon: Icons.home_filled,
+                          label: 'Beranda',
+                          index: 0,
+                          horizontalPadding: itemHorizontalPadding,
+                        ),
+                      ),
+                      Expanded(
+                        child: _buildNavItem(
+                          icon: Icons.account_balance_wallet,
+                          label: 'Dompet',
+                          index: 1,
+                          horizontalPadding: itemHorizontalPadding,
+                        ),
+                      ),
+                      Expanded(
+                        child: _buildNavItem(
+                          icon: Icons.history,
+                          label: 'Riwayat',
+                          index: 2,
+                          horizontalPadding: itemHorizontalPadding,
+                        ),
+                      ),
+                      Expanded(
+                        child: _buildNavItem(
+                          icon: Icons.person,
+                          label: 'Akun',
+                          index: 3,
+                          horizontalPadding: itemHorizontalPadding,
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              },
             ),
-            padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
-            decoration: BoxDecoration(
-              color: appBarBg,
-              borderRadius: BorderRadius.circular(40),
-              border: Border.all(color: primaryGreen, width: 2),
-            ),
-            child: Row(
-              children: [
-                Expanded(
-                  child: _buildNavItem(
-                    icon: Icons.home_filled,
-                    label: 'Beranda',
-                    index: 0,
-                    horizontalPadding: itemHorizontalPadding,
-                  ),
-                ),
-                Expanded(
-                  child: _buildNavItem(
-                    icon: Icons.account_balance_wallet,
-                    label: 'Dompet',
-                    index: 1,
-                    horizontalPadding: itemHorizontalPadding,
-                  ),
-                ),
-                Expanded(
-                  child: _buildNavItem(
-                    icon: Icons.history,
-                    label: 'Riwayat',
-                    index: 2,
-                    horizontalPadding: itemHorizontalPadding,
-                  ),
-                ),
-                Expanded(
-                  child: _buildNavItem(
-                    icon: Icons.person,
-                    label: 'Akun',
-                    index: 3,
-                    horizontalPadding: itemHorizontalPadding,
-                  ),
-                ),
-              ],
-            ),
-          );
-        },
+          ),
+        ),
       ),
     );
   }

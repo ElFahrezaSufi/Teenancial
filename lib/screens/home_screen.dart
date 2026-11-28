@@ -62,11 +62,10 @@ class HomeScreen extends StatefulWidget {
     required double bottomPadding,
   }) {
     const double horizontalEdgeMargin = 16.0;
-    const double navbarFallbackHeight = 108.0;
     const double clearanceAboveNavbar = 16.0;
 
     final double effectiveBottomClearance =
-        math.max(bottomPadding, navbarFallbackHeight) + clearanceAboveNavbar;
+        bottomPadding + clearanceAboveNavbar;
 
     final double minX = horizontalEdgeMargin;
     final double maxX = math.max(
@@ -641,7 +640,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                     context.push(AppRoutes.ruangBelajar),
                                 child: const BelajarCard(),
                               ),
-                              const SizedBox(height: 120),
+                              const SizedBox(height: 100),
                             ],
                           ),
                         ),

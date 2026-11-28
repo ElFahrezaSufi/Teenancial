@@ -54,11 +54,41 @@ Future<void> main() async {
   ErrorWidget.builder = (FlutterErrorDetails details) =>
       RenderErrorFallbackView(details: details);
 
-  await SystemChrome.setPreferredOrientations(const [
-    DeviceOrientation.portraitUp,
-  ]);
+  await _applyPreferredOrientationsForCurrentView();
 
   await _bootstrapAndRunApp();
+}
+
+bool? _lastIsTabletOrientation;
+
+/// Menjaga ponsel tetap portrait agar tata letak mobile konsisten, sementara
+/// tablet (`shortestSide >= 600 dp`) bebas berotasi sehingga [ResponsiveAppShell]
+/// mengisi layar penuh tanpa letterbox hitam.
+Future<void> _applyPreferredOrientationsForCurrentView() async {
+  final views = PlatformDispatcher.instance.views;
+  if (views.isEmpty) return;
+  final view = views.first;
+  if (view.devicePixelRatio <= 0 || view.physicalSize.isEmpty) return;
+
+  final shortestSideDp = view.physicalSize.shortestSide / view.devicePixelRatio;
+  final isTablet = shortestSideDp >= ResponsiveAppShell.tabletBreakpoint;
+  if (_lastIsTabletOrientation == isTablet) return;
+  _lastIsTabletOrientation = isTablet;
+  await _setPreferredOrientationsForDevice(isTablet: isTablet);
+}
+
+Future<void> _setPreferredOrientationsForDevice({required bool isTablet}) {
+  if (isTablet) {
+    return SystemChrome.setPreferredOrientations(const [
+      DeviceOrientation.portraitUp,
+      DeviceOrientation.portraitDown,
+      DeviceOrientation.landscapeLeft,
+      DeviceOrientation.landscapeRight,
+    ]);
+  }
+  return SystemChrome.setPreferredOrientations(const [
+    DeviceOrientation.portraitUp,
+  ]);
 }
 
 Future<void> _bootstrapAndRunApp() async {
@@ -201,6 +231,13 @@ class _ConnectivitySyncCoordinatorState
     WidgetsBinding.instance.addObserver(this);
     _wasOffline = ConnectivityService.instance.isOffline;
     ConnectivityService.instance.addListener(_onConnectivityChanged);
+    unawaited(_applyPreferredOrientationsForCurrentView());
+  }
+
+  @override
+  void didChangeMetrics() {
+    super.didChangeMetrics();
+    unawaited(_applyPreferredOrientationsForCurrentView());
   }
 
   @override
