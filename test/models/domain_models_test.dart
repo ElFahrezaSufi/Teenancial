@@ -120,6 +120,35 @@ void main() {
         expect(finished.initialBalanceOnboardingDone, isTrue);
       },
     );
+
+    test(
+      'occupationStatus opsional dan feenTone default casual serta terserialisasi dengan benar',
+      () {
+        final legacy = UserModel.fromMap({
+          'uid': 'u_old',
+          'email': 'old@example.com',
+          'name': 'User Lama',
+        });
+        expect(legacy.occupationStatus, isNull);
+        expect(legacy.feenTone, FeenTone.casual);
+
+        final personalized = legacy.copyWith(
+          occupationStatus: 'Mahasiswa',
+          feenTone: FeenTone.educational,
+        );
+        final mapped = personalized.toMap();
+        expect(mapped['occupationStatus'], 'Mahasiswa');
+        expect(mapped['feenTone'], 'educational');
+
+        final restored = UserModel.fromMap(mapped);
+        expect(restored.occupationStatus, 'Mahasiswa');
+        expect(restored.feenTone, FeenTone.educational);
+
+        final cleared = restored.copyWith(clearOccupationStatus: true);
+        expect(cleared.occupationStatus, isNull);
+        expect(cleared.toMap().containsKey('occupationStatus'), isFalse);
+      },
+    );
   });
 
   group('DompetItem & BelajarProgressModel', () {

@@ -567,13 +567,17 @@ class _TanyaFeenScreenState extends State<TanyaFeenScreen> {
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Text(
-                                action.label,
-                                style: const TextStyle(
-                                  color: primaryGreen,
-                                  fontSize: 11,
-                                  fontFamily: 'Inter',
-                                  fontWeight: FontWeight.w700,
+                              Flexible(
+                                child: Text(
+                                  action.label,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(
+                                    color: primaryGreen,
+                                    fontSize: 11,
+                                    fontFamily: 'Inter',
+                                    fontWeight: FontWeight.w700,
+                                  ),
                                 ),
                               ),
                               const SizedBox(width: 4),

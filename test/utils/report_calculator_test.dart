@@ -284,5 +284,101 @@ void main() {
         expect(insight.highlights[4], contains('Sumber pemasukan utama berasal dari Uang Jajan'));
       },
     );
+
+    test(
+      'calculateMonthlyTargetSavings menghitung alokasi bersih target menabung dan generateInsight menampilkan persentase terhadap pemasukan',
+      () {
+        final txs = <TransactionModel>[
+          TransactionModel(
+            id: 'in1',
+            title: 'Uang Bulanan',
+            amount: 1000000,
+            date: DateTime(2026, 11, 1),
+            categoryId: 'c1',
+            type: TransactionType.income,
+            dompetId: 'w1',
+          ),
+          TransactionModel(
+            id: 'ex1',
+            title: 'Makan',
+            amount: 300000,
+            date: DateTime(2026, 11, 4),
+            categoryId: 'c3',
+            type: TransactionType.expense,
+            dompetId: 'w1',
+          ),
+          // Tabung 250rb lalu tarik 50rb -> bersih 200rb (20% dari 1jt)
+          TransactionModel(
+            id: 'save1',
+            title: 'Tabungan: Kamera',
+            amount: 250000,
+            date: DateTime(2026, 11, 6),
+            categoryId: 'c6',
+            type: TransactionType.expense,
+            dompetId: 'w1',
+            isAdjustment: true,
+            targetId: 'tg1',
+          ),
+          TransactionModel(
+            id: 'withdraw1',
+            title: 'Tarik Tabungan: Kamera',
+            amount: 50000,
+            date: DateTime(2026, 11, 10),
+            categoryId: 'c19',
+            type: TransactionType.income,
+            dompetId: 'w1',
+            isAdjustment: true,
+            targetId: 'tg1',
+          ),
+          // Alokasi bulan lalu -> tidak masuk November
+          TransactionModel(
+            id: 'save_oct',
+            title: 'Tabungan Okt',
+            amount: 400000,
+            date: DateTime(2026, 10, 10),
+            categoryId: 'c6',
+            type: TransactionType.expense,
+            dompetId: 'w1',
+            isAdjustment: true,
+            targetId: 'tg1',
+          ),
+        ];
+
+        final monthlySavings =
+            ReportCalculator.calculateMonthlyTargetSavings(txs, nov2026);
+        expect(monthlySavings, 200000);
+
+        final summary = ReportCalculator.calculateMonthlySummary(txs, nov2026);
+        final expBreakdown = ReportCalculator.calculateCategoryBreakdown(
+          txs,
+          nov2026,
+          ReportFlowType.expense,
+        );
+        final incBreakdown = ReportCalculator.calculateCategoryBreakdown(
+          txs,
+          nov2026,
+          ReportFlowType.income,
+        );
+
+        final insight = ReportCalculator.generateInsight(
+          summary: summary,
+          expenseBreakdown: expBreakdown,
+          incomeBreakdown: incBreakdown,
+          formatCurrency: Formatters.rupiah,
+          monthlyTargetSavings: monthlySavings,
+          now: DateTime(2026, 11, 15),
+        );
+
+        expect(
+          insight.highlights.last,
+          'Tabungan target bulan ini: Rp 200.000 (20% dari pemasukan).',
+        );
+        expect(insight.structuredContext['monthlyTargetSavings'], 200000);
+        expect(
+          insight.structuredContext['targetSavingsRatePercent'],
+          closeTo(20.0, 0.01),
+        );
+      },
+    );
   });
 }
