@@ -237,7 +237,7 @@ class _FeenPersonalizationSheetState extends State<FeenPersonalizationSheet> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         decoration: BoxDecoration(
-          color: isSelected ? primaryGreen : Colors.white,
+          color: isSelected ? primaryGreen : scaffoldBg,
           borderRadius: BorderRadius.circular(100),
           border: Border.all(
             color: primaryGreen,
@@ -260,7 +260,7 @@ class _FeenPersonalizationSheetState extends State<FeenPersonalizationSheet> {
   Widget _buildToneOption(FeenTone tone) {
     final isSelected = _selectedTone == tone;
     return Material(
-      color: isSelected ? cardBg : Colors.white,
+      color: isSelected ? cardBg : scaffoldBg,
       borderRadius: BorderRadius.circular(14),
       child: InkWell(
         borderRadius: BorderRadius.circular(14),

@@ -307,7 +307,7 @@ class _FeenSessionSheetState extends State<FeenSessionSheet> {
                         final dateStr = DateHelper.formatShort(session.updatedAt);
 
                         return Material(
-                          color: isActive ? cardBg : Colors.white,
+                          color: isActive ? cardBg : scaffoldBg,
                           borderRadius: BorderRadius.circular(16),
                           child: InkWell(
                             borderRadius: BorderRadius.circular(16),

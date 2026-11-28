@@ -77,7 +77,7 @@ class OfflineBanner extends StatelessWidget {
                                     : () => service.refreshStatus(),
                                 style: OutlinedButton.styleFrom(
                                   foregroundColor: primaryGreen,
-                                  backgroundColor: Colors.white,
+                                  backgroundColor: appBarBg,
                                   side: const BorderSide(
                                     color: primaryGreen,
                                     width: 1,

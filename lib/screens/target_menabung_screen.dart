@@ -426,7 +426,7 @@ class TargetMenabungScreen extends StatelessWidget {
                   width: 36,
                   height: 36,
                   decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.9),
+                    color: appBarBg.withValues(alpha: 0.92),
                     shape: BoxShape.circle,
                     boxShadow: const [
                       BoxShadow(
@@ -1210,6 +1210,7 @@ class TargetMenabungScreen extends StatelessWidget {
                   DropdownButtonFormField<String>(
                     initialValue: selectedCategoryId,
                     isExpanded: true,
+                    dropdownColor: appBarBg,
                     decoration: InputDecoration(
                       labelText: 'Kategori Pengeluaran',
                       filled: true,

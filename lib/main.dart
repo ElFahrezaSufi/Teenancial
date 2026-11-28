@@ -324,7 +324,42 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         fontFamily: 'Inter',
         scaffoldBackgroundColor: scaffoldBg,
-        colorScheme: ColorScheme.fromSeed(seedColor: primaryGreen),
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: primaryGreen,
+          surface: appBarBg,
+        ),
+        popupMenuTheme: PopupMenuThemeData(
+          color: appBarBg,
+          surfaceTintColor: Colors.transparent,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+            side: BorderSide(
+              color: primaryGreen.withValues(alpha: 0.45),
+              width: 1,
+            ),
+          ),
+        ),
+        dialogTheme: DialogThemeData(
+          backgroundColor: appBarBg,
+          surfaceTintColor: Colors.transparent,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+        ),
+        bottomSheetTheme: const BottomSheetThemeData(
+          backgroundColor: appBarBg,
+          surfaceTintColor: Colors.transparent,
+        ),
+        datePickerTheme: const DatePickerThemeData(
+          backgroundColor: appBarBg,
+          surfaceTintColor: Colors.transparent,
+          headerBackgroundColor: primaryGreen,
+          headerForegroundColor: Colors.white,
+          rangePickerBackgroundColor: appBarBg,
+          rangePickerSurfaceTintColor: Colors.transparent,
+          rangePickerHeaderBackgroundColor: primaryGreen,
+          rangePickerHeaderForegroundColor: Colors.white,
+        ),
         useMaterial3: true,
       ),
       routerConfig: appRouter,

@@ -568,7 +568,7 @@ class _TanyaFeenScreenState extends State<TanyaFeenScreen> {
                             vertical: 6,
                           ),
                           decoration: BoxDecoration(
-                            color: Colors.white,
+                            color: inputBg,
                             borderRadius: BorderRadius.circular(100),
                             border: Border.all(
                               color: primaryGreen.withValues(alpha: 0.6),
@@ -971,7 +971,7 @@ class _TanyaFeenScreenState extends State<TanyaFeenScreen> {
                     color: primaryGreen,
                     size: 24,
                   ),
-                  color: Colors.white,
+                  color: appBarBg,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(14),
                     side: const BorderSide(color: primaryGreen, width: 1),

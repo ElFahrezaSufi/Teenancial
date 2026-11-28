@@ -196,7 +196,7 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen>
                   hintText: 'Masukkan password pendaftaran',
                   errorText: errorText,
                   filled: true,
-                  fillColor: Colors.white,
+                  fillColor: inputBg,
                   contentPadding: const EdgeInsets.symmetric(
                     horizontal: 14,
                     vertical: 12,

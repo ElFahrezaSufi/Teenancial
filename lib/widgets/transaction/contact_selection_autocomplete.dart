@@ -320,7 +320,7 @@ class _ContactSelectionAutocompleteState
                       key: const Key('contact_autocomplete_options'),
                       elevation: 6.0,
                       shadowColor: primaryGreen.withValues(alpha: 0.25),
-                      color: Colors.white,
+                      color: appBarBg,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                         side: BorderSide(

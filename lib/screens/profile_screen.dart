@@ -425,7 +425,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                   hintText: 'Masukkan password akunmu',
                   errorText: errorText,
                   filled: true,
-                  fillColor: Colors.white,
+                  fillColor: inputBg,
                   contentPadding:
                       const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                   border: OutlineInputBorder(
@@ -1318,7 +1318,7 @@ class _ProfileScreenState extends State<ProfileScreen>
           const SizedBox(height: 8),
           CustomCard(
             padding: EdgeInsets.zero,
-            backgroundColor: Colors.white,
+            backgroundColor: inputBg,
             child: DropdownButtonFormField<String?>(
               key: ValueKey<String?>(_selectedOccupation),
               initialValue: _selectedOccupation,
@@ -1353,7 +1353,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                 Icons.arrow_drop_down,
                 color: primaryGreen,
               ),
-              dropdownColor: Colors.white,
+              dropdownColor: appBarBg,
             ),
           ),
         ],
@@ -1498,7 +1498,7 @@ class _EditableProfileField extends StatelessWidget {
           const SizedBox(height: 8),
           CustomCard(
             padding: EdgeInsets.zero,
-            backgroundColor: isEditing ? Colors.white : inputBg,
+            backgroundColor: isEditing ? inputBg : scaffoldBg,
             child: TextFormField(
               controller: controller,
               enabled: isEditing,
