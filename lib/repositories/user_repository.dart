@@ -85,6 +85,8 @@ class UserRepository {
     File? newImageFile,
     String? currentImageUrl,
     bool removeImage = false,
+    String? occupationStatus,
+    bool updateOccupationStatus = false,
   }) async {
     _firestoreService.ensureOnline(actionLabel: 'memperbarui profil');
     String? finalImageUrl = currentImageUrl;
@@ -96,6 +98,7 @@ class UserRepository {
     }
 
     final trimmedName = name.trim().isEmpty ? 'Pengguna' : name.trim();
+    final trimmedOccupation = occupationStatus?.trim() ?? '';
     final currentUser = _auth.currentUser;
     if (currentUser != null && currentUser.uid == uid) {
       await currentUser.updateDisplayName(trimmedName);
@@ -108,6 +111,10 @@ class UserRepository {
         if (currentUser?.email != null) 'email': currentUser!.email,
         'name': trimmedName,
         'profileImageUrl': finalImageUrl,
+        if (updateOccupationStatus)
+          'occupationStatus': trimmedOccupation.isNotEmpty
+              ? trimmedOccupation
+              : FieldValue.delete(),
         for (final field in UserModel.deprecatedFields)
           field: FieldValue.delete(),
       },
@@ -119,6 +126,26 @@ class UserRepository {
     }
 
     return getUserProfile(uid);
+  }
+
+  Future<void> updatePersonalization({
+    required String uid,
+    String? occupationStatus,
+    required FeenTone feenTone,
+  }) async {
+    _firestoreService.ensureOnline(
+      actionLabel: 'menyimpan preferensi personalisasi Feen',
+    );
+    final trimmedOccupation = occupationStatus?.trim() ?? '';
+    await _firestoreService.userDoc(uid).set(
+      {
+        'occupationStatus': trimmedOccupation.isNotEmpty
+            ? trimmedOccupation
+            : FieldValue.delete(),
+        'feenTone': feenTone.id,
+      },
+      SetOptions(merge: true),
+    );
   }
 
   Future<void> saveFeenEquipped(String uid, Map<String, String> equipped) {

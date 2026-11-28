@@ -33,6 +33,9 @@ class UserProvider extends ChangeNotifier {
     return url.isNotEmpty ? url : null;
   }
 
+  String? get occupationStatus => _profile?.occupationStatus;
+  FeenTone get feenTone => _profile?.feenTone ?? FeenTone.casual;
+
   int get xp => _profile?.xp ?? 0;
   int get level => XpHelper.levelFromXp(xp);
   int get xpIntoLevel => XpHelper.xpIntoLevel(xp);
@@ -189,6 +192,8 @@ class UserProvider extends ChangeNotifier {
     required String name,
     File? newImageFile,
     bool removeImage = false,
+    String? occupationStatus,
+    bool updateOccupationStatus = false,
   }) async {
     final targetUid = _uid;
     if (targetUid == null) {
@@ -206,6 +211,8 @@ class UserProvider extends ChangeNotifier {
         newImageFile: newImageFile,
         currentImageUrl: _profile?.profileImageUrl,
         removeImage: removeImage,
+        occupationStatus: occupationStatus,
+        updateOccupationStatus: updateOccupationStatus,
       );
       if (_uid != targetUid) return;
       _profile = updated;
@@ -219,6 +226,37 @@ class UserProvider extends ChangeNotifier {
         _isLoading = false;
         notifyListeners();
       }
+    }
+  }
+
+  Future<void> updatePersonalization({
+    String? occupationStatus,
+    required FeenTone feenTone,
+  }) async {
+    final targetUid = _uid;
+    if (targetUid == null) {
+      throw Exception('Sesi pengguna tidak ditemukan');
+    }
+
+    final normalizedOccupation =
+        (occupationStatus != null && occupationStatus.trim().isNotEmpty)
+            ? occupationStatus.trim()
+            : null;
+
+    await _repository.updatePersonalization(
+      uid: targetUid,
+      occupationStatus: normalizedOccupation,
+      feenTone: feenTone,
+    );
+
+    if (_uid != targetUid) return;
+    if (_profile != null) {
+      _profile = _profile!.copyWith(
+        occupationStatus: normalizedOccupation,
+        clearOccupationStatus: normalizedOccupation == null,
+        feenTone: feenTone,
+      );
+      notifyListeners();
     }
   }
 
