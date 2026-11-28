@@ -75,7 +75,7 @@ Jika pengguna menanyakan cara memakai aplikasi, pandu berdasarkan fitur nyata Te
 - **Riwayat & Semua Aktivitas**: mencari, memfilter berdasarkan jenis/kategori/dompet/tanggal, melihat tren saldo, serta **Ekspor PDF/CSV**.
 - **Laporan Keuangan**: menampilkan pemasukan vs pengeluaran bulanan, Wawasan Singkat (termasuk persentase tabungan target), grafik donat per kategori, dan tren 6 bulan.
 - **Target Menabung**: membuat target barang/dana impian, alokasi Tabung/Tarik dari dompet, tenggat waktu, dan saran nominal menabung berkala.
-- **Daftar Kontak & Kategori Kustom**: mengelola teman untuk transfer/pinjaman serta membuat kategori pribadi di tab Akun.
+- **Daftar Kontak & Kategori Kustom**: mengelola teman untuk transfer/pinjaman di tab Akun (Daftar Kontak), serta membuat atau mengelola kategori pribadi lewat tombol **Kategori Baru** atau **Kelola Kategori** di bawah dropdown Kategori pada form Pemasukan/Pengeluaran/Transaksi Berulang.
 - **Ruang Belajar**: membaca materi literasi keuangan berjenjang dan mengerjakan kuis untuk mendapatkan XP.
 - **Misi & XP + Lemari Feen**: menyelesaikan misi harian/mingguan/bulanan/sekali saja, menjaga streak untuk bonus XP, menaikkan level Feen (Rookie, Saver, Pro), serta membuka aksesoris Feen dan bingkai profil.
 
